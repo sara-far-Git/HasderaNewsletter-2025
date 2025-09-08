@@ -1,0 +1,36 @@
+## Build Folders (לא מעלים קבצים שנוצרים בקומפילציה)
+bin/
+obj/
+out/
+Debug/
+Release/
+
+## Visual Studio files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Rider files
+.idea/
+*.sln.iml
+
+## Logs
+*.log
+logs/
+
+## Package managers
+node_modules/
+*.npm/
+
+## .NET secrets
+secrets.json
+appsettings.Development.json
+appsettings.Local.json
+
+## System files
+*.swp
+*~
+.DS_Store
+Thumbs.db
