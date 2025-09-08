@@ -1,4 +1,7 @@
 
+using HasderaApi.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace HasderaApi
 {
     public class Program
@@ -22,6 +25,8 @@ namespace HasderaApi
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+            builder.Services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             app.UseHttpsRedirection();
 
