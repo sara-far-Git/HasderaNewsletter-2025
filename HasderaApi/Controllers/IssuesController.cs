@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using HasderaApi.Data;
 using HasderaApi.Models;
-using System;
 
 namespace HasderaApi.Controllers
 {
@@ -12,87 +10,48 @@ namespace HasderaApi.Controllers
     {
         private readonly AppDbContext _context;
 
+        // הזרקת ה־DbContext דרך ה־Constructor
         public IssuesController(AppDbContext context)
         {
             _context = context;
         }
 
-        // === GET: api/issues ===
+        /// <summary>
+        /// מחזיר את כל הגיליונות
+        /// GET: api/Issues
+        /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Issue>>> GetIssues()
+        public ActionResult<IEnumerable<Issue>> GetAll()
         {
-            return await _context.Issues.ToListAsync();
+            return _context.Issues.ToList();
         }
 
-        // === GET: api/issues/5 ===
+        /// <summary>
+        /// מחזיר גיליון לפי מזהה
+        /// GET: api/Issues/{id}
+        /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<Issue>> GetIssue(int id)
+        public ActionResult<Issue> GetById(int id)
         {
-            var issue = await _context.Issues.FindAsync(id);
-
+            var issue = _context.Issues.Find(id);
             if (issue == null)
-            {
                 return NotFound();
-            }
 
             return issue;
         }
 
-        // === POST: api/issues ===
+        /// <summary>
+        /// יוצר גיליון חדש
+        /// POST: api/Issues
+        /// </summary>
         [HttpPost]
-        public async Task<ActionResult<Issue>> CreateIssue(Issue issue)
+        public ActionResult<Issue> Create(Issue issue)
         {
             _context.Issues.Add(issue);
-            await _context.SaveChangesAsync();
+            _context.SaveChanges();
 
-            // מחזיר גם את הכתובת של האובייקט החדש
-            return CreatedAtAction(nameof(GetIssue), new { id = issue.IssueId }, issue);
-        }
-
-        // === PUT: api/issues/5 ===
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateIssue(int id, Issue issue)
-        {
-            if (id != issue.IssueId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(issue).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Issues.Any(e => e.IssueId == id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // === DELETE: api/issues/5 ===
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteIssue(int id)
-        {
-            var issue = await _context.Issues.FindAsync(id);
-            if (issue == null)
-            {
-                return NotFound();
-            }
-
-            _context.Issues.Remove(issue);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            // מחזיר 201 Created עם קישור למשאב החדש
+            return CreatedAtAction(nameof(GetById), new { id = issue.IssueId }, issue);
         }
     }
 }

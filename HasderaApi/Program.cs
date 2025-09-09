@@ -1,3 +1,5 @@
+using HasderaApi.Data;
+using Microsoft.EntityFrameworkCore;
 
 using HasderaApi.Data;
 using Microsoft.EntityFrameworkCore;
@@ -10,31 +12,39 @@ namespace HasderaApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
+            // === Add services to the container ===
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // === ����� �-PostgreSQL ��� �-DbContext ===
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+            );
+
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            // === Configure the HTTP request pipeline ===
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-            builder.Services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hasdera API V1");
+
+                if (app.Environment.IsDevelopment())
+                {
+                    // ������ � Swagger ���� ��� �-root
+                    c.RoutePrefix = string.Empty;
+                }
+                else
+                {
+                    // �������� � Swagger �� ��� /swagger
+                    c.RoutePrefix = "swagger";
+                }
+            });
 
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
-
-
             app.MapControllers();
-
             app.Run();
         }
     }
