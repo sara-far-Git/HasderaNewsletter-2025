@@ -2,6 +2,9 @@ using HasderaApi.Data;
 using Microsoft.EntityFrameworkCore;
 using HasderaApi.Services;
 
+using HasderaApi.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace HasderaApi
 {
     public class Program
@@ -17,7 +20,7 @@ namespace HasderaApi
             builder.Services.AddSingleton<AiService>();
 
 
-            // === çéáåø ì-PostgreSQL ãøê ä-DbContext ===
+            // === ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½-PostgreSQL ï¿½ï¿½ï¿½ ï¿½-DbContext ===
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
             );
@@ -32,12 +35,12 @@ namespace HasderaApi
 
                 if (app.Environment.IsDevelopment())
                 {
-                    // áôéúåç – Swagger ðôúç éùø á-root
+                    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ Swagger ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½-root
                     c.RoutePrefix = string.Empty;
                 }
                 else
                 {
-                    // áôøåã÷ùï – Swagger ø÷ úçú /swagger
+                    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ Swagger ï¿½ï¿½ ï¿½ï¿½ï¿½ /swagger
                     c.RoutePrefix = "swagger";
                 }
             });
