@@ -1,6 +1,15 @@
-﻿namespace HasderaApi.Models
+﻿using System;
+using System.Collections.Generic;
+
+namespace HasderaApi.Models;
+
+public partial class Adminuser
 {
-    public class AdminUser
-    {
-    }
+    public int AdminId { get; set; }
+
+    public string Username { get; set; } = null!;
+
+    public string PasswordHash { get; set; } = null!;
+
+    public string Role { get; set; } = null!;
 }
