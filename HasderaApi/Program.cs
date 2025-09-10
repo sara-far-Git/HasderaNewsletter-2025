@@ -1,4 +1,3 @@
-
 namespace HasderaApi
 {
     public class Program
@@ -8,25 +7,23 @@ namespace HasderaApi
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            // ? הפעלה של Swagger תמיד, לא רק ב-Development
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hasdera API V1");
+                c.RoutePrefix = string.Empty; // כדי שייפתח ישר ב-root (http://localhost:5000)
+            });
 
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
