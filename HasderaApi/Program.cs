@@ -1,5 +1,6 @@
 using HasderaApi.Data;
 using Microsoft.EntityFrameworkCore;
+using HasderaApi.Services;
 
 using HasderaApi.Data;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,8 @@ namespace HasderaApi
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddSingleton<AiService>();
+
 
             // === ����� �-PostgreSQL ��� �-DbContext ===
             builder.Services.AddDbContext<AppDbContext>(options =>
