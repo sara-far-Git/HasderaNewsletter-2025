@@ -1,36 +1,74 @@
-## Build Folders (לא מעלים קבצים שנוצרים בקומפילציה)
-bin/
-obj/
-out/
-Debug/
-Release/
+### .NET Core / ASP.NET ###
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Tt]emp/
 
-## Visual Studio files
-.vs/
+# User-specific files
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
 
-## Rider files
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# NuGet
+*.nupkg
+*.snupkg
+*.nuspec
+*.dll
+*.exe
+
+# Others
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Resharper
+_ReSharper*/
+*.DotSettings.user
+
+# Rider
 .idea/
-*.sln.iml
 
-## Logs
-*.log
-logs/
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
 
-## Package managers
-node_modules/
-*.npm/
+# Dotnet tools
+.dotnet-tools
 
-## .NET secrets
-secrets.json
-appsettings.Development.json
-appsettings.Local.json
+### React / Node (hasdera-frontend) ###
+# dependencies
+hasdera-frontend/node_modules/
+hasdera-frontend/.pnp
+hasdera-frontend/.pnp.js
 
-## System files
-*.swp
-*~
-.DS_Store
-Thumbs.db
+# testing
+hasdera-frontend/coverage/
+
+# production build
+hasdera-frontend/dist/
+hasdera-frontend/build/
+
+# misc
+hasdera-frontend/.DS_Store
+hasdera-frontend/*.local
+
+# logs
+hasdera-frontend/npm-debug.log*
+hasdera-frontend/yarn-debug.log*
+hasdera-frontend/yarn-error.log*
+hasdera-frontend/pnpm-debug.log*
+hasdera-frontend/lerna-debug.log*
+
+# Editor directories and files
+hasdera-frontend/.idea
+hasdera-frontend/.vscode
+hasdera-frontend/*.suo
+hasdera-frontend/*.ntvs*
+hasdera-frontend/*.njsproj
+hasdera-frontend/*.sln
+hasdera-frontend/*.sw?
