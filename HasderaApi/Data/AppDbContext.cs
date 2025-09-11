@@ -24,7 +24,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AiEmbedding> AiEmbeddings { get; set; }
 
-    public virtual DbSet<Analytic> Analytics { get; set; }
+    public virtual DbSet<Analytics> Analytics { get; set; }
 
     public virtual DbSet<Article> Articles { get; set; }
 
@@ -156,7 +156,7 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("ai_embeddings_issue_id_fkey");
         });
 
-        modelBuilder.Entity<Analytic>(entity =>
+        modelBuilder.Entity<Analytics>(entity =>
         {
             entity.HasKey(e => e.AnalyticsId).HasName("analytics_pkey");
 

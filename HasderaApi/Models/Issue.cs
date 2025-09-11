@@ -19,7 +19,7 @@ public partial class Issue
 
     public virtual ICollection<AiEmbedding> AiEmbeddings { get; set; } = new List<AiEmbedding>();
 
-    public virtual ICollection<Analytic> Analytics { get; set; } = new List<Analytic>();
+    public virtual ICollection<Analytics> Analytics { get; set; } = new List<Analytics>();
 
     public virtual ICollection<Article> Articles { get; set; } = new List<Article>();
 
