@@ -1,13 +1,7 @@
-<<<<<<< HEAD
-=======
 using HasderaApi.Data;
-using Microsoft.EntityFrameworkCore;
 using HasderaApi.Services;
-
-using HasderaApi.Data;
 using Microsoft.EntityFrameworkCore;
 
->>>>>>> origin
 namespace HasderaApi
 {
     public class Program
@@ -16,57 +10,48 @@ namespace HasderaApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
-<<<<<<< HEAD
-            // Add services to the container.
-=======
-            // === Add services to the container ===
->>>>>>> origin
+            // Add services
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddSingleton<AiService>();
 
-
-            // === ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½-PostgreSQL ï¿½ï¿½ï¿½ ï¿½-DbContext ===
+            // çéáåø ìîñã ðúåðéí
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
             );
 
+            // === äâãøú CORS ===
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend",
+                    policy =>
+                    {
+                        policy.WithOrigins("http://localhost:5173") // äÎFrontend ùìê
+                              .AllowAnyHeader()
+                              .AllowAnyMethod();
+                    });
+            });
+
             var app = builder.Build();
 
-<<<<<<< HEAD
-            // ? äôòìä ùì Swagger úîéã, ìà ø÷ á-Development
-=======
-            // === Configure the HTTP request pipeline ===
->>>>>>> origin
+            // Swagger úîéã
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hasdera API V1");
-<<<<<<< HEAD
-                c.RoutePrefix = string.Empty; // ëãé ùééôúç éùø á-root (http://localhost:5000)
-=======
-
-                if (app.Environment.IsDevelopment())
-                {
-                    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ Swagger ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½-root
-                    c.RoutePrefix = string.Empty;
-                }
-                else
-                {
-                    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ Swagger ï¿½ï¿½ ï¿½ï¿½ï¿½ /swagger
-                    c.RoutePrefix = "swagger";
-                }
->>>>>>> origin
+                c.RoutePrefix = string.Empty;
             });
 
             app.UseHttpsRedirection();
-            app.UseAuthorization();
-<<<<<<< HEAD
 
-=======
->>>>>>> origin
+            app.UseAuthorization();
+
+            // ùéîåù áÎCORS
+            app.UseCors("AllowFrontend");
+
             app.MapControllers();
+
             app.Run();
         }
     }

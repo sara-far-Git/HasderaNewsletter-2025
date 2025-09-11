@@ -72,3 +72,5 @@ hasdera-frontend/*.ntvs*
 hasdera-frontend/*.njsproj
 hasdera-frontend/*.sln
 hasdera-frontend/*.sw?
+.vs/
+*.vsidx
