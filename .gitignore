@@ -72,3 +72,48 @@ hasdera-frontend/*.ntvs*
 hasdera-frontend/*.njsproj
 hasdera-frontend/*.sln
 hasdera-frontend/*.sw?
+
+# Visual Studio
+.vs/
+*.vsidx
+
+### Python (analytics-python) ###
+# Virtual environments
+analytics-python/venv/
+venv/
+ENV/
+env/
+.venv/
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg
+*.egg-info/
+.eggs/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+.manifest
+.pytest_cache/
+.cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+.env.*

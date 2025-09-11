@@ -1,33 +1,25 @@
-namespace HasderaApi.Models
+ן»¿using System;
+using System.Collections.Generic;
+
+namespace HasderaApi.Models;
+
+public partial class Analytics
 {
-    /// <summary>
-    /// טבלת אנליטיקות – נתוני שימוש וסטטיסטיקות
-    /// </summary>
-    public class Analytics
-    {
-        /// <summary>
-        /// מזהה ייחודי לכל רשומה
-        /// </summary>
-        public int analytics_id { get; set; }
+    public int AnalyticsId { get; set; }
 
-        /// <summary>
-        /// שם הדף או המדור
-        /// </summary>
-        public string page_name { get; set; } = string.Empty;
+    public int? AdId { get; set; }
 
-        /// <summary>
-        /// מספר הקלקות
-        /// </summary>
-        public int clicks { get; set; }
+    public int? IssueId { get; set; }
 
-        /// <summary>
-        /// מספר צפיות/חשיפות
-        /// </summary>
-        public int impressions { get; set; }
+    public int? ClicksTotal { get; set; }
 
-        /// <summary>
-        /// תאריך יצירת הנתונים
-        /// </summary>
-        public DateTime created_at { get; set; }
-    }
+    public int? UniqueReaders { get; set; }
+
+    public decimal? Ctr { get; set; }
+
+    public DateOnly ReportDate { get; set; }
+
+    public virtual Medium? Ad { get; set; }
+
+    public virtual Issue? Issue { get; set; }
 }
