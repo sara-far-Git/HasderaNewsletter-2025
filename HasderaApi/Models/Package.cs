@@ -21,6 +21,8 @@ public partial class Package
 
     public DateOnly? EndDate { get; set; }
 
+    public virtual ICollection<Adorder> Adorders { get; set; } = new List<Adorder>();
+
     public virtual ICollection<Ad> Ads { get; set; } = new List<Ad>();
 
     public virtual Advertiser Advertiser { get; set; } = null!;

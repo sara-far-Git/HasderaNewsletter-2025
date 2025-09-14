@@ -17,5 +17,5 @@ public partial class Medium
 
     public DateTime? CreatedAt { get; set; }
 
-    public virtual ICollection<Analytics> Analytics { get; set; } = new List<Analytics>();
+    public virtual ICollection<Analytic> Analytics { get; set; } = new List<Analytic>();
 }
