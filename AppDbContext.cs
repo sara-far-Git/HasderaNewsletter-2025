@@ -15,24 +15,22 @@ public partial class AppDbContext : DbContext
         : base(options)
     {
     }
-
+    public virtual DbSet<AdOrder> AdOrders { get; set; }
+    public virtual DbSet<AdPlacement> AdPlacements { get; set; }
+    public virtual DbSet<Creative> Creatives { get; set; }
+    public virtual DbSet<Invoice> Invoices { get; set; }
+    public virtual DbSet<Slot> Slots { get; set; }
+    public virtual DbSet<AdvertiserContact> AdvertiserContacts { get; set; }
+    public virtual DbSet<AdEvent> AdEvents { get; set; }
     public virtual DbSet<Ad> Ads { get; set; }
-
-    public virtual DbSet<Adevent> Adevents { get; set; }
 
     public virtual DbSet<Adminuser> Adminusers { get; set; }
 
-    public virtual DbSet<Adorder> Adorders { get; set; }
-
-    public virtual DbSet<Adplacement> Adplacements { get; set; }
-
     public virtual DbSet<Advertiser> Advertisers { get; set; }
-
-    public virtual DbSet<Advertisercontact> Advertisercontacts { get; set; }
 
     public virtual DbSet<AiEmbedding> AiEmbeddings { get; set; }
 
-    public virtual DbSet<Analytic> Analytics { get; set; }
+    public virtual DbSet<Analytics> Analytics { get; set; }
 
     public virtual DbSet<Article> Articles { get; set; }
 
@@ -41,10 +39,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Chatbotlog> Chatbotlogs { get; set; }
 
     public virtual DbSet<Click> Clicks { get; set; }
-
-    public virtual DbSet<Creative> Creatives { get; set; }
-
-    public virtual DbSet<DailyStat> DailyStats { get; set; }
 
     public virtual DbSet<Engagement> Engagements { get; set; }
 
@@ -58,13 +52,9 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Payment> Payments { get; set; }
 
-    public virtual DbSet<Publication> Publications { get; set; }
-
     public virtual DbSet<Reader> Readers { get; set; }
 
     public virtual DbSet<Recommendation> Recommendations { get; set; }
-
-    public virtual DbSet<Slot> Slots { get; set; }
 
     public virtual DbSet<Subscription> Subscriptions { get; set; }
 
@@ -78,6 +68,132 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // AdOrder
+        modelBuilder.Entity<AdOrder>(entity =>
+        {
+            entity.HasKey(e => e.AdOrderId).HasName("adorders_pkey");
+            entity.ToTable("adorders");
+
+            entity.Property(e => e.AdOrderId).HasColumnName("adorder_id");
+            entity.Property(e => e.AdvertiserId).HasColumnName("advertiser_id");
+            entity.Property(e => e.PackageId).HasColumnName("package_id");
+            entity.Property(e => e.Status).HasMaxLength(50).HasColumnName("status");
+            entity.Property(e => e.TotalPrice).HasPrecision(10, 2).HasColumnName("total_price");
+
+            entity.HasOne(d => d.Advertiser).WithMany()
+                .HasForeignKey(d => d.AdvertiserId)
+                .HasConstraintName("fk_adorder_advertiser");
+
+            entity.HasOne(d => d.Package).WithMany()
+                .HasForeignKey(d => d.PackageId)
+                .HasConstraintName("fk_adorder_package");
+        });
+
+        // AdPlacement
+        modelBuilder.Entity<AdPlacement>(entity =>
+        {
+            entity.HasKey(e => e.AdPlacementId).HasName("adplacements_pkey");
+            entity.ToTable("adplacements");
+
+            entity.Property(e => e.AdPlacementId).HasColumnName("adplacement_id");
+            entity.Property(e => e.AdOrderId).HasColumnName("adorder_id");
+            entity.Property(e => e.IssueId).HasColumnName("issue_id");
+            entity.Property(e => e.SlotId).HasColumnName("slot_id");
+
+            entity.HasOne(d => d.AdOrder).WithMany()
+                .HasForeignKey(d => d.AdOrderId)
+                .HasConstraintName("fk_adplacement_adorder");
+
+            entity.HasOne(d => d.Issue).WithMany()
+                .HasForeignKey(d => d.IssueId)
+                .HasConstraintName("fk_adplacement_issue");
+
+            entity.HasOne(d => d.Slot).WithMany()
+                .HasForeignKey(d => d.SlotId)
+                .HasConstraintName("fk_adplacement_slot");
+        });
+
+        // Creative
+        modelBuilder.Entity<Creative>(entity =>
+        {
+            entity.HasKey(e => e.CreativeId).HasName("creatives_pkey");
+            entity.ToTable("creatives");
+
+            entity.Property(e => e.CreativeId).HasColumnName("creative_id");
+            entity.Property(e => e.AdOrderId).HasColumnName("adorder_id");
+            entity.Property(e => e.FileUrl).HasColumnName("file_url");
+            entity.Property(e => e.FileType).HasMaxLength(50).HasColumnName("file_type");
+
+            entity.HasOne(d => d.AdOrder).WithMany()
+                .HasForeignKey(d => d.AdOrderId)
+                .HasConstraintName("fk_creative_adorder");
+        });
+
+        // Invoice
+        modelBuilder.Entity<Invoice>(entity =>
+        {
+            entity.HasKey(e => e.InvoiceId).HasName("invoices_pkey");
+            entity.ToTable("invoices");
+
+            entity.Property(e => e.InvoiceId).HasColumnName("invoice_id");
+            entity.Property(e => e.AdOrderId).HasColumnName("adorder_id");
+            entity.Property(e => e.Amount).HasPrecision(10, 2).HasColumnName("amount");
+            entity.Property(e => e.Status).HasMaxLength(20).HasColumnName("status");
+            entity.Property(e => e.IssueDate).HasColumnName("issue_date");
+            entity.Property(e => e.DueDate).HasColumnName("due_date");
+
+            entity.HasOne(d => d.AdOrder).WithMany()
+                .HasForeignKey(d => d.AdOrderId)
+                .HasConstraintName("fk_invoice_adorder");
+        });
+
+        // Slot
+        modelBuilder.Entity<Slot>(entity =>
+        {
+            entity.HasKey(e => e.SlotId).HasName("slots_pkey");
+            entity.ToTable("slots");
+
+            entity.Property(e => e.SlotId).HasColumnName("slot_id");
+            entity.Property(e => e.Code).HasMaxLength(50).HasColumnName("code");
+            entity.Property(e => e.Name).HasMaxLength(100).HasColumnName("name");
+            entity.Property(e => e.BasePrice).HasPrecision(10, 2).HasColumnName("base_price");
+            entity.Property(e => e.IsExclusive).HasColumnName("is_exclusive");
+        });
+
+        // AdvertiserContact
+        modelBuilder.Entity<AdvertiserContact>(entity =>
+        {
+            entity.HasKey(e => e.ContactId).HasName("advertisercontacts_pkey");
+            entity.ToTable("advertisercontacts");
+
+            entity.Property(e => e.ContactId).HasColumnName("contact_id");
+            entity.Property(e => e.AdvertiserId).HasColumnName("advertiser_id");
+            entity.Property(e => e.FullName).HasMaxLength(100).HasColumnName("full_name");
+            entity.Property(e => e.Email).HasMaxLength(100).HasColumnName("email");
+            entity.Property(e => e.Phone).HasMaxLength(20).HasColumnName("phone");
+            entity.Property(e => e.IsPrimary).HasColumnName("is_primary");
+
+            entity.HasOne(d => d.Advertiser).WithMany()
+                .HasForeignKey(d => d.AdvertiserId)
+                .HasConstraintName("fk_contact_advertiser");
+        });
+
+        // AdEvent
+        modelBuilder.Entity<AdEvent>(entity =>
+        {
+            entity.HasKey(e => e.AdEventId).HasName("adevents_pkey");
+            entity.ToTable("adevents");
+
+            entity.Property(e => e.AdEventId).HasColumnName("adevent_id");
+            entity.Property(e => e.AdPlacementId).HasColumnName("adplacement_id");
+            entity.Property(e => e.EventType).HasMaxLength(50).HasColumnName("event_type");
+            entity.Property(e => e.EventTime).HasColumnName("event_time");
+
+            entity.HasOne(d => d.AdPlacement).WithMany()
+                .HasForeignKey(d => d.AdPlacementId)
+                .HasConstraintName("fk_adevent_adplacement");
+        });
+
         modelBuilder.Entity<Ad>(entity =>
         {
             entity.HasKey(e => e.AdId).HasName("ads_pkey");
@@ -109,28 +225,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("fk_ad_package");
         });
 
-        modelBuilder.Entity<Adevent>(entity =>
-        {
-            entity.HasKey(e => e.AdeventId).HasName("adevents_pkey");
-
-            entity.ToTable("adevents");
-
-            entity.Property(e => e.AdeventId).HasColumnName("adevent_id");
-            entity.Property(e => e.AdplacementId).HasColumnName("adplacement_id");
-            entity.Property(e => e.EventTime)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("event_time");
-            entity.Property(e => e.EventType)
-                .HasMaxLength(50)
-                .HasColumnName("event_type");
-
-            entity.HasOne(d => d.Adplacement).WithMany(p => p.Adevents)
-                .HasForeignKey(d => d.AdplacementId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_adevent_adplacement");
-        });
-
         modelBuilder.Entity<Adminuser>(entity =>
         {
             entity.HasKey(e => e.AdminId).HasName("adminusers_pkey");
@@ -147,56 +241,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Username)
                 .HasMaxLength(100)
                 .HasColumnName("username");
-        });
-
-        modelBuilder.Entity<Adorder>(entity =>
-        {
-            entity.HasKey(e => e.OrderId).HasName("adorders_pkey");
-
-            entity.ToTable("adorders");
-
-            entity.Property(e => e.OrderId).HasColumnName("order_id");
-            entity.Property(e => e.AdvertiserId).HasColumnName("advertiser_id");
-            entity.Property(e => e.OrderDate)
-                .HasDefaultValueSql("CURRENT_DATE")
-                .HasColumnName("order_date");
-            entity.Property(e => e.PackageId).HasColumnName("package_id");
-            entity.Property(e => e.Status)
-                .HasMaxLength(50)
-                .HasColumnName("status");
-
-            entity.HasOne(d => d.Advertiser).WithMany(p => p.Adorders)
-                .HasForeignKey(d => d.AdvertiserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_order_advertiser");
-
-            entity.HasOne(d => d.Package).WithMany(p => p.Adorders)
-                .HasForeignKey(d => d.PackageId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_order_package");
-        });
-
-        modelBuilder.Entity<Adplacement>(entity =>
-        {
-            entity.HasKey(e => e.AdplacementId).HasName("adplacements_pkey");
-
-            entity.ToTable("adplacements");
-
-            entity.Property(e => e.AdplacementId).HasColumnName("adplacement_id");
-            entity.Property(e => e.EndDate).HasColumnName("end_date");
-            entity.Property(e => e.OrderId).HasColumnName("order_id");
-            entity.Property(e => e.SlotId).HasColumnName("slot_id");
-            entity.Property(e => e.StartDate).HasColumnName("start_date");
-
-            entity.HasOne(d => d.Order).WithMany(p => p.Adplacements)
-                .HasForeignKey(d => d.OrderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_adplacement_order");
-
-            entity.HasOne(d => d.Slot).WithMany(p => p.Adplacements)
-                .HasForeignKey(d => d.SlotId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_adplacement_slot");
         });
 
         modelBuilder.Entity<Advertiser>(entity =>
@@ -219,33 +263,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
                 .HasColumnName("phone");
-        });
-
-        modelBuilder.Entity<Advertisercontact>(entity =>
-        {
-            entity.HasKey(e => e.ContactId).HasName("advertisercontacts_pkey");
-
-            entity.ToTable("advertisercontacts");
-
-            entity.Property(e => e.ContactId).HasColumnName("contact_id");
-            entity.Property(e => e.AdvertiserId).HasColumnName("advertiser_id");
-            entity.Property(e => e.Email)
-                .HasMaxLength(100)
-                .HasColumnName("email");
-            entity.Property(e => e.FullName)
-                .HasMaxLength(100)
-                .HasColumnName("full_name");
-            entity.Property(e => e.IsPrimary)
-                .HasDefaultValue(false)
-                .HasColumnName("is_primary");
-            entity.Property(e => e.Phone)
-                .HasMaxLength(20)
-                .HasColumnName("phone");
-
-            entity.HasOne(d => d.Advertiser).WithMany(p => p.Advertisercontacts)
-                .HasForeignKey(d => d.AdvertiserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_contact_advertiser");
         });
 
         modelBuilder.Entity<AiEmbedding>(entity =>
@@ -271,7 +288,7 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("ai_embeddings_issue_id_fkey");
         });
 
-        modelBuilder.Entity<Analytic>(entity =>
+        modelBuilder.Entity<Analytics>(entity =>
         {
             entity.HasKey(e => e.AnalyticsId).HasName("analytics_pkey");
 
@@ -399,35 +416,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ReaderId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_click_reader");
-        });
-
-        modelBuilder.Entity<Creative>(entity =>
-        {
-            entity.HasKey(e => e.CreativeId).HasName("creatives_pkey");
-
-            entity.ToTable("creatives");
-
-            entity.Property(e => e.CreativeId).HasColumnName("creative_id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("created_at");
-            entity.Property(e => e.FileUrl)
-                .HasMaxLength(500)
-                .HasColumnName("file_url");
-            entity.Property(e => e.OrderId).HasColumnName("order_id");
-
-            entity.HasOne(d => d.Order).WithMany(p => p.Creatives)
-                .HasForeignKey(d => d.OrderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_creative_order");
-        });
-
-        modelBuilder.Entity<DailyStat>(entity =>
-        {
-            entity.HasNoKey();
-
-            entity.Property(e => e.BookTitle).HasColumnName("Book Title");
         });
 
         modelBuilder.Entity<Engagement>(entity =>
@@ -559,15 +547,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("fk_payment_advertiser");
         });
 
-        modelBuilder.Entity<Publication>(entity =>
-        {
-            entity.HasNoKey();
-
-            entity.Property(e => e.BookTitle).HasColumnName("Book Title");
-            entity.Property(e => e.CreatedDate).HasColumnName("Created Date");
-            entity.Property(e => e.TotalViews).HasColumnName("Total Views");
-        });
-
         modelBuilder.Entity<Reader>(entity =>
         {
             entity.HasKey(e => e.ReaderId).HasName("readers_pkey");
@@ -609,27 +588,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ArticleId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("recommendations_article_id_fkey");
-        });
-
-        modelBuilder.Entity<Slot>(entity =>
-        {
-            entity.HasKey(e => e.SlotId).HasName("slots_pkey");
-
-            entity.ToTable("slots");
-
-            entity.Property(e => e.SlotId).HasColumnName("slot_id");
-            entity.Property(e => e.BasePrice)
-                .HasPrecision(10, 2)
-                .HasColumnName("base_price");
-            entity.Property(e => e.Code)
-                .HasMaxLength(50)
-                .HasColumnName("code");
-            entity.Property(e => e.IsExclusive)
-                .HasDefaultValue(false)
-                .HasColumnName("is_exclusive");
-            entity.Property(e => e.Name)
-                .HasMaxLength(100)
-                .HasColumnName("name");
         });
 
         modelBuilder.Entity<Subscription>(entity =>

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace HasderaApi.Models;
 
-public partial class Analytics
+public partial class Analytic
 {
     public int AnalyticsId { get; set; }
 
