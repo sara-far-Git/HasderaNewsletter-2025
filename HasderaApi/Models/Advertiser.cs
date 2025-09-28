@@ -21,6 +21,8 @@ public partial class Advertiser
 
     public virtual ICollection<Ad> Ads { get; set; } = new List<Ad>();
 
+    public virtual ICollection<AdvertiserPackage> AdvertiserPackages { get; set; } = new List<AdvertiserPackage>();
+
     public virtual ICollection<Advertisercontact> Advertisercontacts { get; set; } = new List<Advertisercontact>();
 
     public virtual ICollection<Package> Packages { get; set; } = new List<Package>();
