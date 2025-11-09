@@ -64,31 +64,49 @@ namespace HasderaApi.Controllers
             if (pageSize < 1 || pageSize > 100) pageSize = 20;
             var offset = (page - 1) * pageSize;
 
-            await _db.OpenAsync();
-
-            var param = new
+            try 
             {
-                Q = string.IsNullOrWhiteSpace(q) ? null : $"%{q}%",
-                Limit = pageSize,
-                Offset = offset
-            };
+                var param = new
+                {
+                    Q = string.IsNullOrWhiteSpace(q) ? null : $"%{q}%",
+                    Limit = pageSize,
+                    Offset = offset
+                };
 
-            var sql = @"
-                SELECT issue_id, title, issue_date, file_url, pdf_url
-                FROM public.issues
-                WHERE (@Q IS NULL OR title ILIKE @Q)
-                ORDER BY issue_date DESC, issue_id DESC
-                LIMIT @Limit OFFSET @Offset;
+                var sql = @"
+                    WITH FilteredIssues AS (
+                        SELECT issue_id, title, issue_date, file_url, pdf_url
+                        FROM public.issues
+                        WHERE (@Q IS NULL OR title ILIKE @Q)
+                    )
+                    SELECT *
+                    FROM FilteredIssues
+                    ORDER BY issue_date DESC, issue_id DESC
+                    LIMIT @Limit OFFSET @Offset;
 
-                SELECT COUNT(*) 
-                FROM public.issues
-                WHERE (@Q IS NULL OR title ILIKE @Q);";
+                    SELECT COUNT(*) 
+                    FROM FilteredIssues;";
 
-            using var multi = await _db.QueryMultipleAsync(sql, param);
-            var items = (await multi.ReadAsync<IssueDto>()).ToList();
-            var total = await multi.ReadFirstAsync<int>();
+                // הגדרת Command Timeout ארוך יותר
+                var commandDefinition = new CommandDefinition(
+                    sql,
+                    param,
+                    commandTimeout: 60  // 60 שניות timeout
+                );
 
-            return Ok(new PagedResult<IssueDto>(total, page, pageSize, items));
+                using var connection = new NpgsqlConnection(_db.ConnectionString);
+                await connection.OpenAsync();
+                using var multi = await connection.QueryMultipleAsync(commandDefinition);
+                var items = (await multi.ReadAsync<IssueDto>()).ToList();
+                var total = await multi.ReadFirstAsync<int>();
+
+                return Ok(new PagedResult<IssueDto>(total, page, pageSize, items));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ שגיאה בשליפת גיליונות: {ex.Message}");
+                return StatusCode(500, "שגיאה בהתחברות לבסיס הנתונים");
+            }
         }
 
         // GET /api/issues/123

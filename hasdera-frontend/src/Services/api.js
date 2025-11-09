@@ -9,7 +9,7 @@ export const api = axios.create({
   },
   // הגדרות עבור self-signed certificate
   withCredentials: false,
-  timeout: 10000
+  timeout: 30000  // הגדלת הטיימאאוט ל-30 שניות
 });
 
 // פונקציה מרכזית לטיפול בשגיאות
