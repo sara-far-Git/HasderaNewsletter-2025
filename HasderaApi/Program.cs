@@ -10,8 +10,8 @@ using System.Security.Cryptography.X509Certificates;
 var builder = WebApplication.CreateBuilder(args);
 
 // ===== הגדרות =====
-var connStr = builder.Configuration.GetConnectionString("Hasdera")
-    ?? "Host=hasdera-db.c7gocuawyvty.eu-north-1.rds.amazonaws.com;Port=5432;Database=hasdera;Username=Hasdera;Password=Hasdera2025!;Ssl Mode=Require";
+var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 var s3Region = builder.Configuration["S3:Region"] ?? "eu-north-1";
 
@@ -29,17 +29,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
             maxRetryCount: 3,
             maxRetryDelay: TimeSpan.FromSeconds(30),
             errorCodesToAdd: null);
-        npgsqlOptions.CommandTimeout(30);
     }));
 
-// חיבור DB פר בקשה עם מדיניות נסיונות
-builder.Services.AddScoped<NpgsqlConnection>(_ => 
-{
-    var connection = new NpgsqlConnection(connStr);
-    connection.ProvideClientCertificatesCallback += (X509CertificateCollection certs) => { };
-    connection.UserCertificateValidationCallback += (sender, certificate, chain, errors) => true;
-    return connection;
-});
+// חיבור DB פר בקשה
+builder.Services.AddScoped<NpgsqlConnection>(_ => new NpgsqlConnection(connStr));
 
 // S3
 builder.Services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(RegionEndpoint.GetBySystemName(s3Region)));
