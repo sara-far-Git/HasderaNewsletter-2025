@@ -5,6 +5,7 @@ using Amazon;
 using Amazon.S3;
 using Microsoft.EntityFrameworkCore;
 using HasderaApi.Data;
+using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,12 +21,25 @@ builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.PropertyNamingPolicy = null;
 });
 
-// Entity Framework
+// Entity Framework and Database Configuration
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connStr));
+    options.UseNpgsql(connStr, npgsqlOptions =>
+    {
+        npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 3,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorCodesToAdd: null);
+        npgsqlOptions.CommandTimeout(30);
+    }));
 
-// חיבור DB פר בקשה
-builder.Services.AddScoped<NpgsqlConnection>(_ => new NpgsqlConnection(connStr));
+// חיבור DB פר בקשה עם מדיניות נסיונות
+builder.Services.AddScoped<NpgsqlConnection>(_ => 
+{
+    var connection = new NpgsqlConnection(connStr);
+    connection.ProvideClientCertificatesCallback += (X509CertificateCollection certs) => { };
+    connection.UserCertificateValidationCallback += (sender, certificate, chain, errors) => true;
+    return connection;
+});
 
 // S3
 builder.Services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(RegionEndpoint.GetBySystemName(s3Region)));
