@@ -1,5 +1,6 @@
 // src/services/api.js
 import axios from "axios";
+import axiosRetry from 'axios-retry';
 
 // יצירת אינסטנס עם baseURL
 export const api = axios.create({
@@ -9,7 +10,17 @@ export const api = axios.create({
   },
   // הגדרות עבור self-signed certificate
   withCredentials: false,
-  timeout: 30000  // הגדלת הטיימאאוט ל-30 שניות
+  timeout: 60000  // הגדלת הטיימאאוט ל-60 שניות
+});
+
+// הגדרת retry logic
+axiosRetry(api, { 
+  retries: 3,
+  retryDelay: axiosRetry.exponentialDelay,
+  retryCondition: (error) => {
+    return axiosRetry.isNetworkOrIdempotentRequestError(error) || 
+           error.code === 'ECONNABORTED';
+  }
 });
 
 // פונקציה מרכזית לטיפול בשגיאות
