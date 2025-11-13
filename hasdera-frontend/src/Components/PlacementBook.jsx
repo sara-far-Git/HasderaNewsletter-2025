@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import styled from "styled-components";
 import { Document, Page, pdfjs } from "react-pdf";
-import "react-pdf/dist/esm/Page/TextLayer.css";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+
 import HTMLFlipBook from "react-pageflip";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, ChevronsLeft, ChevronsRight, Home, BookOpen, Plus, Tag } from "lucide-react";

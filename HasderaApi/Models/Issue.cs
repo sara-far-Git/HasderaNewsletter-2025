@@ -15,8 +15,7 @@ public partial class Issue
     public string? FileUrl { get; set; }
     
 [Column("pdf_url")]
-public string PdfUrl { get; set; } = string.Empty;
-
+public string? PdfUrl { get; set; } // ✅ הוספת ? כדי לאפשר Null. אין צורך באתחול ל-string.Empty.
     public string? Summary { get; set; }
 
     public virtual ICollection<Ad> Ads { get; set; } = new List<Ad>();

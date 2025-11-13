@@ -1,36 +1,41 @@
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import AnalyticsTable from "./Components/AnalyticsTable";
 import AdvertisersList from "./Components/AdvertisersList";
 import IssuesList from "./Components/IssuesList";
-import FlipIssue from "./Components/FlipIssue";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-
-// 1. לייבא את הרכיב החדש (יש לוודא שהנתיב נכון)
 import AdvertiserNav from "./Components/AdvertiserNav"; 
 import PlacementBook from "./Components/PlacementBook";
-
-// רכיבים זמניים עבור הקישורים החדשים (אופציונלי, מומלץ)
+import FlipCanvasViewer from "./Components/FlipCanvasViewer";
+import FlipIssue from "./Components/FlipIssue";
 const PaymentPage = () => <div style={{padding: 40, textAlign: 'center'}}>עמוד תשלום (בקרוב)</div>;
 
+// ✨ קומפוננט חדש שמקבל את המידע ומעביר ל-FlipIssue
+function IssueViewer() {
+  const { state } = useLocation();
+  
+  console.log("📖 IssueViewer - received state:", state);
+  
+  // state.pdf_url מגיע מה-navigate ב-IssuesList:
+  // navigate(`/issues/${it.issue_id}`, { state: it });
+  
+  return <FlipIssue fileUrl={state?.pdf_url} />;
+}
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* 2. זה עכשיו עמוד הבית */}
         <Route path="/" element={<AdvertiserNav />} />
-
-        {/* 3. עמוד "כל הגליונות" עבר לנתיב הזה */}
         <Route path="/issues" element={<IssuesList />} />
-
-        {/* --- שאר הנתיבים הקיימים --- */}
-        <Route path="/issues/:id" element={<FlipIssue />} />
+        
+        {/* 🔧 שינוי כאן - קומפוננט wrapper במקום ישירות */}
+        <Route path="/issues/:id" element={<IssueViewer />} />
+        
         <Route path="/analytics" element={<AnalyticsTable />} />
         <Route path="/advertisers" element={<AdvertisersList />} />
-        
-        {/* 4. נתיבים חדשים עבור הכפתורים בעמוד הניווט */}
         <Route path="/advertiser/placement" element={<PlacementBook />} />
         <Route path="/advertiser/payment" element={<PaymentPage />} />
-
+        <Route path="/viewer" element={<FlipCanvasViewer />} />
+        <Route path="/viewer/:id" element={<FlipIssue />} />
       </Routes>
     </BrowserRouter>
   );

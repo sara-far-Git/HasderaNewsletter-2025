@@ -4,11 +4,11 @@ import { CalendarDays, ExternalLink, Search, X , Book} from "lucide-react";
 import { getIssues } from "../Services/issuesService";
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
-import "react-pdf/dist/esm/Page/TextLayer.css";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 
+
+// 🎯 שימוש בגרסת Worker של pdf.js 4.0.379 (תואמת לגרסאות react-pdf אחרונות)
 pdfjs.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
 
 // 🎨 Styled Components
 const Container = styled.div`

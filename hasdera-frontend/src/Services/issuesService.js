@@ -21,6 +21,20 @@ export async function createIssue(issue) {
     throw err;
   }
 }
+// קבלת קובץ PDF לפי ID
+export async function getIssuePdf(id) {
+  try {
+    const res = await api.get(`/issues/${id}/pdf`, {
+      responseType: "blob", // חשוב! כדי שהקובץ יגיע כ-Binary ולא כטקסט
+    });
+    const blob = new Blob([res.data], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    return url;
+  } catch (err) {
+    console.error("❌ שגיאה ב-GET Issue PDF:", err);
+    throw err;
+  }
+}
 
 // קבלת גיליון לפי ID
 export async function getIssueById(id) {
