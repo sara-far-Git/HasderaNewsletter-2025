@@ -1,0 +1,81 @@
+/* ========================================================================= */
+/* --- תוכן מתוך TextLayer.css (עבור בחירת טקסט) --- */
+/* ========================================================================= */
+.react-pdf__Page__textContent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 0.3;
+  line-height: 1;
+}
+
+.react-pdf__Page__text {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.react-pdf__Page__text--highlight {
+  /* This is a temporary rule for a bug in PDF.js, can be removed in the future */
+  margin-top: -1px;
+  position: absolute;
+}
+
+.react-pdf__Page__text:last-child {
+  margin-bottom: -1px;
+}
+
+/* ========================================================================= */
+/* --- תוכן מתוך AnnotationLayer.css (עבור קישורים והערות) --- */
+/* ========================================================================= */
+.react-pdf__Page__annotations {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.react-pdf__Page__annotations > a {
+  position: absolute;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.react-pdf__Page__annotations > a:hover {
+  border-color: #000000;
+}
+
+.react-pdf__Page__annotations > a.react-pdf__Page__annotations__link {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+.react-pdf__Page__annotations > a.react-pdf__Page__annotations__link:hover {
+  border-color: transparent;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+/* אם הקובץ שלך הוא '../styles/pdf-styles.css' */
+
+/* מבטיח שה-Page יתפוס את כל גובה ה-SwiperSlide */
+.swiper-slide > div.react-pdf__Page,
+.swiper-slide > .react-pdf__Page {
+    height: 100% !important;
+    width: 100% !important;
+    display: flex; /* חשוב, כדי שהקנבס יקבל גודל מהדף */
+    justify-content: center;
+    align-items: center;
+}
+
+/* מוודא שה-Canvas מתאים לגודל ה-Page שלו */
+.react-pdf__Page__canvas {
+  z-index: 15;
+    max-width: 100% !important;
+    max-height: 100% !important;
+}
