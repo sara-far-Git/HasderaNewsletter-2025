@@ -11,23 +11,27 @@ namespace HasderaApi
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services
-            builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    });
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddSingleton<AiService>();
 
-            // çéáåø ìîñã ðúåðéí
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
             );
 
-            // === äâãøú CORS ===
+            // === ï¿½ï¿½ï¿½ï¿½ï¿½ CORS ===
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowFrontend",
                     policy =>
                     {
-                        policy.WithOrigins("http://localhost:5173") // äÎFrontend ùìê
+                        policy.WithOrigins("http://localhost:5173") // ï¿½ï¿½Frontend ï¿½ï¿½ï¿½
                               .AllowAnyHeader()
                               .AllowAnyMethod();
                     });
@@ -35,7 +39,7 @@ namespace HasderaApi
 
             var app = builder.Build();
 
-            // Swagger úîéã
+            // Swagger ï¿½ï¿½ï¿½ï¿½
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
@@ -47,7 +51,7 @@ namespace HasderaApi
 
             app.UseAuthorization();
 
-            // ùéîåù áÎCORS
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½CORS
             app.UseCors("AllowFrontend");
 
             app.MapControllers();
