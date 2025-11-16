@@ -24,16 +24,16 @@ const Container = styled.div`
   direction: rtl;
 `;
 
-const Header = styled(PageHeader)`
+const Header = styled.header`
   position: sticky;
-  top: 70px; /* מתחת ל-Navbar */
-  z-index: 9; /* מתחת ל-Navbar (z-index: 1000) */
+  top: 0;
+  z-index: 10;
   background: rgba(17, 24, 39, 0.95);
   backdrop-filter: blur(12px);
-  color: ${hasederaTheme.colors.text.white};
-  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing.md};
+  color: white;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid rgba(75, 85, 99, 0.5);
-  box-shadow: ${hasederaTheme.shadows.md};
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 `;
 
 const HeaderContent = styled.div`
@@ -64,19 +64,19 @@ const BackButton = styled(IconButton)`
 const TitleWrapper = styled.div`
   flex: 1;
   text-align: center;
-  padding: 0 ${hasederaTheme.spacing.md};
+  padding: 0 1rem;
 `;
 
-const Title = styled(PageTitle)`
-  font-size: ${hasederaTheme.typography.fontSize.base};
-  font-weight: ${hasederaTheme.typography.fontWeight.semibold};
+const Title = styled.h1`
+  font-size: 1rem;
+  font-weight: 600;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
-  @media (min-width: ${hasederaTheme.breakpoints.md}) {
-    font-size: ${hasederaTheme.typography.fontSize.lg};
+  @media (min-width: 768px) {
+    font-size: 1.125rem;
   }
 `;
 
@@ -281,7 +281,7 @@ const ModalDetails = styled.p`
   line-height: 1.6;
 `;
 
-const ModalButton = styled(PrimaryButton)`
+const ModalButton = styled.button`
   width: 100%;
   padding: 0.75rem 1.5rem;
   background: #14b8a6;
@@ -383,26 +383,6 @@ export default function PlacementBook() {
   const [pageHeight, setPageHeight] = useState(520 * 1.414);
   const [isLoading, setIsLoading] = useState(false); // כרגע אין טעינת PDF אמיתית
   const [selectedPage, setSelectedPage] = useState(null); // לניהול מצב המודל
-  const [showPlacementSelector, setShowPlacementSelector] = useState(true); // מציג את ה-selector בהתחלה
-  const [selectedPlacement, setSelectedPlacement] = useState(null); // מיקום שנבחר
-  
-  // פרופיל מפרסם - ניתן לעדכן או לטעון מ-localStorage/API
-  const [userProfile, setUserProfile] = useState(() => {
-    // אפשר לטעון מ-localStorage או להשאיר null
-    // דוגמה לפרופיל:
-    // return {
-    //   businessType: "אופנה",
-    //   businessName: "",
-    //   preferredSizes: [],
-    //   budgetLevel: "",
-    //   pastPlacements: [],
-    //   targetAudience: "",
-    //   stylePreference: "",
-    //   goals: "",
-    //   specialRequests: ""
-    // };
-    return null; // כרגע אין פרופיל - המערכת תעבוד בלי פרופיל
-  });
 
   const pdfOptions = useMemo(
     () => ({
@@ -528,136 +508,96 @@ export default function PlacementBook() {
           </BackButton>
 
           <TitleWrapper>
-            <Title>{showPlacementSelector ? 'בחירת מיקום למודעה' : initialIssue.title}</Title>
+            <Title>{initialIssue.title}</Title>
           </TitleWrapper>
 
-          {!showPlacementSelector && (
-            <PageCounter>
-              {`${getRealPageNumber()} / ${numPages}`}
-            </PageCounter>
-          )}
+          <PageCounter>
+            {`${getRealPageNumber()} / ${numPages}`}
+          </PageCounter>
         </HeaderContent>
       </Header>
 
       <MainContent>
-        {showPlacementSelector ? (
-          <AdPlacementSelector
-            onSelect={(placement) => {
-              setSelectedPlacement(placement);
-              setShowPlacementSelector(false);
-              console.log("Selected placement:", placement);
-            }}
-            onCancel={() => {
-              setShowPlacementSelector(false);
-            }}
-          />
-        ) : (
-          /* Document משמש רק כמעטפת לשימוש ב-pdfjs */
-          initialIssue.pdf_url ? (
-            <Document 
-              file={initialIssue.pdf_url}
-              options={pdfOptions}
-              onLoadSuccess={(pdf) => {
-                setIsLoading(false);
-                setNumPages(pdf.numPages);
-              }}
-              onLoadError={(error) => {
-                // רק לוגים, לא להציג שגיאה למשתמש אם זה URL דמה
-                if (!initialIssue.pdf_url || initialIssue.pdf_url.includes('dummy.pdf')) {
-                  console.warn("PDF not available (dummy URL)");
-                } else {
-                  console.error("PDF load error:", error);
-                }
-                setIsLoading(false);
-              }}
-              loading={null}
+        {/* Document משמש רק כמעטפת לשימוש ב-pdfjs */}
+        <Document 
+          file={initialIssue.pdf_url}
+          options={pdfOptions}
+          onLoadSuccess={() => setIsLoading(false)} // נניח שהוא תמיד טוען בהצלחה לצורך הדגמה
+          loading={null}
+        >
+          <BookWrapper>
+            <NavButton
+              onClick={goToPrevPage}
+              disabled={getRealPageNumber() === numPages || isLoading}
+              title="עמוד קודם"
+              aria-label="עמוד קודם"
             >
-            <BookWrapper>
-              <NavButton
-                onClick={goToPrevPage}
-                disabled={getRealPageNumber() === numPages || isLoading}
-                title="עמוד קודם"
-                aria-label="עמוד קודם"
-              >
-                <ArrowLeft size={24} />
-              </NavButton>
+              <ArrowLeft size={24} />
+            </NavButton>
 
-              <FlipBookContainer>
-                <HTMLFlipBook
-                  ref={bookRef}
-                  width={pageWidth}
-                  height={pageHeight}
-                  size="fixed"
-                  mobileScrollSupport={true}
-                  onFlip={handleFlip}
-                  className="placement-book"
-                  clickEventForward={true}
-                  useMouseEvents={true}
-                  direction="rtl"
-                  showCover={true}
-                  startPage={0}
-                >
-                  {renderPages}
-                </HTMLFlipBook>
-              </FlipBookContainer>
-
-              <NavButton
-                onClick={goToNextPage}
-                disabled={getRealPageNumber() === 1 || isLoading}
-                title="עמוד הבא"
-                aria-label="עמוד הבא"
+            <FlipBookContainer>
+              <HTMLFlipBook
+                ref={bookRef}
+                width={pageWidth}
+                height={pageHeight}
+                size="fixed"
+                mobileScrollSupport={true}
+                onFlip={handleFlip}
+                className="placement-book"
+                clickEventForward={true}
+                useMouseEvents={true}
+                direction="rtl"
+                showCover={true}
+                startPage={0}
               >
-                <ArrowRight size={24} />
-              </NavButton>
-            </BookWrapper>
-            </Document>
-          ) : (
-            <div style={{ 
-              padding: '2rem', 
-              textAlign: 'center', 
-              color: '#6b7280',
-              fontSize: '1.125rem'
-            }}>
-              אין PDF זמין להצגה
-            </div>
-          )
-        )}
+                {renderPages}
+              </HTMLFlipBook>
+            </FlipBookContainer>
+
+            <NavButton
+              onClick={goToNextPage}
+              disabled={getRealPageNumber() === 1 || isLoading}
+              title="עמוד הבא"
+              aria-label="עמוד הבא"
+            >
+              <ArrowRight size={24} />
+            </NavButton>
+          </BookWrapper>
+        </Document>
       </MainContent>
 
-      {!showPlacementSelector && (
-        <Footer>
-          <FooterContent>
-            <FooterButton onClick={() => addPages(2)}>
-              <Plus size={16} />
-              הוסף 2 עמודים
-            </FooterButton>
+      <Footer>
+        <FooterContent>
+          <FooterButton onClick={() => addPages(2)}>
+            <Plus size={16} />
+            הוסף 2 עמודים
+          </FooterButton>
 
-            <FooterButton onClick={goToLastPage} disabled={isLoading}>
-              <ChevronsRight size={16} />
-              אחרון
-            </FooterButton>
+          <FooterButton onClick={goToLastPage} disabled={isLoading}>
+            <ChevronsRight size={16} />
+            אחרון
+          </FooterButton>
 
-            <FooterButton onClick={goToNextPage} disabled={getRealPageNumber() === 1 || isLoading}>
-              <ArrowRight size={16} />
-              הבא
-            </FooterButton>
+          <FooterButton onClick={goToNextPage} disabled={getRealPageNumber() === 1 || isLoading}>
+            <ArrowRight size={16} />
+            הבא
+          </FooterButton>
 
-            <PageCounter style={{ background: '#14b8a6', color: 'white' }}>
-              {`${getRealPageNumber()} / ${numPages}`}
-            </PageCounter>
+          <PageCounter style={{ background: '#14b8a6', color: 'white' }}>
+            {`${getRealPageNumber()} / ${numPages}`}
+          </PageCounter>
 
-            <FooterButton onClick={goToPrevPage} disabled={getRealPageNumber() === numPages || isLoading}>
-              קודם
-              <ArrowLeft size={16} />
-            </FooterButton>
+          <FooterButton onClick={goToPrevPage} disabled={getRealPageNumber() === numPages || isLoading}>
+            קודם
+            <ArrowLeft size={16} />
+          </FooterButton>
 
-            <FooterButton onClick={goToFirstPage} disabled={isLoading}>
-              ראשון
-              <ChevronsLeft size={16} />
-            </FooterButton>
-          </FooterContent>
-        </Footer>
-      )}
+          <FooterButton onClick={goToFirstPage} disabled={isLoading}>
+            ראשון
+            <ChevronsLeft size={16} />
+          </FooterButton>
+        </FooterContent>
+      </Footer>
       
       {/* 🛒 הצגת מודל קנייה */}
       {selectedPage !== null && (
@@ -667,8 +607,6 @@ export default function PlacementBook() {
           onConfirm={handleConfirmBuy}
         />
       )}
-      
-      {/* 💬 Chatbot מופיע גלובלית ב-App.jsx */}
     </Container>
   );
 }
