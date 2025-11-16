@@ -10,20 +10,25 @@ import { Document, Page, pdfjs } from "react-pdf";
 pdfjs.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
 
-// 🎨 Styled Components
+// 🎨 Styled Components - עיצוב נקי ומינימליסטי
 const Container = styled.div`
   min-height: 100vh;
-  background: linear-gradient(to bottom, #f9fafb, white);
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  position: relative;
+  overflow-x: hidden;
 `;
 
 const Header = styled.header`
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-bottom: 2px solid rgba(34, 197, 94, 0.2);
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.1);
 `;
 
 const HeaderContent = styled.div`
@@ -41,19 +46,31 @@ const HeaderTitle = styled.div`
 `;
 
 const IconBox = styled.div`
-  padding: 0.625rem;
-  background: #f0fdfa;
-  border-radius: 0.75rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border-radius: 1rem;
+  box-shadow: 0 8px 16px rgba(34, 197, 94, 0.3);
+  animation: float 3s ease-in-out infinite;
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
   
   svg {
-    color: #0f766e;
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
   }
 `;
 
 const Title = styled.h1`
   font-size: 2rem;
-  font-weight: 700;
-  color: #111827;
+  font-weight: 800;
+  background: linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #ffd700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
   
   @media (min-width: 768px) {
@@ -62,12 +79,14 @@ const Title = styled.h1`
 `;
 
 const Badge = styled.span`
-  padding: 0.375rem 1rem;
-  background: #f0fdfa;
-  color: #0f766e;
+  padding: 0.5rem 1.25rem;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.15) 100%);
+  color: #16a34a;
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 600;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  backdrop-filter: blur(10px);
 `;
 
 const SearchWrapper = styled.div`
@@ -91,21 +110,25 @@ const SearchIcon = styled(Search)`
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 0.875rem 3rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 1rem;
+  padding: 1rem 3.5rem;
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  border-radius: 1.5rem;
   font-size: 1rem;
   outline: none;
-  transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.1);
   
   &:hover {
-    border-color: #d1d5db;
+    border-color: rgba(34, 197, 94, 0.5);
+    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.2);
   }
   
   &:focus {
-    border-color: #14b8a6;
-    box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
+    border-color: #22c55e;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2), 0 8px 25px rgba(34, 197, 94, 0.3);
+    transform: translateY(-2px);
   }
 `;
 
@@ -129,21 +152,22 @@ const ClearButton = styled.button`
 `;
 
 const LoadingState = styled.div`
-  padding: 5rem 0;
+  padding: 6rem 0;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
 `;
 
 const Spinner = styled.div`
-  width: ${props => props.large ? '3.5rem' : '3rem'};
-  height: ${props => props.large ? '3.5rem' : '3rem'};
-  border: 4px solid #14b8a6;
-  border-top-color: transparent;
+  width: ${props => props.large ? '4rem' : '3.5rem'};
+  height: ${props => props.large ? '4rem' : '3.5rem'};
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   
   @keyframes spin {
     to { transform: rotate(360deg); }
@@ -152,101 +176,122 @@ const Spinner = styled.div`
 
 const ErrorState = styled.div`
   max-width: 48rem;
-  margin: 2.5rem auto;
+  margin: 3rem auto;
   padding: 0 1rem;
 `;
 
 const ErrorBox = styled.div`
-  padding: 1.5rem;
-  background: #fef2f2;
-  border: 2px solid #fecaca;
-  border-radius: 1rem;
-  color: #991b1b;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(239, 68, 68, 0.3);
+  border-radius: 1.5rem;
+  color: #dc2626;
   display: flex;
-  gap: 0.75rem;
+  gap: 1rem;
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.2);
   
   h3 {
-    font-weight: 600;
-    margin: 0 0 0.25rem 0;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
   }
   
   p {
-    font-size: 0.875rem;
+    font-size: 1rem;
     margin: 0;
+    opacity: 0.9;
   }
 `;
 
 const EmptyState = styled.div`
   max-width: 48rem;
-  margin: 5rem auto;
+  margin: 6rem auto;
   padding: 0 1rem;
   text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 2rem;
+  padding: 4rem 2rem;
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.1);
+  border: 2px solid rgba(34, 197, 94, 0.2);
 `;
 
 const EmptyIcon = styled.div`
-  font-size: 4.5rem;
-  margin-bottom: 1.5rem;
+  font-size: 5rem;
+  margin-bottom: 2rem;
+  opacity: 0.6;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  color: #22c55e;
 `;
 
 const GridContainer = styled.div`
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 2.5rem 2rem;
+  padding: 3rem 2rem;
 `;
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 2rem;
   
   @media (min-width: 640px) {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 2.5rem;
   }
   
   @media (min-width: 1024px) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 3rem;
   }
   
   @media (min-width: 1280px) {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 `;
 
 const Card = styled.button`
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 1rem;
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   text-align: right;
   padding: 0;
+  position: relative;
   
   &:hover {
-    border-color: #14b8a6;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    transform: translateY(-0.5rem);
+    transform: translateY(-8px) scale(1.03);
+  }
+  
+  &:active {
+    transform: translateY(-4px) scale(1.01);
   }
 `;
 
 const CardImage = styled.div`
   aspect-ratio: 3/4;
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.5s;
+    transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.15));
+    border-radius: 0.5rem;
   }
   
   ${Card}:hover & img {
     transform: scale(1.05);
+    filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.25));
   }
 `;
 
@@ -254,25 +299,29 @@ const Placeholder = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  color: #9ca3af;
-  padding: 1rem;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 2rem 1rem;
   
   svg {
-    opacity: 0.3;
+    opacity: 0.5;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
   }
   
   div {
-    font-size: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
   }
 `;
 
 const Overlay = styled.div`
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.2), transparent);
+  background: linear-gradient(to top, rgba(34, 197, 94, 0.1) 0%, transparent 60%);
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.4s;
+  z-index: 1;
+  pointer-events: none;
   
   ${Card}:hover & {
     opacity: 1;
@@ -280,23 +329,27 @@ const Overlay = styled.div`
 `;
 
 const CardContent = styled.div`
-  padding: 1rem;
+  padding: 1.25rem 0.5rem;
+  background: transparent;
+  position: relative;
+  z-index: 2;
 `;
 
 const CardTitle = styled.h3`
   font-weight: 700;
-  color: #111827;
-  font-size: 1rem;
-  line-height: 1.4;
-  margin: 0 0 0.5rem 0;
+  color: #1a1a2e;
+  font-size: 1.125rem;
+  line-height: 1.5;
+  margin: 0 0 0.75rem 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  transition: color 0.2s;
+  transition: all 0.3s;
   
   ${Card}:hover & {
-    color: #0f766e;
+    color: #16a34a;
+    transform: translateX(-4px);
   }
 `;
 
@@ -305,109 +358,143 @@ const CardDate = styled.div`
   align-items: center;
   gap: 0.5rem;
   color: #6b7280;
-  font-size: 0.75rem;
-  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  
+  svg {
+    color: #22c55e;
+  }
 `;
 
 const CardFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 0.5rem;
-  border-top: 1px solid #f3f4f6;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(34, 197, 94, 0.2);
 `;
 
 const OpenLink = styled.span`
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  color: #0f766e;
+  gap: 0.5rem;
+  color: #16a34a;
   font-size: 0.875rem;
   font-weight: 600;
-  transition: gap 0.2s;
+  transition: all 0.3s;
   
   ${Card}:hover & {
-    gap: 0.625rem;
+    gap: 0.75rem;
+    color: #22c55e;
+    transform: translateX(-4px);
   }
 `;
 
 const ArrowCircle = styled.div`
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
-  background: #f0fdfa;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  transition: all 0.2s;
+  color: white;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  border: 2px solid rgba(255, 215, 0, 0.3);
   
   ${Card}:hover & {
-    background: #14b8a6;
-    color: white;
+    transform: scale(1.15) rotate(-5deg);
+    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+    border-color: rgba(255, 215, 0, 0.5);
   }
 `;
 
 const PDFCoverWrapper = styled.div`
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 `;
 
 const PDFLoading = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  color: #6b7280;
+  gap: 1rem;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 1;
+  position: relative;
+  
+  div {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
 `;
 
 const Footer = styled.footer`
-  max-width: 1280px;
-  margin: 3rem auto 0;
-  padding: 2rem;
-  border-top: 1px solid #e5e7eb;
+  max-width: 1400px;
+  margin: 4rem auto 0;
+  padding: 3rem 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 1rem;
   justify-content: center;
 `;
 
 const FooterButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 0.75rem;
-  font-weight: 500;
-  color: #374151;
+  padding: 1rem 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  border-radius: 1rem;
+  font-weight: 600;
+  color: #16a34a;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.1);
   
   &:hover {
-    border-color: #14b8a6;
-    background: #f0fdfa;
-    color: #0f766e;
+    border-color: rgba(34, 197, 94, 0.5);
+    background: rgba(255, 255, 255, 1);
+    color: #22c55e;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(34, 197, 94, 0.2);
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
 `;
 
 const PrimaryButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  background: #14b8a6;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: white;
-  border: none;
-  border-radius: 0.75rem;
-  font-weight: 500;
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 1rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
   
   &:hover {
-    background: #0d9488;
+    background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    border-color: rgba(255, 215, 0, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
 `;
 
@@ -529,24 +616,50 @@ export default function IssuesList() {
       </SearchWrapper>
       {loading && (
         <LoadingState>
-          <Spinner />
-          <div>טוען גליונות...</div>
+          <Spinner large />
+          <div style={{ 
+            color: 'white', 
+            fontSize: '1.25rem', 
+            fontWeight: 600,
+            textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+          }}>
+            טוען גליונות...
+          </div>
         </LoadingState>
       )}
       {!loading && error && (
         <ErrorState>
           <ErrorBox>
-            <CalendarDays size={40} opacity={0.4} />
-            <div>שגיאה בטעינת גליונות</div>
+            <CalendarDays size={48} style={{ color: '#dc2626', opacity: 0.8 }} />
+            <div>
+              <h3>שגיאה בטעינת גליונות</h3>
+              <p>{error}</p>
+            </div>
           </ErrorBox>
         </ErrorState>
       )}  
       {!loading && !error && filtered.length === 0 && (
         <EmptyState>
           <EmptyIcon>
-            <Search size={40} opacity={0.4} />
+            <Search size={64} />
           </EmptyIcon>
-          <div>לא נמצאו תוצאות</div>
+          <div style={{ 
+            fontSize: '1.25rem', 
+            fontWeight: 600, 
+            color: '#16a34a',
+            marginTop: '1rem'
+          }}>
+            לא נמצאו תוצאות
+          </div>
+          {query && (
+            <div style={{ 
+              fontSize: '1rem', 
+              color: '#6b7280',
+              marginTop: '0.5rem'
+            }}>
+              נסה לחפש משהו אחר
+            </div>
+          )}
         </EmptyState>
       )}
       {!loading && !error && filtered.length > 0 && (

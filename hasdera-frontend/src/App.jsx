@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import AnalyticsTable from "./Components/AnalyticsTable";
 import AdvertisersList from "./Components/AdvertisersList";
 import IssuesList from "./Components/IssuesList";
@@ -8,16 +8,36 @@ import FlipCanvasViewer from "./Components/FlipCanvasViewer";
 import FlipIssue from "./Components/FlipIssue";
 const PaymentPage = () => <div style={{padding: 40, textAlign: 'center'}}>עמוד תשלום (בקרוב)</div>;
 
-// ✨ קומפוננט חדש שמקבל את המידע ומעביר ל-FlipIssue
+// ✨ קומפוננט חדש שמקבל את המידע ומעביר ל-FlipCanvasViewer
 function IssueViewer() {
   const { state } = useLocation();
+  const navigate = useNavigate();
   
   console.log("📖 IssueViewer - received state:", state);
   
-  // state.pdf_url מגיע מה-navigate ב-IssuesList:
+  // state מגיע מה-navigate ב-IssuesList:
   // navigate(`/issues/${it.issue_id}`, { state: it });
+  // state מכיל את כל המידע על הגיליון כולל pdf_url ו-title
   
-  return <FlipIssue fileUrl={state?.pdf_url} />;
+  const handleClose = () => {
+    navigate("/issues");
+  };
+  
+  // אם אין state, נחזיר למסך הגליונות
+  if (!state) {
+    handleClose();
+    return null;
+  }
+  
+  // יצירת אובייקט issue בפורמט שהקומפוננטה מצפה לו
+  const issue = {
+    pdf_url: state.pdf_url || state.fileUrl,
+    title: state.title,
+    issue_id: state.issue_id,
+    issueDate: state.issueDate
+  };
+  
+  return <FlipCanvasViewer issue={issue} onClose={handleClose} />;
 }
 
 function App() {
