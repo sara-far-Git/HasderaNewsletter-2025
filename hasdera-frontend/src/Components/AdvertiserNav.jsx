@@ -1,194 +1,245 @@
 import React from "react";
 import styled from "styled-components";
-import { Users, Book, MapPin, CreditCard } from "lucide-react";
+import { Users, LogIn, UserPlus, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { 
+  Container as ThemeContainer, 
+  Card
+} from "../styles";
+import hasederaTheme from "../styles/HasederaTheme";
 
-// 🎨 Styled Components
-const Container = styled.div`
+// 🎨 Styled Components - מבוסס על התמה החדשה
+const Container = styled(ThemeContainer)`
   min-height: 100vh;
-  background: linear-gradient(to bottom, #f9fafb, white);
-  display: flex; // הוספנו כדי לאפשר מרכוז אנכי בעתיד אם נרצה
+  background: ${hasederaTheme.colors.background.main};
+  display: flex;
   flex-direction: column;
+  padding: 0;
 `;
 
-const Header = styled.header`
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+// אזור ברכה מרכזי
+const WelcomeSection = styled.section`
+  padding: ${hasederaTheme.spacing['2xl']} ${hasederaTheme.spacing['2xl']};
+  text-align: center;
+  background: linear-gradient(135deg, ${hasederaTheme.colors.primary.main}08 0%, ${hasederaTheme.colors.primary.dark}05 100%);
+  border-bottom: 1px solid ${hasederaTheme.colors.border.light};
 `;
 
-const HeaderContent = styled.div`
-  max-width: 1280px;
+const WelcomeTitle = styled.div`
+  max-width: 800px;
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${hasederaTheme.spacing.lg};
 `;
 
-const HeaderTitle = styled.div`
+const WelcomeIcon = styled.div`
+  padding: ${hasederaTheme.spacing.lg};
+  background: ${hasederaTheme.colors.gradient.primary};
+  border-radius: ${hasederaTheme.borderRadius.xl};
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-`;
-
-const IconBox = styled.div`
-  padding: 0.625rem;
-  background: #f0fdfa;
-  border-radius: 0.75rem;
+  box-shadow: ${hasederaTheme.shadows.green};
+  animation: float 3s ease-in-out infinite;
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
   
   svg {
-    color: #0f766e;
+    color: ${hasederaTheme.colors.text.white};
   }
 `;
 
-const Title = styled.h1`
-  font-size: 2rem;
-  font-weight: 700;
-  color: #111827;
+const WelcomeText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${hasederaTheme.spacing.sm};
+`;
+
+const WelcomeHeading = styled.h1`
+  font-size: ${hasederaTheme.typography.fontSize['3xl']};
+  font-weight: ${hasederaTheme.typography.fontWeight.bold};
+  background: linear-gradient(135deg, ${hasederaTheme.colors.primary.dark} 0%, ${hasederaTheme.colors.primary.main} 50%, #ffd700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
   
-  @media (min-width: 768px) {
-    font-size: 2.5rem;
+  @media (max-width: ${hasederaTheme.breakpoints.md}) {
+    font-size: ${hasederaTheme.typography.fontSize['2xl']};
   }
 `;
 
-// === תיקון 1: מיכל הכרטיסיות ===
-// הוספנו בחזרה max-width ו-margin כדי למרכז את כל הבלוק
-// בדיוק כמו ה-HeaderContent
+const WelcomeSubtitle = styled.p`
+  font-size: ${hasederaTheme.typography.fontSize.lg};
+  color: ${hasederaTheme.colors.text.secondary};
+  margin: 0;
+`;
+
+// מיכל הכרטיסיות
 const GridContainer = styled.div`
-  max-width: 1280px;
-  margin: 0 auto; // <--- ממורכז את הבלוק אופקית
-  padding: 2.5rem 2rem;
-  width: 100%; // מוודא שהוא תופס רוחב מלא *עד* המקסימום
-`;
-
-// === תיקון 2: רשת הכרטיסיות ===
-// שולטים בגודל הכרטיסיות וממרכזים אותן
-const Grid = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: ${hasederaTheme.spacing['2xl']} ${hasederaTheme.spacing['2xl']};
+  width: 100%;
   display: grid;
-  gap: 1.75rem;
-  justify-content: center; // <--- ממורכז את הכרטיסיות בתוך ה-GridContainer
-
-  /* הגדרת ברירת מחדל (מובייל) */
-  grid-template-columns: minmax(0, 380px); // עמודה אחת, מקסימום 380px
+  grid-template-columns: 1fr;
+  gap: ${hasederaTheme.spacing.xl};
   
-  /* טאבלט - 2 עמודות */
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(2, minmax(0, 320px));
+  @media (min-width: ${hasederaTheme.breakpoints.md}) {
+    grid-template-columns: repeat(2, 1fr);
   }
   
-  /* מחשב - 3 עמודות */
-  @media (min-width: 1024px) {
-    grid-template-columns: repeat(3, minmax(0, 350px)); 
-    gap: 2rem;
+  @media (min-width: ${hasederaTheme.breakpoints.lg}) {
+    grid-template-columns: repeat(3, 1fr);
   }
 `;
 
-// כרטיס הניווט, מבוסס על רכיב ה-Card שלך
-const NavCard = styled.button`
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 1rem;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s;
-  text-align: right;
-  padding: 0;
-  width: 100%; // הכרטיס ימלא את התא שלו ברשת
+// כרטיס אימות
+const AuthCard = styled(Card)`
+  text-align: center;
+  border: 2px solid ${hasederaTheme.colors.border.light};
+  transition: ${hasederaTheme.transitions.base};
   
   &:hover {
-    border-color: #14b8a6;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    transform: translateY(-0.5rem);
+    border-color: ${hasederaTheme.colors.primary.main};
+    box-shadow: ${hasederaTheme.shadows.md};
+    transform: translateY(-4px);
   }
 `;
 
-// מיכל האייקון, מחליף את התמונה
-const CardIconContainer = styled.div`
-  aspect-ratio: 16/9; // יחס רחב
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  position: relative;
-  color: #14b8a6;
+// כרטיס גישה מהירה
+const QuickAccessCard = styled(AuthCard)`
+  grid-column: 1 / -1;
+  
+  @media (min-width: ${hasederaTheme.breakpoints.lg}) {
+    grid-column: span 1;
+  }
 `;
 
 const CardContent = styled.div`
-  padding: 1.5rem;
-  text-align: center;
+  padding: ${hasederaTheme.spacing.xl};
+  display: flex;
+  flex-direction: column;
+  gap: ${hasederaTheme.spacing.md};
 `;
 
 const CardTitle = styled.h3`
-  font-weight: 700;
-  color: #111827;
-  font-size: 1.125rem;
+  font-weight: ${hasederaTheme.typography.fontWeight.semibold};
+  color: ${hasederaTheme.colors.text.primary};
+  font-size: ${hasederaTheme.typography.fontSize.xl};
   margin: 0;
-  transition: color 0.2s;
+`;
+
+const CardDescription = styled.p`
+  font-size: ${hasederaTheme.typography.fontSize.base};
+  color: ${hasederaTheme.colors.text.secondary};
+  margin: 0;
+  line-height: 1.5;
+`;
+
+const ActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${hasederaTheme.spacing.sm};
+  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing.lg};
+  background: ${props => props.$primary ? hasederaTheme.colors.gradient.primary : 'transparent'};
+  color: ${props => props.$primary ? hasederaTheme.colors.text.white : hasederaTheme.colors.primary.main};
+  border: 2px solid ${props => props.$primary ? 'transparent' : hasederaTheme.colors.primary.main};
+  border-radius: ${hasederaTheme.borderRadius.md};
+  font-size: ${hasederaTheme.typography.fontSize.base};
+  font-weight: ${hasederaTheme.typography.fontWeight.semibold};
+  cursor: pointer;
+  transition: ${hasederaTheme.transitions.base};
+  width: 100%;
   
-  ${NavCard}:hover & {
-    color: #0f766e;
+  &:hover {
+    background: ${props => props.$primary ? hasederaTheme.colors.primary.dark : hasederaTheme.colors.primary.main};
+    color: ${hasederaTheme.colors.text.white};
+    transform: translateY(-2px);
+    box-shadow: ${hasederaTheme.shadows.md};
   }
 `;
 
-// 🔹 רכיב הניווט הראשי
+const NoteText = styled.p`
+  font-size: ${hasederaTheme.typography.fontSize.sm};
+  color: ${hasederaTheme.colors.text.secondary};
+  margin: 0;
+  font-style: italic;
+`;
+
+// 🔹 רכיב הניווט הראשי - דף נחיתה למפרסמים
 export default function AdvertiserNav() {
   const navigate = useNavigate();
 
-  const goToIssues = () => navigate('/issues');
-  const goToPlacement = () => navigate('/advertiser/placement');
-  const goToPayment = () => navigate('/advertiser/payment');
+  const goToDashboard = () => navigate('/dashboard');
+  const goToLogin = () => {
+    // TODO: הוספת לוגיקה של התחברות
+    alert('מערכת התחברות תתווסף בקרוב');
+    navigate('/dashboard');
+  };
+  const goToRegister = () => {
+    // TODO: הוספת לוגיקה של הרשמה
+    alert('מערכת הרשמה תתווסף בקרוב');
+    navigate('/dashboard');
+  };
 
   return (
     <Container>
-      <Header>
-        <HeaderContent>
-          <HeaderTitle>
-            <IconBox>
-              <Users size={24} />
-            </IconBox>
-            <Title>אזור מפרסמים</Title>
-          </HeaderTitle>
-        </HeaderContent>
-      </Header>
+      {/* כותרת מרכזית - ללא Header כפול כי יש Navbar */}
+      <WelcomeSection>
+        <WelcomeTitle>
+          <WelcomeIcon>
+            <Users size={32} />
+          </WelcomeIcon>
+          <WelcomeText>
+            <WelcomeHeading>דף נחיתה למפרסמים</WelcomeHeading>
+            <WelcomeSubtitle>התחברו או הירשמו כדי להתחיל</WelcomeSubtitle>
+          </WelcomeText>
+        </WelcomeTitle>
+      </WelcomeSection>
       
       <GridContainer>
-        <Grid>
-          {/* כרטיס 1: כל הגליונות */}
-          <NavCard onClick={goToIssues}>
-            <CardIconContainer>
-              <Book size={48} strokeWidth={1.5} />
-            </CardIconContainer>
-            <CardContent>
-              <CardTitle>כל הגליונות</CardTitle>
-            </CardContent>
-          </NavCard>
+        <AuthCard>
+          <CardContent>
+            <CardTitle>התחברות</CardTitle>
+            <CardDescription>יש לכם חשבון? התחברו כאן</CardDescription>
+            <ActionButton onClick={goToLogin}>
+              <LogIn size={20} />
+              <span>התחברות</span>
+              <ArrowRight size={16} />
+            </ActionButton>
+          </CardContent>
+        </AuthCard>
 
-          {/* כרטיס 2: בחירת מקום */}
-          <NavCard onClick={goToPlacement}>
-            <CardIconContainer>
-              <MapPin size={48} strokeWidth={1.5} />
-            </CardIconContainer>
-            <CardContent>
-              <CardTitle>בחירת מקום בעיתון</CardTitle>
-            </CardContent>
-          </NavCard>
+        <AuthCard>
+          <CardContent>
+            <CardTitle>הרשמה חדשה</CardTitle>
+            <CardDescription>משתמש חדש? הירשמו כאן</CardDescription>
+            <ActionButton onClick={goToRegister} $primary>
+              <UserPlus size={20} />
+              <span>הרשמה חדשה</span>
+              <ArrowRight size={16} />
+            </ActionButton>
+            <NoteText>← אימות מייל</NoteText>
+          </CardContent>
+        </AuthCard>
 
-          {/* כרטיס 3: תשלום */}
-          <NavCard onClick={goToPayment}>
-            <CardIconContainer>
-              <CreditCard size={48} strokeWidth={1.5} />
-            </CardIconContainer>
-            <CardContent>
-              <CardTitle>מעבר לתשלום</CardTitle>
-            </CardContent>
-          </NavCard>
-        </Grid>
+        <QuickAccessCard>
+          <CardContent>
+            <CardTitle>גישה מהירה</CardTitle>
+            <CardDescription>דלגו ישירות ל-Dashboard</CardDescription>
+            <ActionButton onClick={goToDashboard} $primary>
+              <ArrowRight size={20} />
+              <span>דף הבית (Dashboard)</span>
+            </ActionButton>
+          </CardContent>
+        </QuickAccessCard>
       </GridContainer>
     </Container>
   );

@@ -3,11 +3,18 @@ import { api } from "./api.js";
 // 📚 קבלת כל הגיליונות האחרונים
 export async function getIssues() {
   try {
-    const res = await api.get("/issues");
-    return res.data.items;
+    const res = await api.get("/Issues");
+    // ה-API מחזיר PagedResult עם items
+    if (res.data && res.data.items) {
+      return res.data.items;
+    }
+    // אם אין items, נחזיר את הנתונים ישירות (תואם לאחור)
+    return res.data || [];
   } catch (err) {
     console.error("❌ שגיאה ב-GET Issues:", err);
-    throw err;
+    // במקרה של שגיאה, נחזיר מערך ריק במקום לזרוק שגיאה
+    console.error("פרטי השגיאה:", err.response?.data || err.message);
+    return [];
   }
 }
 

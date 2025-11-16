@@ -7,31 +7,33 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, ChevronsLeft, ChevronsRight, Home, Plus, Tag } from "lucide-react";
 import AdvertiserChat from "./AdvertiserChat";
 import AdPlacementSelector from "./AdPlacementSelector";
+import { IconButton, PageHeader, PageTitle, PrimaryButton, SecondaryButton } from "../styles";
+import hasederaTheme from "../styles/HasederaTheme";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-// --- Styled Components (ללא שינוי, למעט הרחבות) ---
+// --- Styled Components עם Theme ---
 
 const Container = styled.div`
   width: 100%;
   min-height: 100vh;
-  background: #1f2937;
+  background: ${hasederaTheme.colors.background.dark};
   display: flex;
   flex-direction: column;
   direction: rtl;
 `;
 
-const Header = styled.header`
+const Header = styled(PageHeader)`
   position: sticky;
-  top: 0;
-  z-index: 10;
+  top: 70px; /* מתחת ל-Navbar */
+  z-index: 9; /* מתחת ל-Navbar (z-index: 1000) */
   background: rgba(17, 24, 39, 0.95);
   backdrop-filter: blur(12px);
-  color: white;
-  padding: 0.75rem 1rem;
+  color: ${hasederaTheme.colors.text.white};
+  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing.md};
   border-bottom: 1px solid rgba(75, 85, 99, 0.5);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  box-shadow: ${hasederaTheme.shadows.md};
 `;
 
 const HeaderContent = styled.div`
@@ -40,22 +42,19 @@ const HeaderContent = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: ${hasederaTheme.spacing.md};
   flex-wrap: wrap;
 `;
 
-const BackButton = styled.button`
+const BackButton = styled(IconButton)`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: ${hasederaTheme.spacing.sm};
+  padding: ${hasederaTheme.spacing.sm} ${hasederaTheme.spacing.md};
   background: rgba(55, 65, 81, 0.8);
-  color: white;
-  border: none;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
+  color: ${hasederaTheme.colors.text.white};
+  border-radius: ${hasederaTheme.borderRadius.md};
+  font-size: ${hasederaTheme.typography.fontSize.sm};
 
   &:hover {
     background: rgba(75, 85, 99, 0.9);
@@ -65,19 +64,19 @@ const BackButton = styled.button`
 const TitleWrapper = styled.div`
   flex: 1;
   text-align: center;
-  padding: 0 1rem;
+  padding: 0 ${hasederaTheme.spacing.md};
 `;
 
-const Title = styled.h1`
-  font-size: 1rem;
-  font-weight: 600;
+const Title = styled(PageTitle)`
+  font-size: ${hasederaTheme.typography.fontSize.base};
+  font-weight: ${hasederaTheme.typography.fontWeight.semibold};
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
-  @media (min-width: 768px) {
-    font-size: 1.125rem;
+  @media (min-width: ${hasederaTheme.breakpoints.md}) {
+    font-size: ${hasederaTheme.typography.fontSize.lg};
   }
 `;
 
@@ -282,7 +281,7 @@ const ModalDetails = styled.p`
   line-height: 1.6;
 `;
 
-const ModalButton = styled.button`
+const ModalButton = styled(PrimaryButton)`
   width: 100%;
   padding: 0.75rem 1.5rem;
   background: #14b8a6;
@@ -669,12 +668,7 @@ export default function PlacementBook() {
         />
       )}
       
-      {/* 💬 Assistant למפרסמים - מוצג רק אחרי בחירת מיקום */}
-      {!showPlacementSelector && (
-        <AdvertiserChat 
-          userProfile={userProfile}
-        />
-      )}
+      {/* 💬 Chatbot מופיע גלובלית ב-App.jsx */}
     </Container>
   );
 }

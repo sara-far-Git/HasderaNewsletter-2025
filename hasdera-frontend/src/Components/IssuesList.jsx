@@ -4,52 +4,52 @@ import { CalendarDays, ExternalLink, Search, X , Book} from "lucide-react";
 import { getIssues } from "../Services/issuesService";
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
+import { Badge as ThemeBadge, Input, PageHeader, PageTitle, Container as ThemeContainer, Grid, Spinner as ThemeSpinner, PrimaryButton as ThemePrimaryButton, SecondaryButton } from "../styles";
+import hasederaTheme from "../styles/HasederaTheme";
 
 
 // 🎯 שימוש בגרסת Worker של pdf.js 4.0.379 (תואמת לגרסאות react-pdf אחרונות)
 pdfjs.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
 
-// 🎨 Styled Components - עיצוב נקי ומינימליסטי
-const Container = styled.div`
+// 🎨 Styled Components עם Theme
+const Container = styled(ThemeContainer)`
   min-height: 100vh;
   width: 100vw;
   margin: 0;
   padding: 0;
-  background: #ffffff;
+  background: ${hasederaTheme.colors.background.main};
   position: relative;
   overflow-x: hidden;
 `;
 
-const Header = styled.header`
-  position: sticky;
-  top: 0;
-  z-index: 10;
+const Header = styled(PageHeader)`
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(20px);
-  border-bottom: 2px solid rgba(34, 197, 94, 0.2);
-  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.1);
+  border-bottom: 2px solid ${hasederaTheme.colors.primary.main}33;
+  box-shadow: ${hasederaTheme.shadows.md};
+  margin-bottom: 0;
 `;
 
 const HeaderContent = styled.div`
   max-width: 1280px;
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  padding: ${hasederaTheme.spacing.xl} ${hasederaTheme.spacing['2xl']};
 `;
 
 const HeaderTitle = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  gap: ${hasederaTheme.spacing.md};
+  margin-bottom: ${hasederaTheme.spacing.xl};
 `;
 
 const IconBox = styled.div`
-  padding: 1rem;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  border-radius: 1rem;
-  box-shadow: 0 8px 16px rgba(34, 197, 94, 0.3);
+  padding: ${hasederaTheme.spacing.md};
+  background: ${hasederaTheme.colors.gradient.primary};
+  border-radius: ${hasederaTheme.borderRadius.lg};
+  box-shadow: ${hasederaTheme.shadows.green};
   animation: float 3s ease-in-out infinite;
   border: 2px solid rgba(255, 215, 0, 0.3);
   
@@ -59,33 +59,23 @@ const IconBox = styled.div`
   }
   
   svg {
-    color: white;
+    color: ${hasederaTheme.colors.text.white};
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
   }
 `;
 
-const Title = styled.h1`
-  font-size: 2rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #ffd700 100%);
+const Title = styled(PageTitle)`
+  background: linear-gradient(135deg, ${hasederaTheme.colors.primary.dark} 0%, ${hasederaTheme.colors.primary.main} 50%, #ffd700 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin: 0;
-  
-  @media (min-width: 768px) {
-    font-size: 2.5rem;
-  }
 `;
 
-const Badge = styled.span`
-  padding: 0.5rem 1.25rem;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.15) 100%);
-  color: #16a34a;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+const BadgeStyled = styled(ThemeBadge)`
+  padding: ${hasederaTheme.spacing.sm} ${hasederaTheme.spacing.lg};
+  background: linear-gradient(135deg, ${hasederaTheme.colors.primary.main}26 0%, ${hasederaTheme.colors.primary.dark}26 100%);
+  color: ${hasederaTheme.colors.primary.dark};
+  border: 1px solid ${hasederaTheme.colors.primary.main}4d;
   backdrop-filter: blur(10px);
 `;
 
@@ -108,26 +98,22 @@ const SearchIcon = styled(Search)`
   color: #9ca3af;
 `;
 
-const SearchInput = styled.input`
-  width: 100%;
-  padding: 1rem 3.5rem;
-  border: 2px solid rgba(34, 197, 94, 0.3);
-  border-radius: 1.5rem;
-  font-size: 1rem;
-  outline: none;
-  transition: all 0.3s;
+const SearchInput = styled(Input)`
+  padding: ${hasederaTheme.spacing.md} 3.5rem;
+  border: 2px solid ${hasederaTheme.colors.primary.main}4d;
+  border-radius: ${hasederaTheme.borderRadius.full};
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.1);
+  box-shadow: ${hasederaTheme.shadows.base};
   
   &:hover {
-    border-color: rgba(34, 197, 94, 0.5);
-    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.2);
+    border-color: ${hasederaTheme.colors.primary.main}80;
+    box-shadow: ${hasederaTheme.shadows.md};
   }
   
   &:focus {
-    border-color: #22c55e;
-    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2), 0 8px 25px rgba(34, 197, 94, 0.3);
+    border-color: ${hasederaTheme.colors.primary.main};
+    box-shadow: 0 0 0 4px ${hasederaTheme.colors.primary.main}33, ${hasederaTheme.shadows.lg};
     transform: translateY(-2px);
   }
 `;
@@ -161,8 +147,8 @@ const LoadingState = styled.div`
 `;
 
 const Spinner = styled.div`
-  width: ${props => props.large ? '4rem' : '3.5rem'};
-  height: ${props => props.large ? '4rem' : '3.5rem'};
+  width: ${props => props.$large ? '4rem' : '3.5rem'};
+  height: ${props => props.$large ? '4rem' : '3.5rem'};
   border: 4px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
@@ -225,28 +211,24 @@ const EmptyIcon = styled.div`
   color: #22c55e;
 `;
 
-const GridContainer = styled.div`
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 3rem 2rem;
+const GridContainer = styled(ThemeContainer)`
+  padding: ${hasederaTheme.spacing['2xl']} ${hasederaTheme.spacing['2xl']};
 `;
 
-const Grid = styled.div`
-  display: grid;
+const GridStyled = styled(Grid)`
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 2rem;
+  gap: ${hasederaTheme.spacing['2xl']};
   
-  @media (min-width: 640px) {
+  @media (min-width: ${hasederaTheme.breakpoints.sm}) {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 2.5rem;
   }
   
-  @media (min-width: 1024px) {
+  @media (min-width: ${hasederaTheme.breakpoints.lg}) {
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 3rem;
+    gap: ${hasederaTheme.spacing['2xl']};
   }
   
-  @media (min-width: 1280px) {
+  @media (min-width: ${hasederaTheme.breakpoints.xl}) {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 `;
@@ -450,17 +432,11 @@ const Footer = styled.footer`
   justify-content: center;
 `;
 
-const FooterButton = styled.button`
-  padding: 1rem 2rem;
+const FooterButton = styled(SecondaryButton)`
+  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing['2xl']};
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  border: 2px solid rgba(34, 197, 94, 0.3);
-  border-radius: 1rem;
-  font-weight: 600;
-  color: #16a34a;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.1);
+  box-shadow: ${hasederaTheme.shadows.base};
   
   &:hover {
     border-color: rgba(34, 197, 94, 0.5);
@@ -475,27 +451,9 @@ const FooterButton = styled.button`
   }
 `;
 
-const PrimaryButton = styled.button`
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: white;
+const PrimaryButtonStyled = styled(ThemePrimaryButton)`
+  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing['2xl']};
   border: 2px solid rgba(255, 215, 0, 0.3);
-  border-radius: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
-  
-  &:hover {
-    background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
-    border-color: rgba(255, 215, 0, 0.5);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
 `;
 
 // 🔹 Helper functions
@@ -616,7 +574,7 @@ export default function IssuesList() {
       </SearchWrapper>
       {loading && (
         <LoadingState>
-          <Spinner large />
+          <Spinner $large />
           <div style={{ 
             color: 'white', 
             fontSize: '1.25rem', 
@@ -664,7 +622,7 @@ export default function IssuesList() {
       )}
       {!loading && !error && filtered.length > 0 && (
         <GridContainer>
-          <Grid>
+          <GridStyled>
               {filtered.map((it) => (
               <Card key={it.issue_id} onClick={() => openIssue(it)}>
                 <CardImage>
@@ -698,12 +656,12 @@ export default function IssuesList() {
                 </CardFooter>
               </Card>
             ))}
-          </Grid>
+          </GridStyled>
         </GridContainer>
       )}
       <Footer>
         <FooterButton onClick={() => navigate("/")}>חזרה לדף הבית</FooterButton>
-        <PrimaryButton onClick={() => navigate("/issues/new")}>יצירת גליון חדש</PrimaryButton>
+        <PrimaryButtonStyled onClick={() => navigate("/issues/new")}>יצירת גליון חדש</PrimaryButtonStyled>
       </Footer>
     </Container>
   );

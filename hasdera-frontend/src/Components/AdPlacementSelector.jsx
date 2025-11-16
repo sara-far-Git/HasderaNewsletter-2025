@@ -1,60 +1,57 @@
 import React, { useState, useCallback } from "react";
 import styled from "styled-components";
 import { Check, X } from "lucide-react";
+import { Card, CardTitle, PrimaryButton, SecondaryButton, Flex } from "../styles";
+import hasederaTheme from "../styles/HasederaTheme";
 
-// 🎨 Styled Components
-const SelectorContainer = styled.div`
+// 🎨 Styled Components עם Theme
+const SelectorContainer = styled(Card)`
   width: 100%;
   max-width: 1200px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin: ${hasederaTheme.spacing['2xl']} auto;
+  padding: ${hasederaTheme.spacing['2xl']};
   direction: rtl;
 `;
 
 const Header = styled.div`
-  margin-bottom: 2rem;
+  margin-bottom: ${hasederaTheme.spacing['2xl']};
   text-align: center;
 `;
 
-const Title = styled.h2`
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 0.5rem;
+const Title = styled(CardTitle)`
+  font-size: ${hasederaTheme.typography.fontSize['2xl']};
+  font-weight: ${hasederaTheme.typography.fontWeight.bold};
+  color: ${hasederaTheme.colors.text.primary};
+  margin-bottom: ${hasederaTheme.spacing.sm};
 `;
 
 const Subtitle = styled.p`
-  font-size: 1rem;
-  color: #6b7280;
+  font-size: ${hasederaTheme.typography.fontSize.base};
+  color: ${hasederaTheme.colors.text.secondary};
 `;
 
-const SizeSelector = styled.div`
-  display: flex;
-  gap: 1rem;
+const SizeSelector = styled(Flex)`
   justify-content: center;
-  margin-bottom: 2rem;
+  margin-bottom: ${hasederaTheme.spacing['2xl']};
   flex-wrap: wrap;
 `;
 
 const SizeButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: 2px solid ${props => props.$active ? '#667eea' : '#e5e7eb'};
-  border-radius: 0.75rem;
-  background: ${props => props.$active ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'white'};
-  color: ${props => props.$active ? 'white' : '#374151'};
-  font-size: 1rem;
-  font-weight: 600;
+  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing.xl};
+  border: 2px solid ${props => props.$active ? hasederaTheme.colors.secondary.main : hasederaTheme.colors.border.light};
+  border-radius: ${hasederaTheme.borderRadius.lg};
+  background: ${props => props.$active ? hasederaTheme.colors.gradient.secondary : hasederaTheme.colors.background.card};
+  color: ${props => props.$active ? hasederaTheme.colors.text.white : hasederaTheme.colors.text.primary};
+  font-size: ${hasederaTheme.typography.fontSize.base};
+  font-weight: ${hasederaTheme.typography.fontWeight.semibold};
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: ${props => props.$active ? '0 4px 12px rgba(102, 126, 234, 0.3)' : 'none'};
+  transition: ${hasederaTheme.transitions.base};
+  box-shadow: ${props => props.$active ? hasederaTheme.shadows.md : 'none'};
 
   &:hover {
-    border-color: #667eea;
+    border-color: ${hasederaTheme.colors.secondary.main};
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    box-shadow: ${hasederaTheme.shadows.md};
   }
 `;
 
@@ -64,11 +61,11 @@ const PageContainer = styled.div`
   max-width: 800px;
   margin: 0 auto;
   aspect-ratio: 1 / 1.414; /* יחס A4 */
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 0.5rem;
+  background: ${hasederaTheme.colors.background.card};
+  border: 2px solid ${hasederaTheme.colors.border.light};
+  border-radius: ${hasederaTheme.borderRadius.md};
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: ${hasederaTheme.transitions.base};
 `;
 
 const PageGrid = styled.div`
@@ -264,44 +261,21 @@ const SelectionDetails = styled.div`
   color: #075985;
 `;
 
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 1rem;
+const ActionButtons = styled(Flex)`
   justify-content: center;
-  margin-top: 1.5rem;
+  margin-top: ${hasederaTheme.spacing.xl};
 `;
 
-const ActionButton = styled.button`
-  padding: 0.75rem 2rem;
-  border: none;
-  border-radius: 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
+const CancelButton = styled(SecondaryButton)`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: ${hasederaTheme.spacing.sm};
+`;
 
-  ${props => props.$primary ? `
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-    }
-  ` : `
-    background: white;
-    color: #374151;
-    border: 2px solid #e5e7eb;
-
-    &:hover {
-      border-color: #667eea;
-      color: #667eea;
-    }
-  `}
+const ConfirmButton = styled(PrimaryButton)`
+  display: flex;
+  align-items: center;
+  gap: ${hasederaTheme.spacing.sm};
 `;
 
 // 🎯 Main Component
@@ -503,19 +477,17 @@ export default function AdPlacementSelector({ onSelect, onCancel }) {
       )}
 
       <ActionButtons>
-        <ActionButton onClick={onCancel}>
+        <CancelButton onClick={onCancel}>
           <X size={18} />
           ביטול
-        </ActionButton>
-        <ActionButton
-          $primary
+        </CancelButton>
+        <ConfirmButton
           onClick={handleConfirm}
           disabled={selectedQuarters.length === 0}
-          style={{ opacity: selectedQuarters.length === 0 ? 0.5 : 1, cursor: selectedQuarters.length === 0 ? 'not-allowed' : 'pointer' }}
         >
           <Check size={18} />
           אישור בחירה
-        </ActionButton>
+        </ConfirmButton>
       </ActionButtons>
     </SelectorContainer>
   );

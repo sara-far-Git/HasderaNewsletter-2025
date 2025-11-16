@@ -3,21 +3,48 @@ import AnalyticsTable from "./Components/AnalyticsTable";
 import AdvertisersList from "./Components/AdvertisersList";
 import IssuesList from "./Components/IssuesList";
 import AdvertiserNav from "./Components/AdvertiserNav"; 
+import Dashboard from "./Components/Dashboard";
 import PlacementBook from "./Components/PlacementBook";
 import FlipCanvasViewer from "./Components/FlipCanvasViewer";
 import FlipIssue from "./Components/FlipIssue";
-const PaymentPage = () => <div style={{padding: 40, textAlign: 'center'}}>עמוד תשלום (בקרוב)</div>;
+import Navbar from "./Components/Navbar";
+import AdvertiserChat from "./Components/AdvertiserChat";
+import hasederaTheme from "./styles/HasederaTheme";
 
-// ✨ קומפוננט חדש שמקבל את המידע ומעביר ל-FlipCanvasViewer
+// 📄 עמוד תשלום זמני
+const PaymentPage = () => (
+  <div style={{
+    padding: 40, 
+    textAlign: 'center',
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    gap: '1rem'
+  }}>
+    <h1 style={{ 
+      fontSize: hasederaTheme.typography.fontSize['3xl'],
+      color: hasederaTheme.colors.text.primary,
+      marginBottom: '1rem'
+    }}>
+      עמוד תשלום
+    </h1>
+    <p style={{
+      fontSize: hasederaTheme.typography.fontSize.lg,
+      color: hasederaTheme.colors.text.secondary
+    }}>
+      בקרוב...
+    </p>
+  </div>
+);
+
+// ✨ קומפוננט Wrapper לצפייה בגיליון
 function IssueViewer() {
   const { state } = useLocation();
   const navigate = useNavigate();
   
   console.log("📖 IssueViewer - received state:", state);
-  
-  // state מגיע מה-navigate ב-IssuesList:
-  // navigate(`/issues/${it.issue_id}`, { state: it });
-  // state מכיל את כל המידע על הגיליון כולל pdf_url ו-title
   
   const handleClose = () => {
     navigate("/issues");
@@ -40,20 +67,35 @@ function IssueViewer() {
   return <FlipCanvasViewer issue={issue} onClose={handleClose} />;
 }
 
+// 🎯 App - קומפוננט ראשי
 function App() {
   return (
     <BrowserRouter>
+      <Navbar />
+      {/* 💬 Chatbot כפתור צף - מופיע בכל העמודים */}
+      <AdvertiserChat />
       <Routes>
+        {/* 🏠 דף נחיתה למפרסמים */}
         <Route path="/" element={<AdvertiserNav />} />
-        <Route path="/issues" element={<IssuesList />} />
         
-        {/* 🔧 שינוי כאן - קומפוננט wrapper במקום ישירות */}
+        {/* 📊 Dashboard - דף הבית המרכזי */}
+        <Route path="/dashboard" element={<Dashboard />} />
+        
+        {/* 📖 גליונות */}
+        <Route path="/issues" element={<IssuesList />} />
         <Route path="/issues/:id" element={<IssueViewer />} />
         
+        {/* 📊 אנליטיקה */}
         <Route path="/analytics" element={<AnalyticsTable />} />
+        
+        {/* 👥 רשימת מפרסמים */}
         <Route path="/advertisers" element={<AdvertisersList />} />
+        
+        {/* 🎨 מפרסם - ניהול */}
         <Route path="/advertiser/placement" element={<PlacementBook />} />
         <Route path="/advertiser/payment" element={<PaymentPage />} />
+        
+        {/* 📱 Viewers */}
         <Route path="/viewer" element={<FlipCanvasViewer />} />
         <Route path="/viewer/:id" element={<FlipIssue />} />
       </Routes>
