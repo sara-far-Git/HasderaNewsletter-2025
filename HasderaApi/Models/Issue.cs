@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HasderaApi.Models;
 
@@ -9,10 +10,12 @@ public partial class Issue
 
     public string Title { get; set; } = null!;
 
-    public DateOnly IssueDate { get; set; }
+  public DateTime IssueDate { get; set; }
 
     public string? FileUrl { get; set; }
-
+    
+[Column("pdf_url")]
+public string? PdfUrl { get; set; } // ✅ הוספת ? כדי לאפשר Null. אין צורך באתחול ל-string.Empty.
     public string? Summary { get; set; }
 
     public virtual ICollection<Ad> Ads { get; set; } = new List<Ad>();
@@ -26,4 +29,6 @@ public partial class Issue
     public virtual ICollection<Click> Clicks { get; set; } = new List<Click>();
 
     public virtual ICollection<Engagement> Engagements { get; set; } = new List<Engagement>();
+
+    public virtual ICollection<IssueAdvertiser> IssueAdvertisers { get; set; } = new List<IssueAdvertiser>();
 }

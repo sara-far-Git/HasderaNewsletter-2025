@@ -1,58 +1,67 @@
-using HasderaApi.Data;
-using HasderaApi.Services;
+using System.Text.Json.Serialization;
+using Dapper;
+using Npgsql;
+using Amazon;
+using Amazon.S3;
 using Microsoft.EntityFrameworkCore;
+using HasderaApi.Data;
+using System.Security.Cryptography.X509Certificates;
 
-namespace HasderaApi
+var builder = WebApplication.CreateBuilder(args);
+
+// ===== ×”×’×“×¨×•×ª =====
+var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+var s3Region = builder.Configuration["S3:Region"] ?? "eu-north-1";
+
+builder.Services.ConfigureHttpJsonOptions(o =>
 {
-    public class Program
+    o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    o.SerializerOptions.PropertyNamingPolicy = null;
+});
+
+// Entity Framework and Database Configuration
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connStr, npgsqlOptions =>
     {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
+        npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 3,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorCodesToAdd: null);
+    }));
 
-            // Add services
-            builder.Services.AddControllers();
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-            builder.Services.AddSingleton<AiService>();
+// ×—×™×‘×•×¨ DB ×¤×¨ ×‘×§×©×”
+builder.Services.AddScoped<NpgsqlConnection>(_ => new NpgsqlConnection(connStr));
 
-            // çéáåø ìîñã ðúåðéí
-            builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
-            );
+// S3
+builder.Services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(RegionEndpoint.GetBySystemName(s3Region)));
 
-            // === äâãøú CORS ===
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowFrontend",
-                    policy =>
-                    {
-                        policy.WithOrigins("http://localhost:5173") // äÎFrontend ùìê
-                              .AllowAnyHeader()
-                              .AllowAnyMethod();
-                    });
-            });
+// CORS - ×¢×“×›×•×Ÿ ×œ×ª×ž×•×š ×‘-HTTPS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "https://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // × ×“×¨×© ×¢×‘×•×¨ HTTPS
+    });
+});
 
-            var app = builder.Build();
+// Controllers
+builder.Services.AddControllers();
 
-            // Swagger úîéã
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hasdera API V1");
-                c.RoutePrefix = string.Empty;
-            });
+var app = builder.Build();
 
-            app.UseHttpsRedirection();
-
-            app.UseAuthorization();
-
-            // ùéîåù áÎCORS
-            app.UseCors("AllowFrontend");
-
-            app.MapControllers();
-
-            app.Run();
-        }
-    }
+// HTTPS Redirection
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
 }
+
+// Enable CORS
+app.UseCors("AllowReactApp");
+
+app.MapControllers();
+app.Run();

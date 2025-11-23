@@ -1,76 +1,107 @@
-import { useEffect, useState } from "react";
-import { getAnalytics, createDemoAnalytics } from "./apiService";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { createGlobalStyle } from "styled-components";
+import hasederaTheme, { GlobalStyles } from "./styles/HasederaTheme";
+import AnalyticsTable from "./Components/AnalyticsTable";
+import AdvertisersList from "./Components/AdvertisersList";
+import IssuesList from "./Components/IssuesList";
+import AdvertiserNav from "./Components/AdvertiserNav"; 
+import PlacementBook from "./Components/PlacementBook";
+import FlipCanvasViewer from "./Components/FlipCanvasViewer";
+import FlipIssue from "./Components/FlipIssue";
 
+// 🎨 הגדרת סטיילים גלובליים
+const GlobalStyleComponent = createGlobalStyle`
+  ${GlobalStyles}
+`;
+
+// 📄 עמוד תשלום זמני
+const PaymentPage = () => (
+  <div style={{
+    padding: 40, 
+    textAlign: 'center',
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    gap: '1rem'
+  }}>
+    <h1 style={{ 
+      fontSize: hasederaTheme.typography.fontSize['3xl'],
+      color: hasederaTheme.colors.text.primary,
+      marginBottom: '1rem'
+    }}>
+      עמוד תשלום
+    </h1>
+    <p style={{
+      fontSize: hasederaTheme.typography.fontSize.lg,
+      color: hasederaTheme.colors.text.secondary
+    }}>
+      בקרוב...
+    </p>
+  </div>
+);
+
+// ✨ קומפוננט Wrapper לצפייה בגיליון
+function IssueViewer() {
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  
+  console.log("📖 IssueViewer - received state:", state);
+  
+  const handleClose = () => {
+    navigate("/issues");
+  };
+  
+  // אם אין state, נחזיר למסך הגליונות
+  if (!state) {
+    handleClose();
+    return null;
+  }
+  
+  // יצירת אובייקט issue בפורמט שהקומפוננטה מצפה לו
+  const issue = {
+    pdf_url: state.pdf_url || state.fileUrl,
+    title: state.title,
+    issue_id: state.issue_id,
+    issueDate: state.issueDate
+  };
+  
+  return <FlipCanvasViewer issue={issue} onClose={handleClose} />;
+}
+
+// 🎯 App - קומפוננט ראשי
 function App() {
-  const [analytics, setAnalytics] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    console.log("🚀 מריץ useEffect → טוען נתוני Analytics");
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const data = await getAnalytics();
-      setAnalytics(data);
-    } catch (err) {
-      console.error("❌ שגיאה בטעינת נתונים:", err);
-    }
-    setLoading(false);
-  };
-
-  const handleAddDemo = async () => {
-    console.log("➕ מוסיף רשומת דמו...");
-    try {
-      await createDemoAnalytics();
-      console.log("🔄 טוען מחדש נתונים אחרי הוספת דמו");
-      loadData();
-    } catch (err) {
-      console.error("❌ שגיאה בהוספת רשומת דמו:", err);
-    }
-  };
-
-  if (loading) return <p>טוען נתונים...</p>;
-
   return (
-    <div style={{ direction: "rtl", padding: "20px", fontFamily: "Arial" }}>
-      <h1>📊 נתוני Analytics</h1>
-
-      {analytics.length === 0 ? (
-        <div>
-          <p>אין נתונים עדיין במסד</p>
-          <button onClick={handleAddDemo}>➕ הוסף רשומת דמו</button>
-        </div>
-      ) : (
-        <div>
-          <button onClick={handleAddDemo}>➕ הוסף רשומת דמו</button>
-          <table border="1" cellPadding="5" style={{ marginTop: "10px" }}>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Clicks</th>
-                <th>Unique Readers</th>
-                <th>CTR</th>
-                <th>Report Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {analytics.map((a) => (
-                <tr key={a.analyticsId}>
-                  <td>{a.analyticsId}</td>
-                  <td>{a.clicksTotal}</td>
-                  <td>{a.uniqueReaders}</td>
-                  <td>{a.ctr}</td>
-                  <td>{a.reportDate}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+    <>
+      {/* 🎨 סטיילים גלובליים */}
+      <GlobalStyleComponent />
+      
+      <BrowserRouter>
+        <Routes>
+          {/* 🏠 דף הבית - ניווט מפרסמים */}
+          <Route path="/" element={<AdvertiserNav />} />
+          
+          {/* 📖 גליונות */}
+          <Route path="/issues" element={<IssuesList />} />
+          <Route path="/issues/:id" element={<IssueViewer />} />
+          
+          {/* 📊 אנליטיקה */}
+          <Route path="/analytics" element={<AnalyticsTable />} />
+          
+          {/* 👥 רשימת מפרסמים */}
+          <Route path="/advertisers" element={<AdvertisersList />} />
+          
+          {/* 🎨 מפרסם - ניהול */}
+          <Route path="/advertiser/placement" element={<PlacementBook />} />
+          <Route path="/advertiser/payment" element={<PaymentPage />} />
+          
+          {/* 📱 Viewers */}
+          <Route path="/viewer" element={<FlipCanvasViewer />} />
+          <Route path="/viewer/:id" element={<FlipIssue />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   );
 }
 

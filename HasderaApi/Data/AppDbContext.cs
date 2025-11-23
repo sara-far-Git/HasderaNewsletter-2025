@@ -1,7 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HasderaApi.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using System.IO;
 
 namespace HasderaApi.Data;
 
@@ -15,7 +17,14 @@ public partial class AppDbContext : DbContext
         : base(options)
     {
     }
-
+    
+    // תיקון שמות המודלים - שימוש בשמות הנכונים מהקבצים
+    public virtual DbSet<Adorder> AdOrders { get; set; }
+    public virtual DbSet<Adplacement> AdPlacements { get; set; }
+    public virtual DbSet<Creative> Creatives { get; set; }
+    public virtual DbSet<Slot> Slots { get; set; }
+    public virtual DbSet<Advertisercontact> AdvertiserContacts { get; set; }
+    public virtual DbSet<Adevent> AdEvents { get; set; }
     public virtual DbSet<Ad> Ads { get; set; }
 
     public virtual DbSet<Adminuser> Adminusers { get; set; }
@@ -57,11 +66,126 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<TestTable> TestTables { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=hasdera-db.c7gocuawyvty.eu-north-1.rds.amazonaws.com;Port=5432;Database=hasdera;Username=Hasdera;Password=Hasdera2025!;Ssl Mode=Require");
+    {
+        // מחרוזת החיבור תיקרא מקובץ התצורה
+        if (!optionsBuilder.IsConfigured)
+        {
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json")
+                .Build();
+
+            optionsBuilder.UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // AdOrder
+        modelBuilder.Entity<Adorder>(entity =>
+        {
+            entity.HasKey(e => e.OrderId).HasName("adorders_pkey");
+            entity.ToTable("adorders");
+
+            entity.Property(e => e.OrderId).HasColumnName("order_id");
+            entity.Property(e => e.AdvertiserId).HasColumnName("advertiser_id");
+            entity.Property(e => e.PackageId).HasColumnName("package_id");
+            entity.Property(e => e.Status).HasMaxLength(50).HasColumnName("status");
+            entity.Property(e => e.OrderDate).HasColumnName("order_date");
+
+            entity.HasOne(d => d.Advertiser).WithMany()
+                .HasForeignKey(d => d.AdvertiserId)
+                .HasConstraintName("fk_adorder_advertiser");
+
+            entity.HasOne(d => d.Package).WithMany()
+                .HasForeignKey(d => d.PackageId)
+                .HasConstraintName("fk_adorder_package");
+        });
+
+        // AdPlacement
+        modelBuilder.Entity<Adplacement>(entity =>
+        {
+            entity.HasKey(e => e.AdplacementId).HasName("adplacements_pkey");
+            entity.ToTable("adplacements");
+
+            entity.Property(e => e.AdplacementId).HasColumnName("adplacement_id");
+            entity.Property(e => e.OrderId).HasColumnName("order_id");
+            entity.Property(e => e.SlotId).HasColumnName("slot_id");
+            entity.Property(e => e.StartDate).HasColumnName("start_date");
+            entity.Property(e => e.EndDate).HasColumnName("end_date");
+
+            entity.HasOne(d => d.Order).WithMany()
+                .HasForeignKey(d => d.OrderId)
+                .HasConstraintName("fk_adplacement_adorder");
+
+            entity.HasOne(d => d.Slot).WithMany()
+                .HasForeignKey(d => d.SlotId)
+                .HasConstraintName("fk_adplacement_slot");
+        });
+
+        // Creative - הסרת FileType שלא קיים
+        modelBuilder.Entity<Creative>(entity =>
+        {
+            entity.HasKey(e => e.CreativeId).HasName("creatives_pkey");
+            entity.ToTable("creatives");
+
+            entity.Property(e => e.CreativeId).HasColumnName("creative_id");
+            entity.Property(e => e.OrderId).HasColumnName("order_id");
+            entity.Property(e => e.FileUrl).HasColumnName("file_url");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasOne(d => d.Order).WithMany()
+                .HasForeignKey(d => d.OrderId)
+                .HasConstraintName("fk_creative_adorder");
+        });
+
+        // Slot
+        modelBuilder.Entity<Slot>(entity =>
+        {
+            entity.HasKey(e => e.SlotId).HasName("slots_pkey");
+            entity.ToTable("slots");
+
+            entity.Property(e => e.SlotId).HasColumnName("slot_id");
+            entity.Property(e => e.Code).HasMaxLength(50).HasColumnName("code");
+            entity.Property(e => e.Name).HasMaxLength(100).HasColumnName("name");
+            entity.Property(e => e.BasePrice).HasPrecision(10, 2).HasColumnName("base_price");
+            entity.Property(e => e.IsExclusive).HasColumnName("is_exclusive");
+        });
+
+        // AdvertiserContact
+        modelBuilder.Entity<Advertisercontact>(entity =>
+        {
+            entity.HasKey(e => e.ContactId).HasName("advertisercontacts_pkey");
+            entity.ToTable("advertisercontacts");
+
+            entity.Property(e => e.ContactId).HasColumnName("contact_id");
+            entity.Property(e => e.AdvertiserId).HasColumnName("advertiser_id");
+            entity.Property(e => e.FullName).HasMaxLength(100).HasColumnName("full_name");
+            entity.Property(e => e.Email).HasMaxLength(100).HasColumnName("email");
+            entity.Property(e => e.Phone).HasMaxLength(20).HasColumnName("phone");
+            entity.Property(e => e.IsPrimary).HasColumnName("is_primary");
+
+            entity.HasOne(d => d.Advertiser).WithMany()
+                .HasForeignKey(d => d.AdvertiserId)
+                .HasConstraintName("fk_contact_advertiser");
+        });
+
+        // AdEvent
+        modelBuilder.Entity<Adevent>(entity =>
+        {
+            entity.HasKey(e => e.AdeventId).HasName("adevents_pkey");
+            entity.ToTable("adevents");
+
+            entity.Property(e => e.AdeventId).HasColumnName("adevent_id");
+            entity.Property(e => e.AdplacementId).HasColumnName("adplacement_id");
+            entity.Property(e => e.EventType).HasMaxLength(50).HasColumnName("event_type");
+            entity.Property(e => e.EventTime).HasColumnName("event_time");
+
+            entity.HasOne(d => d.Adplacement).WithMany()
+                .HasForeignKey(d => d.AdplacementId)
+                .HasConstraintName("fk_adevent_adplacement");
+        });
+
         modelBuilder.Entity<Ad>(entity =>
         {
             entity.HasKey(e => e.AdId).HasName("ads_pkey");
