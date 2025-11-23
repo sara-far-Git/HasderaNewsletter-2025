@@ -1,225 +1,83 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
-import styled from "styled-components";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
-import "react-pdf/dist/esm/Page/TextLayer.css";
+import React, { useEffect, useRef, useState } from "react";
+import styled, { createGlobalStyle } from "styled-components";
+import { X } from "lucide-react";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// CSS גלובלי - ביטול רעידות
+const BookShadowStyles = createGlobalStyle`
+  /* ביטול transitions שגורמים לרעידות */
+  .flipbook-page3,
+  .flipbook-page3 *,
+  .flipbook-page,
+  .flipbook-page * {
+    transition: none !important;
+  }
+  
+  /* שמירה על transition רק לדפדוף */
+  .flipbook-page3 {
+    transition: transform 0.6s ease-out !important;
+  }
+`;
 
-// 🎨 Styled Components
+// 🎨 Styled Components - Exact FlipHTML5 Style
 const ViewerContainer = styled.div`
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #2a2a2a;
   display: flex;
   flex-direction: column;
   z-index: 9999;
   overflow: hidden;
-  direction: rtl; /* עברית - RTL */
-`;
-
-const TopBar = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 2rem;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  direction: rtl; /* עברית - RTL */
-`;
-
-const IssueTitle = styled.h1`
-  color: white;
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
 `;
 
 const CloseButton = styled.button`
-  padding: 0.75rem;
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  border-radius: 0.5rem;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 50%;
   color: white;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   
   &:hover {
-    background: rgba(239, 68, 68, 0.3);
+    background: rgba(0, 0, 0, 0.95);
+    transform: scale(1.1);
   }
 `;
 
-const BookStage = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  perspective: 2500px;
-  perspective-origin: center center;
-  background: 
-    radial-gradient(circle at 20% 50%, rgba(0, 0, 0, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 50%, rgba(0, 0, 0, 0.3) 0%, transparent 50%),
-    linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-`;
-
-const FlipbookContainer = styled.div`
-  position: relative;
-  transform-style: preserve-3d;
-  
-  /* צל עמוק כמו בספר אמיתי */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -20px;
-    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6) 0%, transparent 70%);
-    z-index: -1;
-    filter: blur(30px);
-  }
-`;
-
-const Flipbook = styled.div`
-  margin: 0 auto;
-  transform-style: preserve-3d;
-  direction: rtl; /* עברית - דפדוף מימין לשמאל */
-  
-  /* סגנון דפים כמו בספר עברי אמיתי */
-  .page {
-    background: white;
-    box-shadow: 
-      inset 1px 0 0 rgba(0, 0, 0, 0.1), /* צל בצד ימין (RTL) */
-      0 0 20px rgba(0, 0, 0, 0.1);
-    border-left: 1px solid rgba(0, 0, 0, 0.05); /* גבול בצד ימין */
-    cursor: pointer; /* סמן עכבר כמו בספר אמיתי */
-    position: relative;
-  }
-  
-  /* אזורי לחיצה בקצוות - מוסתרים אבל פעילים */
-  .page::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 50px;
-    height: 50px;
-    background: transparent;
-    cursor: pointer;
-    z-index: 10;
-  }
-  
-  .page::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 50px;
-    height: 50px;
-    background: transparent;
-    cursor: pointer;
-    z-index: 10;
-  }
-  
-  /* דף שמתהפך - צל דינמי (מימין לשמאל) */
-  .page.turning {
-    box-shadow: 
-      10px 0 30px rgba(0, 0, 0, 0.3), /* צל בצד ימין */
-      inset 1px 0 0 rgba(0, 0, 0, 0.1);
-  }
-  
-  /* צד שמאל של הספר (דף זוגי) */
-  .page.even {
-    border-right: 1px solid rgba(0, 0, 0, 0.05);
-  }
-  
-  /* סגנון Turn.js */
-  .turn-page {
-    background: white;
-    direction: rtl;
-  }
-`;
-
-const PageDiv = styled.div`
-  background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  position: relative;
-  direction: rtl; /* עברית - תוכן הדף */
-  
-  /* צל עדין על הדף */
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.02);
-  
-  /* גבול עדין בצד ימין (RTL) */
-  &::before {
-    content: '';
-    position: absolute;
-    right: 0; /* שינוי מ-left ל-right */
-    top: 0;
-    bottom: 0;
-    width: 1px;
-    background: linear-gradient(to bottom, 
-      transparent 0%, 
-      rgba(0, 0, 0, 0.05) 20%, 
-      rgba(0, 0, 0, 0.05) 80%, 
-      transparent 100%);
-    z-index: 1;
-    pointer-events: none;
-  }
-  
-  canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-  }
-`;
-
-const BottomBar = styled.div`
-  padding: 1.5rem 2rem;
-  background: rgba(0, 0, 0, 0.3);
+const PageCounter = styled.div`
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 25px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Assistant', sans-serif;
+  z-index: 10001;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+`;
+
+const FlipbookWrapper = styled.div`
+  width: 100%;
+  height: 100%;
   display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: center;
-  gap: 2rem;
-  direction: rtl; /* עברית - RTL */
-`;
-
-const NavButton = styled.button`
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-  border: none;
-  border-radius: 0.75rem;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-  }
-  
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-`;
-
-const PageIndicator = styled.div`
-  padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 9999px;
-  color: white;
-  font-weight: 600;
-  font-size: 1.125rem;
 `;
 
 const LoadingOverlay = styled.div`
@@ -229,18 +87,18 @@ const LoadingOverlay = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(26, 26, 46, 0.95);
-  gap: 1rem;
-  z-index: 100;
+  background: #2a2a2a;
+  gap: 1.5rem;
+  z-index: 10000;
 `;
 
 const Spinner = styled.div`
   width: 60px;
   height: 60px;
-  border: 4px solid rgba(20, 184, 166, 0.3);
-  border-top-color: #14b8a6;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #ffffff;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 3s linear infinite;
   
   @keyframes spin {
     to { transform: rotate(360deg); }
@@ -249,267 +107,283 @@ const Spinner = styled.div`
 
 const LoadingText = styled.div`
   color: white;
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 400;
+  font-family: 'Assistant', sans-serif;
 `;
 
-// 🎯 Main Component
 export default function FlipCanvasViewer({ issue, onClose }) {
-  const flipbookRef = useRef(null);
-  const [numPages, setNumPages] = useState(null);
+  const flipbookContainerRef = useRef(null);
+  const flipbookInstanceRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [pageWidth, setPageWidth] = useState(400);
-  const [pageHeight, setPageHeight] = useState(565);
+  const [error, setError] = useState(null);
 
-  const pdfOptions = useMemo(
-    () => ({
-      cMapUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
-      cMapPacked: true,
-      standardFontDataUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
-    }),
-    []
-  );
-
-  // Load jQuery and Turn.js
+  // בדיקה שהספרייה נטענה
   useEffect(() => {
-    const loadScript = (src) => {
-      return new Promise((resolve, reject) => {
-        // בדיקה אם הסקריפט כבר נטען
-        const existing = document.querySelector(`script[src="${src}"]`);
-        if (existing) {
-          // אם הסקריפט כבר קיים, נחכה שהוא יסתיים לטעון
-          if (src.includes('jquery')) {
-            if (window.jQuery && window.$) {
-              resolve();
-              return;
-            }
-            // נחכה ש-jQuery יטען
-            const checkJQuery = setInterval(() => {
-              if (window.jQuery && window.$) {
-                clearInterval(checkJQuery);
-                resolve();
-              }
-            }, 50);
-            setTimeout(() => {
-              clearInterval(checkJQuery);
-              if (window.jQuery && window.$) {
-                resolve();
-              } else {
-                reject(new Error('jQuery failed to load'));
-              }
-            }, 5000);
-            return;
-          }
-          resolve();
-          return;
+    const checkFlipBook = setInterval(() => {
+      if (window.FlipBook || window.FLIPBOOK) {
+        clearInterval(checkFlipBook);
+        setIsLoading(false);
+      }
+    }, 100);
+
+    setTimeout(() => {
+      clearInterval(checkFlipBook);
+      if (!window.FlipBook && !window.FLIPBOOK) {
+        console.error("❌ Real3D FlipBook לא נטען");
+        setIsLoading(false);
+      }
+    }, 10000);
+
+    return () => clearInterval(checkFlipBook);
+  }, []);
+
+  useEffect(() => {
+    if (!issue?.pdf_url || !flipbookContainerRef.current) return;
+    if (!window.FlipBook && !window.FLIPBOOK) return;
+    
+    if (flipbookInstanceRef.current) {
+      try {
+        if (flipbookInstanceRef.current.destroy) {
+          flipbookInstanceRef.current.destroy();
+        } else if (flipbookInstanceRef.current.dispose) {
+          flipbookInstanceRef.current.dispose();
         }
+      } catch (e) {
+        console.warn("Warning destroying previous flipbook:", e);
+      }
+      flipbookInstanceRef.current = null;
+    }
+
+    if (flipbookContainerRef.current) {
+      flipbookContainerRef.current.innerHTML = '';
+    }
+
+    console.log("🎯 Initializing FlipBook...", issue.pdf_url);
+
+    let flipbook;
+    let container;
+
+    try {
+      container = document.createElement('div');
+      container.style.width = '100%';
+      container.style.height = '100%';
+      flipbookContainerRef.current.appendChild(container);
+
+      // ============================================
+      // 📖 הגדרות מקוריות - לא לשנות!
+      // ============================================
+      const options = {
+        pdfUrl: issue.pdf_url,
+        rightToLeft: true,
+        startPage: 0,
         
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = () => {
-          // עבור jQuery, נחכה שהוא יוגדר גלובלית
-          if (src.includes('jquery')) {
-            const checkJQuery = setInterval(() => {
-              if (window.jQuery && window.$) {
-                clearInterval(checkJQuery);
-                // הגדרת jQuery גלובלית גם כ-jQuery
-                if (!window.jQuery) {
-                  window.jQuery = window.$;
-                }
-                resolve();
+        // רקע כהה
+        backgroundColor: '#2a2a2a',
+        backgroundTransparent: false,
+        
+        // PDF
+        pdfAutoLinks: false,
+        pdfTextLayer: true,
+        htmlLayer: true,
+        sound: false,
+        
+        // טעינה
+        loadAllPages: false,
+        loadPagesF: 2,
+        loadPagesB: 1,
+        
+        // תצוגה - 3D מציאותי
+        viewMode: '3d',
+        
+        // ללא תפריט!
+        hideMenu: true,
+        
+        // חצים גדולים
+        arrows: true,
+        arrowsAlwaysVisible: true,
+        arrowsColor: '#ffffff',
+        arrowsBackground: 'rgba(0, 0, 0, 0.5)',
+        arrowsBackgroundHover: 'rgba(0, 0, 0, 0.7)',
+        arrowsSize: 50,
+        arrowsMargin: 20,
+        
+        // זמן דפדוף איטי (1.5 = 900ms, 2.0 = 1200ms)
+        pageFlipDuration: 1.8,
+        
+        // עיצוב
+        skin: 'dark'
+      };
+
+      if (window.FlipBook) {
+        flipbook = new window.FlipBook(container, options);
+      } else if (window.FLIPBOOK && window.FLIPBOOK.Main) {
+        flipbook = new window.FLIPBOOK.Main(options, container);
+      }
+
+      if (flipbook) {
+        flipbookInstanceRef.current = flipbook;
+        console.log("✅ FlipBook initialized");
+
+        if (flipbook.on) {
+          flipbook.on('pagechange', () => {
+            try {
+              if (flipbook.getCurrentPageNumber) {
+                const page = flipbook.getCurrentPageNumber();
+                setCurrentPage(page);
               }
-            }, 50);
-            setTimeout(() => {
-              clearInterval(checkJQuery);
-              if (window.jQuery && window.$) {
-                resolve();
-              } else {
-                reject(new Error('jQuery failed to initialize'));
-              }
-            }, 5000);
-          } else {
-            resolve();
-          }
-        };
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    };
-
-    const init = async () => {
-      try {
-        await loadScript('https://code.jquery.com/jquery-3.6.0.min.js');
-        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/turn.js/3/turn.min.js');
-        console.log("✅ jQuery and Turn.js loaded");
-      } catch (error) {
-        console.error("❌ Failed to load libraries:", error);
-      }
-    };
-
-    init();
-  }, []);
-
-  // Calculate page size
-  useEffect(() => {
-    const calculateSize = () => {
-      const containerWidth = window.innerWidth - 200;
-      const containerHeight = window.innerHeight - 250;
-      const aspectRatio = 0.707;
-
-      let width, height;
-      if (containerWidth / 2 / containerHeight > aspectRatio) {
-        height = Math.min(containerHeight, 800);
-        width = height * aspectRatio;
-      } else {
-        width = Math.min(containerWidth / 2, 450);
-        height = width / aspectRatio;
-      }
-      
-      setPageWidth(Math.floor(width));
-      setPageHeight(Math.floor(height));
-    };
-
-    calculateSize();
-    window.addEventListener("resize", calculateSize);
-    return () => window.removeEventListener("resize", calculateSize);
-  }, []);
-
-  const onDocumentLoadSuccess = ({ numPages: total }) => {
-    console.log("✅ PDF loaded, pages:", total);
-    setNumPages(total);
-    setIsLoading(false);
-  };
-
-  // Initialize Turn.js after pages are rendered
-  useEffect(() => {
-    if (!numPages || !window.$ || !window.$.fn.turn) return;
-
-    // Wait a bit for all pages to render
-    const timer = setTimeout(() => {
-      const $flipbook = window.$(flipbookRef.current);
-      
-      if ($flipbook.turn('is')) {
-        $flipbook.turn('destroy');
-      }
-
-      try {
-        $flipbook.turn({
-          width: pageWidth * 2,
-          height: pageHeight,
-          autoCenter: true,
-          direction: 'rtl', // 🔥 זה המפתח! RTL!
-          display: 'double',
-          acceleration: true,
-          elevation: 50,
-          gradients: true,
-          when: {
-            turned: function(event, page) {
-              setCurrentPage(page);
-              console.log("📖 Current page:", page);
+            } catch (e) {
+              console.warn("Error in pagechange:", e);
             }
-          }
-        });
+          });
 
-        console.log("✅ Turn.js initialized with RTL");
-      } catch (error) {
-        console.error("❌ Turn.js error:", error);
+          flipbook.on('ready', () => {
+            try {
+              console.log("✅ FlipBook ready");
+              setIsLoading(false);
+              if (flipbook.options?.numPages) {
+                setTotalPages(flipbook.options.numPages);
+              } else if (flipbook.options?.pages) {
+                setTotalPages(flipbook.options.pages.length);
+              }
+            } catch (e) {
+              console.warn("Error in ready:", e);
+            }
+          });
+
+          flipbook.on('pdfinit', () => {
+            try {
+              console.log("✅ PDF initialized");
+              setIsLoading(false);
+              if (flipbook.options?.numPages) {
+                setTotalPages(flipbook.options.numPages);
+              }
+            } catch (e) {
+              console.warn("Error in pdfinit:", e);
+            }
+          });
+
+          flipbook.on('error', (error) => {
+            console.error("❌ FlipBook error:", error);
+            setIsLoading(false);
+          });
+        }
+
+        if (window.addEventListener) {
+          const handleUnhandledRejection = (event) => {
+            const errorMessage = event.reason?.toString() || '';
+            const errorStack = event.reason?.stack || '';
+            
+            if (errorMessage.includes('flipbook') || 
+                errorMessage.includes('pdf') || 
+                errorMessage.includes('PdfService') ||
+                errorStack.includes('flipbook') ||
+                errorStack.includes('pdfservice')) {
+              console.warn("⚠️ Unhandled rejection:", event.reason);
+              
+              if (errorMessage.includes('PdfService')) {
+                setError("שגיאה בטעינת המגזין");
+                setIsLoading(false);
+              }
+              
+              event.preventDefault();
+            }
+          };
+          window.addEventListener('unhandledrejection', handleUnhandledRejection);
+          
+          return () => {
+            window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+          };
+        }
       }
-    }, 500);
+    } catch (error) {
+      console.error("❌ Failed to initialize:", error);
+      setError(`שגיאה: ${error.message}`);
+      setIsLoading(false);
+      
+      if (container?.parentNode) {
+        container.parentNode.removeChild(container);
+      }
+    }
 
     return () => {
-      clearTimeout(timer);
-      if (window.$ && flipbookRef.current) {
-        const $flipbook = window.$(flipbookRef.current);
-        if ($flipbook.turn && $flipbook.turn('is')) {
-          $flipbook.turn('destroy');
+      if (flipbookInstanceRef.current) {
+        try {
+          if (flipbookInstanceRef.current.destroy) {
+            flipbookInstanceRef.current.destroy();
+          } else if (flipbookInstanceRef.current.dispose) {
+            flipbookInstanceRef.current.dispose();
+          }
+        } catch (e) {
+          console.warn("Warning destroying:", e);
         }
+        flipbookInstanceRef.current = null;
+      }
+      if (flipbookContainerRef.current) {
+        flipbookContainerRef.current.innerHTML = '';
       }
     };
-  }, [numPages, pageWidth, pageHeight]);
+  }, [issue?.pdf_url]);
 
-  const goNext = () => {
-    if (window.$ && flipbookRef.current) {
-      window.$(flipbookRef.current).turn('next');
-    }
-  };
-
-  const goPrev = () => {
-    if (window.$ && flipbookRef.current) {
-      window.$(flipbookRef.current).turn('previous');
-    }
-  };
-
-  // Keyboard shortcuts
+  // קיצורי מקלדת
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === "ArrowLeft") goNext();
-      if (e.key === "ArrowRight") goPrev();
-      if (e.key === "Escape") onClose();
+      const flipbook = flipbookInstanceRef.current;
+      
+      if (e.key === "Escape") {
+        onClose();
+      } else if (e.key === "ArrowRight" && flipbook?.prevPage) {
+        flipbook.prevPage();
+      } else if (e.key === "ArrowLeft" && flipbook?.nextPage) {
+        flipbook.nextPage();
+      }
     };
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  }, [onClose]);
 
   return (
     <ViewerContainer>
-      <TopBar>
-        <IssueTitle>{issue?.title || "גליון דיגיטלי"}</IssueTitle>
-        <CloseButton onClick={onClose}>
-          <X size={20} />
-        </CloseButton>
-      </TopBar>
+      <BookShadowStyles />
+      <CloseButton onClick={onClose} title="סגור (ESC)">
+        <X size={24} />
+      </CloseButton>
 
-      <BookStage>
-        {isLoading && (
-          <LoadingOverlay>
-            <Spinner />
-            <LoadingText>טוען PDF...</LoadingText>
-          </LoadingOverlay>
-        )}
+      {!isLoading && !error && totalPages && (
+        <PageCounter>
+          {currentPage} / {totalPages}
+        </PageCounter>
+      )}
 
-        <FlipbookContainer>
-          <Document
-            file={issue?.pdf_url}
-            options={pdfOptions}
-            onLoadSuccess={onDocumentLoadSuccess}
-          >
-            <Flipbook ref={flipbookRef} style={{ width: pageWidth * 2, height: pageHeight }}>
-              {numPages && Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
-                <PageDiv key={pageNum} style={{ width: pageWidth, height: pageHeight }}>
-                  <Page
-                    pageNumber={pageNum}
-                    width={pageWidth}
-                    height={pageHeight}
-                    renderMode="canvas"
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                    canvasBackground="white"
-                  />
-                </PageDiv>
-              ))}
-            </Flipbook>
-          </Document>
-        </FlipbookContainer>
-      </BookStage>
+      {isLoading && !error && (
+        <LoadingOverlay>
+          <Spinner />
+          <LoadingText>טוען מגזין...</LoadingText>
+        </LoadingOverlay>
+      )}
 
-      <BottomBar>
-        <NavButton onClick={goPrev} disabled={currentPage <= 1}>
-          <ChevronRight size={20} />
-          <span>הקודם</span>
-        </NavButton>
+      {error && (
+        <LoadingOverlay>
+          <div style={{ 
+            color: '#ff6b6b', 
+            fontSize: '20px', 
+            fontWeight: 600, 
+            textAlign: 'center',
+            fontFamily: 'Assistant, sans-serif'
+          }}>
+            {error}
+          </div>
+        </LoadingOverlay>
+      )}
 
-        <PageIndicator>
-          <span style={{ color: '#14b8a6', fontSize: '1.5rem' }}>{currentPage}</span>
-          <span> / {numPages || "..."}</span>
-        </PageIndicator>
-
-        <NavButton onClick={goNext} disabled={currentPage >= numPages}>
-          <span>הבא</span>
-          <ChevronLeft size={20} />
-        </NavButton>
-      </BottomBar>
+      {!error && (
+        <FlipbookWrapper>
+          <div ref={flipbookContainerRef} style={{ width: '100%', height: '100%' }} />
+        </FlipbookWrapper>
+      )}
     </ViewerContainer>
   );
 }

@@ -55,7 +55,10 @@ builder.Services.AddControllers();
 var app = builder.Build();
 
 // HTTPS Redirection
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
 
 // Enable CORS
 app.UseCors("AllowReactApp");

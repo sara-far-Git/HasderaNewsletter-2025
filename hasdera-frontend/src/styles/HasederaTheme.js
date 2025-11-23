@@ -93,5 +93,63 @@ const hasederaTheme = {
   },
 };
 
+// 🎨 Global Styles
+export const GlobalStyles = `
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
+  }
+
+  body {
+    font-family: 'Assistant', 'Heebo', system-ui, Avenir, Helvetica, Arial, sans-serif;
+    overflow-x: hidden;
+    direction: rtl;
+    background: #1a1a1a;
+    color: #111827;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+  }
+
+  a {
+    font-weight: 500;
+    color: ${hasederaTheme.colors.primary.main};
+    text-decoration: inherit;
+  }
+
+  a:hover {
+    color: ${hasederaTheme.colors.primary.dark};
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  ul, ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+`;
+
 export default hasederaTheme;
 

@@ -1,15 +1,18 @@
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { createGlobalStyle } from "styled-components";
+import hasederaTheme, { GlobalStyles } from "./styles/HasederaTheme";
 import AnalyticsTable from "./Components/AnalyticsTable";
 import AdvertisersList from "./Components/AdvertisersList";
 import IssuesList from "./Components/IssuesList";
 import AdvertiserNav from "./Components/AdvertiserNav"; 
-import Dashboard from "./Components/Dashboard";
 import PlacementBook from "./Components/PlacementBook";
 import FlipCanvasViewer from "./Components/FlipCanvasViewer";
 import FlipIssue from "./Components/FlipIssue";
-import Navbar from "./Components/Navbar";
-import AdvertiserChat from "./Components/AdvertiserChat";
-import hasederaTheme from "./styles/HasederaTheme";
+
+// 🎨 הגדרת סטיילים גלובליים
+const GlobalStyleComponent = createGlobalStyle`
+  ${GlobalStyles}
+`;
 
 // 📄 עמוד תשלום זמני
 const PaymentPage = () => (
@@ -70,36 +73,35 @@ function IssueViewer() {
 // 🎯 App - קומפוננט ראשי
 function App() {
   return (
-    <BrowserRouter>
-      <Navbar />
-      {/* 💬 Chatbot כפתור צף - מופיע בכל העמודים */}
-      <AdvertiserChat />
-      <Routes>
-        {/* 🏠 דף נחיתה למפרסמים */}
-        <Route path="/" element={<AdvertiserNav />} />
-        
-        {/* 📊 Dashboard - דף הבית המרכזי */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        
-        {/* 📖 גליונות */}
-        <Route path="/issues" element={<IssuesList />} />
-        <Route path="/issues/:id" element={<IssueViewer />} />
-        
-        {/* 📊 אנליטיקה */}
-        <Route path="/analytics" element={<AnalyticsTable />} />
-        
-        {/* 👥 רשימת מפרסמים */}
-        <Route path="/advertisers" element={<AdvertisersList />} />
-        
-        {/* 🎨 מפרסם - ניהול */}
-        <Route path="/advertiser/placement" element={<PlacementBook />} />
-        <Route path="/advertiser/payment" element={<PaymentPage />} />
-        
-        {/* 📱 Viewers */}
-        <Route path="/viewer" element={<FlipCanvasViewer />} />
-        <Route path="/viewer/:id" element={<FlipIssue />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      {/* 🎨 סטיילים גלובליים */}
+      <GlobalStyleComponent />
+      
+      <BrowserRouter>
+        <Routes>
+          {/* 🏠 דף הבית - ניווט מפרסמים */}
+          <Route path="/" element={<AdvertiserNav />} />
+          
+          {/* 📖 גליונות */}
+          <Route path="/issues" element={<IssuesList />} />
+          <Route path="/issues/:id" element={<IssueViewer />} />
+          
+          {/* 📊 אנליטיקה */}
+          <Route path="/analytics" element={<AnalyticsTable />} />
+          
+          {/* 👥 רשימת מפרסמים */}
+          <Route path="/advertisers" element={<AdvertisersList />} />
+          
+          {/* 🎨 מפרסם - ניהול */}
+          <Route path="/advertiser/placement" element={<PlacementBook />} />
+          <Route path="/advertiser/payment" element={<PaymentPage />} />
+          
+          {/* 📱 Viewers */}
+          <Route path="/viewer" element={<FlipCanvasViewer />} />
+          <Route path="/viewer/:id" element={<FlipIssue />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   );
 }
 
