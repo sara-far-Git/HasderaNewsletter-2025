@@ -65,6 +65,9 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<TestTable> TestTables { get; set; }
 
+    public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         // מחרוזת החיבור תיקרא מקובץ התצורה

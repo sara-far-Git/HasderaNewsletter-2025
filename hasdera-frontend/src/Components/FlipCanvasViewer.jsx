@@ -2,21 +2,34 @@ import React, { useEffect, useRef, useState } from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import { X } from "lucide-react";
 
-// CSS גלובלי - ביטול רעידות
+// CSS גלובלי - תיקון צד אחורי
 const BookShadowStyles = createGlobalStyle`
-  /* ביטול transitions שגורמים לרעידות */
+
+  /* שומרים על 3D – חובה ל-FlipBook */
   .flipbook-page3,
-  .flipbook-page3 *,
-  .flipbook-page,
-  .flipbook-page * {
-    transition: none !important;
+  .flipbook-page3-inner {
+    transform-style: preserve-3d !important;
+    -webkit-transform-style: preserve-3d !important;
   }
-  
-  /* שמירה על transition רק לדפדוף */
-  .flipbook-page3 {
-    transition: transform 0.6s ease-out !important;
+
+  /* ❗ ביטול ההסתרה שהרסה את האנימציה */
+  /* קודם היה: backface-visibility:hidden * על כל הצאצאים */
+  .flipbook-page3-inner * {
+    backface-visibility: visible !important;
+    -webkit-backface-visibility: visible !important;
   }
+
+  /* ❗ ביטול הסתרות בזמן התהפכות */
+  /* קודם היה: opacity:0 ו-pointer-events:none */
+  .flipbook-page3-inner[data-visible="false"],
+  .flipbook-page3-inner[style*="rotateY("] {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* שאר ההגדרות שלך נשארות כמו שהן */
 `;
+
 
 // 🎨 Styled Components - Exact FlipHTML5 Style
 const ViewerContainer = styled.div`

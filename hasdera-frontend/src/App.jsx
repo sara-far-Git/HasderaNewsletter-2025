@@ -8,7 +8,7 @@ import AdvertiserNav from "./Components/AdvertiserNav";
 import PlacementBook from "./Components/PlacementBook";
 import FlipCanvasViewer from "./Components/FlipCanvasViewer";
 import FlipIssue from "./Components/FlipIssue";
-
+import LoginEnrollment from "./Components/LoginEnrollment";
 // 🎨 הגדרת סטיילים גלובליים
 const GlobalStyleComponent = createGlobalStyle`
   ${GlobalStyles}
@@ -76,7 +76,7 @@ function App() {
     <>
       {/* 🎨 סטיילים גלובליים */}
       <GlobalStyleComponent />
-      
+      <LoginEnrollment />
       <BrowserRouter>
         <Routes>
           {/* 🏠 דף הבית - ניווט מפרסמים */}
@@ -99,6 +99,9 @@ function App() {
           {/* 📱 Viewers */}
           <Route path="/viewer" element={<FlipCanvasViewer />} />
           <Route path="/viewer/:id" element={<FlipIssue />} />
+
+          {/* 🔒 Login & Enrollment */}
+          <Route path="/login" element={<LoginEnrollment />} />
         </Routes>
       </BrowserRouter>
     </>

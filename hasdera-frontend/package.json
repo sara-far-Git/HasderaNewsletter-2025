@@ -10,6 +10,7 @@
     "start:all": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
   },
   "dependencies": {
+    "@react-oauth/google": "^0.12.2",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.4.0",
     "axios": "^1.11.0",

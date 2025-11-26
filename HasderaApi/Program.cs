@@ -5,7 +5,11 @@ using Amazon;
 using Amazon.S3;
 using Microsoft.EntityFrameworkCore;
 using HasderaApi.Data;
+using HasderaApi.Services;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,20 +52,47 @@ builder.Services.AddCors(options =>
               .AllowCredentials(); // נדרש עבור HTTPS
     });
 });
+builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key not found"))
+            )
+        };
+    });
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("AdvertiserOnly", policy => policy.RequireRole("Advertiser"));
+    options.AddPolicy("SubscribersOnly", policy => policy.RequireRole("Subscriber"));
+});
+
+builder.Services.AddAuthorization();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Controllers
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// HTTPS Redirection
-if (!app.Environment.IsProduction())
-{
-    app.UseHttpsRedirection();
-}
+// HTTPS Redirection - מושבת בפיתוח כדי למנוע בעיות CORS
+// if (!app.Environment.IsProduction())
+// {
+//     app.UseHttpsRedirection();
+// }
 
 // Enable CORS
 app.UseCors("AllowReactApp");
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.Run();
