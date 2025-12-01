@@ -467,6 +467,12 @@ namespace HasderaApi.Controllers
                     var uri = new Uri(fileUrl);
                     var s3Key = uri.AbsolutePath.TrimStart('/');
                     
+                    // בדיקה שה-key לא ריק
+                    if (string.IsNullOrEmpty(s3Key))
+                    {
+                        return fileUrl;
+                    }
+                    
                     var request = new GetPreSignedUrlRequest
                     {
                         BucketName = bucketName,
@@ -475,12 +481,19 @@ namespace HasderaApi.Controllers
                         Expires = DateTime.UtcNow.AddDays(7)
                     };
                     
-                    return _s3.GetPreSignedURL(request);
+                    var preSignedUrl = _s3.GetPreSignedURL(request);
+                    
+                    // בדיקה שה-URL נוצר בהצלחה
+                    if (!string.IsNullOrEmpty(preSignedUrl))
+                    {
+                        return preSignedUrl;
+                    }
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // אם יש שגיאה, נחזיר את ה-URL המקורי
+                // אפשר להוסיף logging כאן אם צריך
             }
 
             // אם משהו לא עבד, נחזיר את ה-URL המקורי

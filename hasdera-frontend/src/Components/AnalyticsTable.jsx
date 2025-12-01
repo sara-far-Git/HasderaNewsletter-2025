@@ -876,16 +876,47 @@ export default function AnalyticsTable() {
                     <AdCardHeader>
                       <AdCardTitle>
                         {isValidFileUrl ? (
-                          <img 
-                            src={creative.fileUrl} 
-                            alt="מודעה" 
-                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                            }}
-                          />
+                          <>
+                            <img 
+                              src={creative.fileUrl} 
+                              alt="מודעה" 
+                              style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
+                              onError={(e) => {
+                                try {
+                                  e.target.style.display = 'none';
+                                  const fallback = e.target.nextElementSibling;
+                                  if (fallback) {
+                                    fallback.style.display = 'flex';
+                                  }
+                                } catch (err) {
+                                  // Silent fail
+                                }
+                              }}
+                            />
+                            <div style={{ 
+                              display: 'none',
+                              width: '60px', 
+                              height: '60px', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              borderRadius: '8px'
+                            }}>
+                              <FileText size={24} />
+                            </div>
+                          </>
                         ) : (
-                          <FileText size={24} />
+                          <div style={{ 
+                            width: '60px', 
+                            height: '60px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: '8px'
+                          }}>
+                            <FileText size={24} />
+                          </div>
                         )}
                         {ad.slot?.name || (ad.hasPlacement === false ? 'ממתין לבחירת מיקום' : `מודעה #${adId}`)}
                       </AdCardTitle>

@@ -873,13 +873,31 @@ export default function Navbar() {
                     <AdCard key={adKey}>
                       <AdImage>
                         {isValidFileUrl ? (
-                          <img 
-                            src={creative.fileUrl} 
-                            alt="פרסומת"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                            }}
-                          />
+                          <>
+                            <img 
+                              src={creative.fileUrl} 
+                              alt="פרסומת"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                const fallback = e.target.nextElementSibling;
+                                if (fallback) {
+                                  fallback.style.display = 'flex';
+                                }
+                              }}
+                            />
+                            <div style={{ 
+                              display: 'none',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '100%',
+                              height: '100%',
+                              position: 'absolute',
+                              top: 0,
+                              left: 0
+                            }}>
+                              <ImageIcon size={48} color="rgba(255, 255, 255, 0.3)" />
+                            </div>
+                          </>
                         ) : (
                           <ImageIcon size={48} color="rgba(255, 255, 255, 0.3)" />
                         )}
