@@ -1,120 +1,273 @@
-import React, { useEffect, useMemo, useState } from "react";
-import styled from "styled-components";
-import { CalendarDays, ExternalLink, Search, X , Book} from "lucide-react";
+/**
+ * IssuesList.jsx
+ * רשימת גליונות המגזין - עיצוב תואם לדשבורד
+ */
+
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import styled, { keyframes, createGlobalStyle } from "styled-components";
+import { CalendarDays, Search, X, Book, ArrowLeft, ChevronLeft } from "lucide-react";
 import { getIssues } from "../Services/issuesService";
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
-import { Badge as ThemeBadge, Input, PageHeader, PageTitle, Container as ThemeContainer, Grid, Spinner as ThemeSpinner, PrimaryButton as ThemePrimaryButton, SecondaryButton } from "../styles";
 import hasederaTheme from "../styles/HasederaTheme";
 
+// 🎯 PDF Worker - גרסה יציבה
+if (typeof window !== 'undefined') {
+  // Use a stable version that matches react-pdf
+  pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 
-// 🎯 שימוש בגרסת Worker של pdf.js 4.0.379 (תואמת לגרסאות react-pdf אחרונות)
-pdfjs.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
+// 🎨 גופנים - נטען דרך index.html
+const GlobalFonts = createGlobalStyle`
+  /* Fonts are loaded via <link> tag in index.html */
+`;
 
-// 🎨 Styled Components עם Theme
-const Container = styled(ThemeContainer)`
+// 🎬 אנימציות
+const fadeInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const float = keyframes`
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+`;
+
+// 🎨 רקע
+const PageWrapper = styled.div`
   min-height: 100vh;
-  width: 100vw;
-  margin: 0;
-  padding: 0;
-  background: ${hasederaTheme.colors.background.main};
   position: relative;
   overflow-x: hidden;
+  scroll-behavior: smooth;
 `;
 
-const Header = styled(PageHeader)`
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  border-bottom: 2px solid ${hasederaTheme.colors.primary.main}33;
-  box-shadow: ${hasederaTheme.shadows.md};
-  margin-bottom: 0;
+const BackgroundImage = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("/image/ChatGPT Image Nov 16, 2025, 08_56_06 PM.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  z-index: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      ${hasederaTheme.colors.background.overlay || 'rgba(26, 26, 26, 0.92)'} 0%,
+      rgba(26, 26, 26, 0.88) 50%,
+      ${hasederaTheme.colors.background.overlay || 'rgba(26, 26, 26, 0.92)'} 100%
+    );
+  }
 `;
 
-const HeaderContent = styled.div`
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: ${hasederaTheme.spacing.xl} ${hasederaTheme.spacing['2xl']};
+const ContentWrapper = styled.div`
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  padding: 2rem;
+  
+  @media (max-width: ${hasederaTheme.breakpoints.md}) {
+    padding: 1rem;
+  }
 `;
 
-const HeaderTitle = styled.div`
+// 🎨 Header
+const Header = styled.header`
+  max-width: 1400px;
+  margin: 0 auto 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: ${fadeIn} 0.8s ease-out;
+  
+  @media (max-width: ${hasederaTheme.breakpoints.md}) {
+    flex-direction: column;
+    gap: 1rem;
+  }
+`;
+
+const Logo = styled.div`
+  font-family: ${hasederaTheme.typography.fontFamily?.heading || "'Cormorant Garamond', serif"};
+  font-size: 2.5rem;
+  font-weight: ${hasederaTheme.typography.fontWeight.light};
+  color: ${hasederaTheme.colors.text.white};
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: ${hasederaTheme.transitions.base};
+  
+  &:hover {
+    color: ${hasederaTheme.colors.primary.main};
+  }
+  
+  @media (max-width: ${hasederaTheme.breakpoints.md}) {
+    font-size: 1.8rem;
+  }
+`;
+
+const BackButton = styled.button`
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: ${hasederaTheme.spacing.md};
-  margin-bottom: ${hasederaTheme.spacing.xl};
-`;
-
-const IconBox = styled.div`
-  padding: ${hasederaTheme.spacing.md};
-  background: ${hasederaTheme.colors.gradient.primary};
-  border-radius: ${hasederaTheme.borderRadius.lg};
-  box-shadow: ${hasederaTheme.shadows.green};
-  animation: float 3s ease-in-out infinite;
-  border: 2px solid rgba(255, 215, 0, 0.3);
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: ${hasederaTheme.colors.background.glass || 'rgba(255, 255, 255, 0.1)'};
+  backdrop-filter: blur(10px);
+  border: 1px solid ${hasederaTheme.colors.border.glass || 'rgba(255, 255, 255, 0.2)'};
+  border-radius: ${hasederaTheme.borderRadius.full};
+  color: ${hasederaTheme.colors.text.white};
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: ${hasederaTheme.transitions.base};
+  font-family: inherit;
   
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: ${hasederaTheme.colors.primary.main};
+    color: ${hasederaTheme.colors.primary.main};
   }
   
   svg {
-    color: ${hasederaTheme.colors.text.white};
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    transition: transform 0.3s ease;
+  }
+  
+  &:hover svg {
+    transform: translateX(4px);
   }
 `;
 
-const Title = styled(PageTitle)`
-  background: linear-gradient(135deg, ${hasederaTheme.colors.primary.dark} 0%, ${hasederaTheme.colors.primary.main} 50%, #ffd700 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+// 🎨 Title Section
+const TitleSection = styled.div`
+  max-width: 1400px;
+  margin: 0 auto 3rem;
+  text-align: center;
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.1s;
+  animation-fill-mode: both;
 `;
 
-const BadgeStyled = styled(ThemeBadge)`
-  padding: ${hasederaTheme.spacing.sm} ${hasederaTheme.spacing.lg};
-  background: linear-gradient(135deg, ${hasederaTheme.colors.primary.main}26 0%, ${hasederaTheme.colors.primary.dark}26 100%);
-  color: ${hasederaTheme.colors.primary.dark};
-  border: 1px solid ${hasederaTheme.colors.primary.main}4d;
-  backdrop-filter: blur(10px);
-`;
-
-const SearchWrapper = styled.div`
-  display: flex;
+const IconBox = styled.div`
+  display: inline-flex;
+  padding: ${hasederaTheme.spacing.lg};
+  background: ${hasederaTheme.colors.gradient.primary};
+  border-radius: ${hasederaTheme.borderRadius['2xl']};
+  margin-bottom: 1.5rem;
+  box-shadow: ${hasederaTheme.shadows.green};
+  animation: ${float} 3s ease-in-out infinite;
+  align-items: center;
   justify-content: center;
+  
+  svg {
+    display: block;
+    color: ${hasederaTheme.colors.text.white};
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+  }
+`;
+
+const PageTitle = styled.h1`
+  font-family: ${hasederaTheme.typography.fontFamily?.heading || "'Cormorant Garamond', serif"};
+  font-size: ${hasederaTheme.typography.fontSize['5xl'] || '3rem'};
+  font-weight: ${hasederaTheme.typography.fontWeight.light};
+  color: ${hasederaTheme.colors.text.white};
+  margin-bottom: 1rem;
+  letter-spacing: 2px;
+  
+  span {
+    color: ${hasederaTheme.colors.primary.main};
+  }
+  
+  @media (max-width: ${hasederaTheme.breakpoints.md}) {
+    font-size: ${hasederaTheme.typography.fontSize['3xl']};
+  }
+`;
+
+const PageSubtitle = styled.p`
+  font-size: ${hasederaTheme.typography.fontSize.lg};
+  color: ${hasederaTheme.colors.text.whiteSecondary || 'rgba(255, 255, 255, 0.7)'};
+  font-weight: ${hasederaTheme.typography.fontWeight.light};
+  max-width: 500px;
+  margin: 0 auto;
+`;
+
+// 🎨 Search
+const SearchWrapper = styled.div`
+  max-width: 600px;
+  margin: 0 auto 3rem;
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.2s;
+  animation-fill-mode: both;
 `;
 
 const SearchBox = styled.div`
   position: relative;
-  width: 100%;
-  max-width: 42rem;
 `;
 
 const SearchIcon = styled(Search)`
   position: absolute;
-  right: 1rem;
+  right: 1.5rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: ${hasederaTheme.colors.text.whiteTertiary || 'rgba(255, 255, 255, 0.5)'};
+  transition: ${hasederaTheme.transitions.base};
+  display: block;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
 `;
 
-const SearchInput = styled(Input)`
-  padding: ${hasederaTheme.spacing.md} 3.5rem;
-  border: 2px solid ${hasederaTheme.colors.primary.main}4d;
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 1.25rem 3.5rem;
+  background: ${hasederaTheme.colors.background.glass || 'rgba(255, 255, 255, 0.05)'};
+  backdrop-filter: blur(20px);
+  border: 1px solid ${hasederaTheme.colors.border.glass || 'rgba(255, 255, 255, 0.1)'};
   border-radius: ${hasederaTheme.borderRadius.full};
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow: ${hasederaTheme.shadows.base};
+  color: ${hasederaTheme.colors.text.white};
+  font-size: ${hasederaTheme.typography.fontSize.base};
+  font-family: inherit;
+  transition: ${hasederaTheme.transitions.base};
+  
+  &::placeholder {
+    color: ${hasederaTheme.colors.text.whiteTertiary || 'rgba(255, 255, 255, 0.5)'};
+  }
   
   &:hover {
-    border-color: ${hasederaTheme.colors.primary.main}80;
-    box-shadow: ${hasederaTheme.shadows.md};
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
   }
   
   &:focus {
+    outline: none;
     border-color: ${hasederaTheme.colors.primary.main};
-    box-shadow: 0 0 0 4px ${hasederaTheme.colors.primary.main}33, ${hasederaTheme.shadows.lg};
-    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 0 4px ${hasederaTheme.colors.primary.main}33;
+  }
+  
+  &:focus + ${SearchIcon} {
+    color: ${hasederaTheme.colors.primary.main};
   }
 `;
 
@@ -123,20 +276,24 @@ const ClearButton = styled.button`
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  padding: 0.375rem;
-  background: transparent;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
-  color: #9ca3af;
-  border-radius: 9999px;
+  color: ${hasederaTheme.colors.text.whiteSecondary || 'rgba(255, 255, 255, 0.7)'};
+  border-radius: ${hasederaTheme.borderRadius.full};
   cursor: pointer;
-  transition: all 0.2s;
+  transition: ${hasederaTheme.transitions.base};
+  display: flex;
+  align-items: center;
+  justify-content: center;
   
   &:hover {
-    background: #f3f4f6;
-    color: #4b5563;
+    background: rgba(255, 255, 255, 0.2);
+    color: ${hasederaTheme.colors.text.white};
   }
 `;
 
+// 🎨 Loading
 const LoadingState = styled.div`
   padding: 6rem 0;
   text-align: center;
@@ -144,136 +301,154 @@ const LoadingState = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
+  animation: ${fadeIn} 0.5s ease-out;
 `;
 
 const Spinner = styled.div`
-  width: ${props => props.$large ? '4rem' : '3.5rem'};
-  height: ${props => props.$large ? '4rem' : '3.5rem'};
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  width: ${props => props.$large ? '4rem' : '2.5rem'};
+  height: ${props => props.$large ? '4rem' : '2.5rem'};
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: ${hasederaTheme.colors.primary.main};
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+  animation: ${spin} 0.8s linear infinite;
 `;
 
-const ErrorState = styled.div`
-  max-width: 48rem;
-  margin: 3rem auto;
-  padding: 0 1rem;
+const LoadingText = styled.div`
+  color: ${hasederaTheme.colors.text.whiteSecondary || 'rgba(255, 255, 255, 0.7)'};
+  font-size: ${hasederaTheme.typography.fontSize.lg};
+  font-weight: ${hasederaTheme.typography.fontWeight.medium};
 `;
 
-const ErrorBox = styled.div`
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.95);
+// 🎨 Error & Empty States
+const StateBox = styled.div`
+  max-width: 500px;
+  margin: 4rem auto;
+  padding: 3rem 2rem;
+  background: ${hasederaTheme.colors.background.glass || 'rgba(255, 255, 255, 0.03)'};
   backdrop-filter: blur(20px);
-  border: 2px solid rgba(239, 68, 68, 0.3);
-  border-radius: 1.5rem;
-  color: #dc2626;
-  display: flex;
-  gap: 1rem;
-  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.2);
-  
-  h3 {
-    font-weight: 700;
-    margin: 0 0 0.5rem 0;
-    font-size: 1.25rem;
-  }
-  
-  p {
-    font-size: 1rem;
-    margin: 0;
-    opacity: 0.9;
-  }
-`;
-
-const EmptyState = styled.div`
-  max-width: 48rem;
-  margin: 6rem auto;
-  padding: 0 1rem;
+  border: 1px solid ${props => props.$error 
+    ? 'rgba(239, 68, 68, 0.3)' 
+    : hasederaTheme.colors.border.glass || 'rgba(255, 255, 255, 0.1)'};
+  border-radius: ${hasederaTheme.borderRadius['2xl']};
   text-align: center;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 2rem;
-  padding: 4rem 2rem;
-  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.1);
-  border: 2px solid rgba(34, 197, 94, 0.2);
+  animation: ${fadeInUp} 0.5s ease-out;
 `;
 
-const EmptyIcon = styled.div`
-  font-size: 5rem;
-  margin-bottom: 2rem;
+const StateIcon = styled.div`
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  color: ${props => props.$error 
+    ? hasederaTheme.colors.status.error 
+    : hasederaTheme.colors.primary.main};
   opacity: 0.6;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-  color: #22c55e;
-`;
-
-const GridContainer = styled(ThemeContainer)`
-  padding: ${hasederaTheme.spacing['2xl']} ${hasederaTheme.spacing['2xl']};
-`;
-
-const GridStyled = styled(Grid)`
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: ${hasederaTheme.spacing['2xl']};
+  display: flex;
+  align-items: center;
+  justify-content: center;
   
-  @media (min-width: ${hasederaTheme.breakpoints.sm}) {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  svg {
+    display: block;
+    width: 4rem;
+    height: 4rem;
+    flex-shrink: 0;
   }
+`;
+
+const StateTitle = styled.h3`
+  font-size: ${hasederaTheme.typography.fontSize.xl};
+  font-weight: ${hasederaTheme.typography.fontWeight.semibold};
+  color: ${props => props.$error 
+    ? hasederaTheme.colors.status.error 
+    : hasederaTheme.colors.text.white};
+  margin-bottom: 0.5rem;
+`;
+
+const StateText = styled.p`
+  color: ${hasederaTheme.colors.text.whiteSecondary || 'rgba(255, 255, 255, 0.7)'};
+  font-size: ${hasederaTheme.typography.fontSize.base};
+`;
+
+// 🎨 Grid
+const GridContainer = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+`;
+
+const Grid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 2rem;
   
   @media (min-width: ${hasederaTheme.breakpoints.lg}) {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: ${hasederaTheme.spacing['2xl']};
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
   
   @media (min-width: ${hasederaTheme.breakpoints.xl}) {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
 `;
 
+// 🎨 Card
 const Card = styled.button`
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  overflow: visible;
+  background: ${hasederaTheme.colors.background.glass || 'rgba(255, 255, 255, 0.03)'};
+  backdrop-filter: blur(20px);
+  border: 1px solid ${hasederaTheme.colors.border.glass || 'rgba(255, 255, 255, 0.1)'};
+  border-radius: ${hasederaTheme.borderRadius['2xl']};
+  overflow: hidden;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   text-align: right;
   padding: 0;
   position: relative;
+  opacity: ${props => props.$visible ? 1 : 0};
+  transform: ${props => props.$visible ? 'translate3d(0, 0, 0) scale(1)' : 'translate3d(0, 60px, 0) scale(0.95)'};
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: ${props => props.$delay || '0s'};
+  will-change: ${props => props.$visible ? 'auto' : 'transform, opacity'};
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   
-  &:hover {
-    transform: translateY(-8px) scale(1.03);
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, ${hasederaTheme.colors.primary.main}, transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
   
-  &:active {
-    transform: translateY(-4px) scale(1.01);
+  &:hover {
+    background: ${hasederaTheme.colors.background.glassLight || 'rgba(255, 255, 255, 0.08)'};
+    border-color: ${hasederaTheme.colors.border.glassHover || 'rgba(16, 185, 129, 0.4)'};
+    transform: ${props => props.$visible ? 'translate3d(0, -8px, 0) scale(1.02)' : 'translate3d(0, 60px, 0) scale(0.95)'};
+    box-shadow: ${hasederaTheme.shadows.card || '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 60px rgba(16, 185, 129, 0.1)'};
+    
+    &::before {
+      opacity: 1;
+    }
   }
 `;
 
 const CardImage = styled.div`
   aspect-ratio: 3/4;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
   
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.15));
-    border-radius: 0.5rem;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
   }
   
   ${Card}:hover & img {
     transform: scale(1.05);
-    filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.25));
   }
 `;
 
@@ -282,56 +457,37 @@ const Placeholder = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: ${hasederaTheme.colors.text.whiteTertiary || 'rgba(255, 255, 255, 0.5)'};
   padding: 2rem 1rem;
   
   svg {
     opacity: 0.5;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
   }
   
   div {
-    font-size: 0.875rem;
-    font-weight: 500;
-  }
-`;
-
-const Overlay = styled.div`
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(34, 197, 94, 0.1) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity 0.4s;
-  z-index: 1;
-  pointer-events: none;
-  
-  ${Card}:hover & {
-    opacity: 1;
+    font-size: ${hasederaTheme.typography.fontSize.sm};
   }
 `;
 
 const CardContent = styled.div`
-  padding: 1.25rem 0.5rem;
-  background: transparent;
-  position: relative;
-  z-index: 2;
+  padding: 1.5rem;
 `;
 
 const CardTitle = styled.h3`
-  font-weight: 700;
-  color: #1a1a2e;
-  font-size: 1.125rem;
-  line-height: 1.5;
+  font-family: ${hasederaTheme.typography.fontFamily?.heading || "'Cormorant Garamond', serif"};
+  font-weight: ${hasederaTheme.typography.fontWeight.medium};
+  color: ${hasederaTheme.colors.text.white};
+  font-size: ${hasederaTheme.typography.fontSize.xl};
+  line-height: 1.4;
   margin: 0 0 0.75rem 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  transition: all 0.3s;
+  transition: ${hasederaTheme.transitions.base};
   
   ${Card}:hover & {
-    color: #16a34a;
-    transform: translateX(-4px);
+    color: ${hasederaTheme.colors.primary.light};
   }
 `;
 
@@ -339,13 +495,12 @@ const CardDate = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #6b7280;
-  font-size: 0.875rem;
+  color: ${hasederaTheme.colors.text.whiteSecondary || 'rgba(255, 255, 255, 0.7)'};
+  font-size: ${hasederaTheme.typography.fontSize.sm};
   margin-bottom: 1rem;
-  font-weight: 500;
   
   svg {
-    color: #22c55e;
+    color: ${hasederaTheme.colors.primary.main};
   }
 `;
 
@@ -353,56 +508,50 @@ const CardFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgba(34, 197, 94, 0.2);
+  padding-top: 1rem;
+  border-top: 1px solid ${hasederaTheme.colors.border.glass || 'rgba(255, 255, 255, 0.1)'};
 `;
 
 const OpenLink = styled.span`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #16a34a;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: all 0.3s;
+  color: ${hasederaTheme.colors.primary.main};
+  font-size: ${hasederaTheme.typography.fontSize.sm};
+  font-weight: ${hasederaTheme.typography.fontWeight.medium};
+  transition: ${hasederaTheme.transitions.base};
   
   ${Card}:hover & {
     gap: 0.75rem;
-    color: #22c55e;
-    transform: translateX(-4px);
+    color: ${hasederaTheme.colors.primary.light};
   }
 `;
 
 const ArrowCircle = styled.div`
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border-radius: ${hasederaTheme.borderRadius.full};
+  background: ${hasederaTheme.colors.gradient.primary};
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: white;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-  border: 2px solid rgba(255, 215, 0, 0.3);
+  color: ${hasederaTheme.colors.text.white};
+  transition: ${hasederaTheme.transitions.base};
+  box-shadow: ${hasederaTheme.shadows.green};
   
   ${Card}:hover & {
-    transform: scale(1.15) rotate(-5deg);
-    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
-    border-color: rgba(255, 215, 0, 0.5);
+    transform: scale(1.1);
+    box-shadow: ${hasederaTheme.shadows.greenHover};
   }
 `;
 
+// 🎨 PDF Cover
 const PDFCoverWrapper = styled.div`
   width: 100%;
   height: 100%;
-  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
 `;
 
 const PDFLoading = styled.div`
@@ -410,50 +559,61 @@ const PDFLoading = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.875rem;
-  font-weight: 500;
-  z-index: 1;
-  position: relative;
-  
-  div {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
+  color: ${hasederaTheme.colors.text.whiteSecondary || 'rgba(255, 255, 255, 0.7)'};
+  font-size: ${hasederaTheme.typography.fontSize.sm};
 `;
 
+// 🎨 Footer
 const Footer = styled.footer`
   max-width: 1400px;
   margin: 4rem auto 0;
-  padding: 3rem 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 2rem 0;
+  border-top: 1px solid ${hasederaTheme.colors.border.glass || 'rgba(255, 255, 255, 0.1)'};
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   justify-content: center;
+  animation: ${fadeIn} 0.8s ease-out;
+  animation-delay: 0.5s;
+  animation-fill-mode: both;
 `;
 
-const FooterButton = styled(SecondaryButton)`
-  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing['2xl']};
-  background: rgba(255, 255, 255, 0.95);
+const FooterButton = styled.button`
+  padding: 1rem 2rem;
+  background: ${hasederaTheme.colors.background.glass || 'rgba(255, 255, 255, 0.05)'};
   backdrop-filter: blur(10px);
-  box-shadow: ${hasederaTheme.shadows.base};
+  border: 1px solid ${hasederaTheme.colors.border.glass || 'rgba(255, 255, 255, 0.1)'};
+  border-radius: ${hasederaTheme.borderRadius.full};
+  color: ${hasederaTheme.colors.text.white};
+  font-size: ${hasederaTheme.typography.fontSize.base};
+  font-family: inherit;
+  cursor: pointer;
+  transition: ${hasederaTheme.transitions.base};
   
   &:hover {
-    border-color: rgba(34, 197, 94, 0.5);
-    background: rgba(255, 255, 255, 1);
-    color: #22c55e;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(34, 197, 94, 0.2);
-  }
-  
-  &:active {
-    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: ${hasederaTheme.colors.primary.main};
+    color: ${hasederaTheme.colors.primary.main};
   }
 `;
 
-const PrimaryButtonStyled = styled(ThemePrimaryButton)`
-  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing['2xl']};
-  border: 2px solid rgba(255, 215, 0, 0.3);
+const PrimaryButton = styled.button`
+  padding: 1rem 2rem;
+  background: ${hasederaTheme.colors.gradient.primary};
+  border: none;
+  border-radius: ${hasederaTheme.borderRadius.full};
+  color: ${hasederaTheme.colors.text.white};
+  font-size: ${hasederaTheme.typography.fontSize.base};
+  font-weight: ${hasederaTheme.typography.fontWeight.semibold};
+  font-family: inherit;
+  cursor: pointer;
+  transition: ${hasederaTheme.transitions.base};
+  box-shadow: ${hasederaTheme.shadows.green};
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${hasederaTheme.shadows.greenHover};
+  }
 `;
 
 // 🔹 Helper functions
@@ -471,7 +631,27 @@ function formatDateHeb(dateStr) {
   }
 }
 
-function PDFCover({ pdfUrl, title }) {
+// Memoized PDF options to prevent unnecessary reloads
+const pdfOptions = {
+  cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
+  standardFontDataUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
+};
+
+function PDFCover({ pdfUrl, title, shouldLoad }) {
+  // Memoize options to prevent re-renders
+  const memoizedOptions = useMemo(() => pdfOptions, []);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Don't load PDF until card is visible
+  if (!shouldLoad) {
+    return (
+      <PDFLoading>
+        <CalendarDays size={40} opacity={0.2} />
+        <div style={{ fontSize: '0.85rem' }}>ממתין...</div>
+      </PDFLoading>
+    );
+  }
+
   return (
     <PDFCoverWrapper>
       <Document
@@ -486,16 +666,36 @@ function PDFCover({ pdfUrl, title }) {
           <PDFLoading>
             <CalendarDays size={40} opacity={0.4} />
             <div>שגיאה בטעינת שער</div>
+            {retryCount < 2 && (
+              <button
+                onClick={() => {
+                  setRetryCount(prev => prev + 1);
+                }}
+                style={{
+                  marginTop: '0.5rem',
+                  padding: '0.25rem 0.75rem',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '4px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem'
+                }}
+              >
+                נסה שוב
+              </button>
+            )}
           </PDFLoading>
         }
-        options={{
-          cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
-          standardFontDataUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
+        options={memoizedOptions}
+        onLoadError={(error) => {
+          console.error('PDF load error:', error);
         }}
+        key={retryCount}
       >
         <Page
           pageNumber={1}
-          width={250}
+          width={280}
           renderMode="canvas"
           renderTextLayer={false}
           renderAnnotationLayer={false}
@@ -511,6 +711,8 @@ export default function IssuesList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [visibleCards, setVisibleCards] = useState(new Set());
+  const cardRefs = useRef({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -541,128 +743,255 @@ export default function IssuesList() {
     );
   }, [issues, query]);
 
+  // Intersection Observer for card animations - optimized
+  useEffect(() => {
+    if (loading || filtered.length === 0) return;
+
+    // Show first 6 cards immediately (above the fold)
+    const initialVisible = new Set();
+    filtered.slice(0, 6).forEach((it) => {
+      initialVisible.add(`card-${it.issue_id}`);
+    });
+    setVisibleCards(initialVisible);
+
+    // Track which cards are already visible to avoid duplicate updates
+    const observedCards = new Set();
+    initialVisible.forEach(id => observedCards.add(id));
+
+    // Use requestAnimationFrame to batch updates
+    const pendingUpdates = new Set();
+    let rafId = null;
+
+    const flushUpdates = () => {
+      if (pendingUpdates.size > 0) {
+        setVisibleCards(prev => {
+          const next = new Set(prev);
+          pendingUpdates.forEach(id => {
+            next.add(id);
+            observedCards.add(id);
+          });
+          return next;
+        });
+        pendingUpdates.clear();
+      }
+      rafId = null;
+    };
+
+    const observerOptions = {
+      threshold: 0.01,
+      rootMargin: '150px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const cardId = entry.target.getAttribute('data-card-id');
+          if (cardId && !observedCards.has(cardId)) {
+            pendingUpdates.add(cardId);
+            
+            if (!rafId) {
+              rafId = requestAnimationFrame(flushUpdates);
+            }
+            
+            setTimeout(() => {
+              observer.unobserve(entry.target);
+            }, 1000);
+          }
+        }
+      });
+    }, observerOptions);
+
+    // Delay to ensure DOM is ready, then observe all cards
+    const timeoutId = setTimeout(() => {
+      filtered.forEach((it, index) => {
+        const cardId = `card-${it.issue_id}`;
+        const ref = cardRefs.current[cardId];
+        // Skip first 6 as they're already visible
+        if (ref && index >= 6 && !observedCards.has(cardId)) {
+          observer.observe(ref);
+        }
+      });
+    }, 200);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (rafId) cancelAnimationFrame(rafId);
+      Object.values(cardRefs.current).forEach(ref => {
+        if (ref) observer.unobserve(ref);
+      });
+    };
+  }, [filtered, loading]);
+
+  // Reset visible cards when filter changes - but show first 6 immediately
+  useEffect(() => {
+    if (filtered.length > 0) {
+      const initialVisible = new Set();
+      filtered.slice(0, 6).forEach((it) => {
+        initialVisible.add(`card-${it.issue_id}`);
+      });
+      setVisibleCards(initialVisible);
+    } else {
+      setVisibleCards(new Set());
+    }
+    // Clear refs for filtered out cards
+    Object.keys(cardRefs.current).forEach(key => {
+      if (!filtered.some(it => `card-${it.issue_id}` === key)) {
+        delete cardRefs.current[key];
+      }
+    });
+  }, [query, filtered]);
+
   const openIssue = (it) => {
     console.log("🧪 issue clicked:", it);
     navigate(`/issues/${it.issue_id}`, { state: it });
   };
 
   return (
-    <Container>
-      <Header>
-        <HeaderContent>
-          <HeaderTitle>
-            <IconBox> <Book size={24} /> </IconBox>
-            <Title>כל הגליונות</Title>
-          </HeaderTitle>
-        </HeaderContent>
-      </Header>
-      <SearchWrapper>
-        <SearchBox>
-          <SearchIcon />
-          <SearchInput 
-            type="text"
-            placeholder="חפש גליון שער..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {query && (
-            <ClearButton onClick={() => setQuery("")}>
-              <X size={16} />
-            </ClearButton>
+    <>
+      <GlobalFonts />
+      <PageWrapper>
+        <BackgroundImage />
+        
+        <ContentWrapper>
+          {/* Header */}
+          <Header>
+            <Logo onClick={() => navigate('/')}>השדרה</Logo>
+            <BackButton onClick={() => navigate('/dashboard')}>
+              <ArrowLeft size={18} />
+              חזרה לאזור המפרסמים
+            </BackButton>
+          </Header>
+
+          {/* Title */}
+          <TitleSection>
+            <IconBox>
+              <Book size={32} />
+            </IconBox>
+            <PageTitle>גליונות <span>המגזין</span></PageTitle>
+            <PageSubtitle>
+              עלעלי בגליונות, בחרי מיקום לפרסום
+            </PageSubtitle>
+          </TitleSection>
+
+          {/* Search */}
+          <SearchWrapper>
+            <SearchBox>
+              <SearchInput 
+                type="text"
+                placeholder="חיפוש לפי שם או תאריך..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              <SearchIcon size={20} />
+              {query && (
+                <ClearButton onClick={() => setQuery("")}>
+                  <X size={16} />
+                </ClearButton>
+              )}
+            </SearchBox>
+          </SearchWrapper>
+
+          {/* Loading */}
+          {loading && (
+            <LoadingState>
+              <Spinner $large />
+              <LoadingText>טוען גליונות...</LoadingText>
+            </LoadingState>
           )}
-        </SearchBox>
-      </SearchWrapper>
-      {loading && (
-        <LoadingState>
-          <Spinner $large />
-          <div style={{ 
-            color: 'white', 
-            fontSize: '1.25rem', 
-            fontWeight: 600,
-            textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
-          }}>
-            טוען גליונות...
-          </div>
-        </LoadingState>
-      )}
-      {!loading && error && (
-        <ErrorState>
-          <ErrorBox>
-            <CalendarDays size={48} style={{ color: '#dc2626', opacity: 0.8 }} />
-            <div>
-              <h3>שגיאה בטעינת גליונות</h3>
-              <p>{error}</p>
-            </div>
-          </ErrorBox>
-        </ErrorState>
-      )}  
-      {!loading && !error && filtered.length === 0 && (
-        <EmptyState>
-          <EmptyIcon>
-            <Search size={64} />
-          </EmptyIcon>
-          <div style={{ 
-            fontSize: '1.25rem', 
-            fontWeight: 600, 
-            color: '#16a34a',
-            marginTop: '1rem'
-          }}>
-            לא נמצאו תוצאות
-          </div>
-          {query && (
-            <div style={{ 
-              fontSize: '1rem', 
-              color: '#6b7280',
-              marginTop: '0.5rem'
-            }}>
-              נסה לחפש משהו אחר
-            </div>
+
+          {/* Error */}
+          {!loading && error && (
+            <StateBox $error>
+              <StateIcon $error>
+                <CalendarDays size={48} />
+              </StateIcon>
+              <StateTitle $error>שגיאה בטעינת גליונות</StateTitle>
+              <StateText>{error}</StateText>
+            </StateBox>
           )}
-        </EmptyState>
-      )}
-      {!loading && !error && filtered.length > 0 && (
-        <GridContainer>
-          <GridStyled>
-              {filtered.map((it) => (
-              <Card key={it.issue_id} onClick={() => openIssue(it)}>
-                <CardImage>
-                  {it.coverImage ? (
-                    <img src={it.coverImage} alt={it.title} />
-                  ) : it.pdf_url ? (
-                    <PDFCover pdfUrl={it.pdf_url} title={it.title} />
-                  ) : (
-                    <Placeholder>
-                      <CalendarDays size={48} />
-                      <div>אין תמונת שער</div>
-                    </Placeholder>
-                  )}
-                  <Overlay />
-                </CardImage>
-                <CardContent>
-                  <CardTitle>{it.title}</CardTitle>
-                  <CardDate>
-                    <CalendarDays size={16} />
-                    <span>{formatDateHeb(it.issueDate)}</span>
-                  </CardDate>
-                </CardContent>
-                <CardFooter>
-                  <OpenLink>
-                    <span>פתיחה</span>
-                    <ExternalLink size={16} />
-                  </OpenLink>
-                  <ArrowCircle>
-                    <span>←</span>
-                  </ArrowCircle>
-                </CardFooter>
-              </Card>
-            ))}
-          </GridStyled>
-        </GridContainer>
-      )}
-      <Footer>
-        <FooterButton onClick={() => navigate("/")}>חזרה לדף הבית</FooterButton>
-        <PrimaryButtonStyled onClick={() => navigate("/issues/new")}>יצירת גליון חדש</PrimaryButtonStyled>
-      </Footer>
-    </Container>
+
+          {/* Empty */}
+          {!loading && !error && filtered.length === 0 && (
+            <StateBox>
+              <StateIcon>
+                <Search size={48} />
+              </StateIcon>
+              <StateTitle>לא נמצאו תוצאות</StateTitle>
+              {query && <StateText>נסי לחפש משהו אחר</StateText>}
+            </StateBox>
+          )}
+
+          {/* Grid */}
+          {!loading && !error && filtered.length > 0 && (
+            <GridContainer>
+              <Grid>
+                {filtered.map((it, index) => {
+                  const cardId = `card-${it.issue_id}`;
+                  const isVisible = visibleCards.has(cardId);
+                  // Reduced delay for smoother performance
+                  const delay = `${Math.min(index * 0.05, 0.4)}s`;
+                  
+                  return (
+                    <Card 
+                      key={it.issue_id}
+                      ref={el => {
+                        if (el) cardRefs.current[cardId] = el;
+                      }}
+                      data-card-id={cardId}
+                      $visible={isVisible}
+                      $delay={delay}
+                      onClick={() => openIssue(it)}
+                    >
+                      <CardImage>
+                        {it.coverImage ? (
+                          <img src={it.coverImage} alt={it.title} />
+                        ) : it.pdf_url ? (
+                          <PDFCover 
+                            pdfUrl={it.pdf_url} 
+                            title={it.title}
+                            shouldLoad={isVisible}
+                          />
+                        ) : (
+                          <Placeholder>
+                            <CalendarDays size={48} />
+                            <div>אין תמונת שער</div>
+                          </Placeholder>
+                        )}
+                      </CardImage>
+                      <CardContent>
+                        <CardTitle>{it.title}</CardTitle>
+                        <CardDate>
+                          <CalendarDays size={16} />
+                          <span>{formatDateHeb(it.issueDate)}</span>
+                        </CardDate>
+                        <CardFooter>
+                          <OpenLink>
+                            <span>פתיחה</span>
+                            <ChevronLeft size={16} />
+                          </OpenLink>
+                          <ArrowCircle>
+                            <ChevronLeft size={18} />
+                          </ArrowCircle>
+                        </CardFooter>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </Grid>
+            </GridContainer>
+          )}
+
+          {/* Footer */}
+          <Footer>
+            <FooterButton onClick={() => navigate("/dashboard")}>
+              חזרה לאזור המפרסמים
+            </FooterButton>
+            <PrimaryButton onClick={() => navigate("/advertiser/placement")}>
+              הזמנת מיקום חדש
+            </PrimaryButton>
+          </Footer>
+        </ContentWrapper>
+      </PageWrapper>
+    </>
   );
 }

@@ -1,17 +1,33 @@
 // src/Components/ProtectedRoute.jsx
+// ⚠️ כל הברנץ' הזה מיועד למפרסמים בלבד
 import { Navigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
-export default function ProtectedRoute({ children, roles }) {
-  const token = localStorage.getItem("hasdera_token");
-  const userStr = localStorage.getItem("hasdera_user");
-  const user = userStr ? JSON.parse(userStr) : null;
+export default function ProtectedRoute({ children }) {
+  const { isAuthenticated, user, loading } = useAuth();
 
-  if (!token || !user) {
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        fontSize: '1.2rem',
+        color: '#666'
+      }}>
+        טוען...
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+  // רק מפרסמים יכולים לגשת
+  if (user.role !== 'Advertiser') {
+    return <Navigate to="/login" replace />;
   }
 
   return children;

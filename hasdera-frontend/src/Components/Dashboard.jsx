@@ -85,9 +85,14 @@ const QuickActionIcon = styled.div`
   align-items: center;
   justify-content: center;
   margin-bottom: ${hasederaTheme.spacing.sm};
+  flex-shrink: 0;
   
   svg {
     color: ${hasederaTheme.colors.text.white};
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: block;
   }
 `;
 
@@ -111,6 +116,13 @@ const StatusTitle = styled.h3`
   display: flex;
   align-items: center;
   gap: ${hasederaTheme.spacing.sm};
+  
+  svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: block;
+  }
 `;
 
 const StatusList = styled.ul`
@@ -184,9 +196,14 @@ const ModuleIcon = styled.div`
   align-items: center;
   justify-content: center;
   box-shadow: ${hasederaTheme.shadows.green};
+  flex-shrink: 0;
   
   svg {
     color: ${hasederaTheme.colors.text.white};
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: block;
   }
 `;
 

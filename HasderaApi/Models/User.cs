@@ -13,5 +13,8 @@ public class User
     public string Role { get; set; } = null!;
     // לדוגמה: "User" / "Subscriber" / "Advertiser" / "Admin"
     public string? RefreshToken { get; set; }
-    public string GoogleId { get; set; } = null!;
+    public string? GoogleId { get; set; } // יכול להיות null אם המשתמש לא משתמש ב-Google
+    public int? AdvertiserId { get; set; }   // למפרסמות בלבד
+
+    public virtual Advertiser? Advertiser { get; set; }
 }

@@ -3,6 +3,7 @@ using Dapper;
 using Npgsql;
 using Amazon;
 using Amazon.S3;
+using Amazon.Runtime;
 using Microsoft.EntityFrameworkCore;
 using HasderaApi.Data;
 using HasderaApi.Services;
@@ -23,6 +24,7 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 {
     o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     o.SerializerOptions.PropertyNamingPolicy = null;
+    o.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; // מניעת circular references
 });
 
 // Entity Framework and Database Configuration
@@ -38,8 +40,26 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // חיבור DB פר בקשה
 builder.Services.AddScoped<NpgsqlConnection>(_ => new NpgsqlConnection(connStr));
 
-// S3
-builder.Services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(RegionEndpoint.GetBySystemName(s3Region)));
+// S3 - הגדרת credentials מ-appsettings או environment variables
+builder.Services.AddSingleton<IAmazonS3>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var accessKey = config["S3:AccessKey"] ?? Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
+    var secretKey = config["S3:SecretKey"] ?? Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
+    
+    if (!string.IsNullOrEmpty(accessKey) && !string.IsNullOrEmpty(secretKey))
+    {
+        // שימוש ב-credentials מהקונפיגורציה
+        var credentials = new BasicAWSCredentials(accessKey, secretKey);
+        return new AmazonS3Client(credentials, RegionEndpoint.GetBySystemName(s3Region));
+    }
+    else
+    {
+        // נסיון להשתמש ב-default credentials chain (כולל environment variables, AWS credentials file, וכו')
+        // זה יעבוד אם יש AWS credentials מוגדרים במערכת
+        return new AmazonS3Client(RegionEndpoint.GetBySystemName(s3Region));
+    }
+});
 
 // CORS - עדכון לתמוך ב-HTTPS
 builder.Services.AddCors(options =>
@@ -82,6 +102,151 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddControllers();
 
 var app = builder.Build();
+
+// יצירת טבלאות אם לא קיימות (רק בפיתוח)
+// הערה: הקוד הזה רץ ברקע ולא חוסם את השרת
+if (!app.Environment.IsProduction())
+{
+    _ = Task.Run(async () =>
+    {
+        await Task.Delay(1000); // מחכה שנייה כדי שהשרת יתחיל
+        try
+        {
+            using (var scope = app.Services.CreateScope())
+            {
+                var connection = scope.ServiceProvider.GetRequiredService<NpgsqlConnection>();
+                await connection.OpenAsync();
+                
+                try
+                {
+                    // יצירת טבלת users (ללא FOREIGN KEY זמנית כדי למנוע בעיות)
+                    using (var cmd = new NpgsqlCommand(@"
+                        CREATE TABLE IF NOT EXISTS users (
+                            id SERIAL PRIMARY KEY,
+                            full_name VARCHAR(255) NOT NULL,
+                            email VARCHAR(255) NOT NULL,
+                            password_hash VARCHAR(255) NOT NULL DEFAULT '',
+                            role VARCHAR(50) NOT NULL,
+                            refresh_token VARCHAR(255),
+                            google_id VARCHAR(255),
+                            advertiser_id INTEGER
+                        );
+                    ", connection))
+                    {
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // הוספת FOREIGN KEY רק אם הטבלה advertisers קיימת
+                    try
+                    {
+                        using (var cmd = new NpgsqlCommand(@"
+                            DO $$
+                            BEGIN
+                                IF NOT EXISTS (
+                                    SELECT 1 FROM pg_constraint 
+                                    WHERE conname = 'fk_users_advertiser'
+                                ) THEN
+                                    ALTER TABLE users 
+                                    ADD CONSTRAINT fk_users_advertiser 
+                                    FOREIGN KEY (advertiser_id) REFERENCES advertisers(advertiser_id);
+                                END IF;
+                            END $$;
+                        ", connection))
+                        {
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+                    catch
+                    {
+                        // אם יש בעיה עם FOREIGN KEY, נמשיך בלי זה
+                        Console.WriteLine("⚠️ Could not add foreign key constraint (advertisers table might not exist)");
+                    }
+
+                    // יצירת אינדקסים
+                    using (var cmd = new NpgsqlCommand(@"
+                        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+                        CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+                    ", connection))
+                    {
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // יצירת טבלת PasswordResetTokens
+                    using (var cmd = new NpgsqlCommand(@"
+                        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                            id SERIAL PRIMARY KEY,
+                            user_id INTEGER NOT NULL,
+                            token VARCHAR(255) NOT NULL,
+                            expires_at TIMESTAMP NOT NULL,
+                            CONSTRAINT fk_password_reset_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                        );
+                        CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens(token);
+                    ", connection))
+                    {
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // יצירת טבלת creatives אם לא קיימת
+                    try
+                    {
+                        using (var cmd = new NpgsqlCommand(@"
+                            CREATE TABLE IF NOT EXISTS creatives (
+                                creative_id SERIAL PRIMARY KEY,
+                                order_id INTEGER NOT NULL,
+                                file_url TEXT,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                CONSTRAINT fk_creative_adorder FOREIGN KEY (order_id) REFERENCES adorders(order_id)
+                            );
+                            CREATE INDEX IF NOT EXISTS idx_creatives_order_id ON creatives(order_id);
+                        ", connection))
+                        {
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        Console.WriteLine("✅ Table 'creatives' checked/created successfully");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"⚠️ Warning: Could not create creatives table: {ex.Message}");
+                        // אם הטבלה adorders לא קיימת, ננסה ליצור את creatives בלי FOREIGN KEY
+                        try
+                        {
+                            using (var cmd = new NpgsqlCommand(@"
+                                CREATE TABLE IF NOT EXISTS creatives (
+                                    creative_id SERIAL PRIMARY KEY,
+                                    order_id INTEGER NOT NULL,
+                                    file_url TEXT,
+                                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                );
+                                CREATE INDEX IF NOT EXISTS idx_creatives_order_id ON creatives(order_id);
+                            ", connection))
+                            {
+                                await cmd.ExecuteNonQueryAsync();
+                            }
+                            Console.WriteLine("✅ Table 'creatives' created without foreign key constraint");
+                        }
+                        catch (Exception ex2)
+                        {
+                            Console.WriteLine($"⚠️ Could not create creatives table even without FK: {ex2.Message}");
+                        }
+                    }
+
+                    Console.WriteLine("✅ Database tables checked/created successfully");
+                }
+                finally
+                {
+                    if (connection.State == System.Data.ConnectionState.Open)
+                        await connection.CloseAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ Warning: Could not ensure database tables exist: {ex.Message}");
+            Console.WriteLine($"   Error details: {ex.InnerException?.Message ?? ex.Message}");
+            Console.WriteLine("Please run the SQL script manually: HasderaApi/Scripts/CreateUsersTable.sql");
+        }
+    });
+}
 
 // HTTPS Redirection - מושבת בפיתוח כדי למנוע בעיות CORS
 // if (!app.Environment.IsProduction())
