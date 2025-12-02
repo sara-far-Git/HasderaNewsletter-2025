@@ -1,6 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using HasderaApi.Data;
 using HasderaApi.Models;
+using Dapper;
+using Amazon.S3;
+using Amazon;
+using Npgsql;
 
 namespace HasderaApi.Controllers
 {
@@ -9,49 +14,200 @@ namespace HasderaApi.Controllers
     public class IssuesController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly NpgsqlConnection _db;
+        private readonly IConfiguration _cfg;
+        private readonly IAmazonS3 _s3;
 
-        // הזרקת ה־DbContext דרך ה־Constructor
-        public IssuesController(AppDbContext context)
+        public IssuesController(AppDbContext context, NpgsqlConnection db, IConfiguration cfg, IAmazonS3 s3)
         {
             _context = context;
+            _db = db;
+            _cfg = cfg;
+            _s3 = s3;
         }
 
-        /// <summary>
-        /// מחזיר את כל הגיליונות
-        /// GET: api/Issues
-        /// </summary>
+        public class PagedResult<T>
+        {
+            public int Total { get; set; }
+            public int Page { get; set; }
+            public int PageSize { get; set; }
+            public List<T> Items { get; set; } = new();
+
+            public PagedResult(int total, int page, int pageSize, List<T> items)
+            {
+                Total = total;
+                Page = page;
+                PageSize = pageSize;
+                Items = items;
+            }
+
+            public PagedResult() { }
+        }
+
+        public class IssueDto
+        {
+            public int Issue_id { get; set; }
+            public string Title { get; set; } = string.Empty;
+            public DateTime Issue_date { get; set; }   // תוקן ל־DateTime
+            public string? File_url { get; set; }
+            public string? Pdf_url { get; set; }
+        }
+
+        // GET /api/issues?q=...&page=1&pageSize=20
         [HttpGet]
-        public ActionResult<IEnumerable<Issue>> GetAll()
+        public async Task<ActionResult<PagedResult<IssueDto>>> Get(
+            [FromQuery] string? q,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
-            return _context.Issues.ToList();
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 20;
+            var offset = (page - 1) * pageSize;
+
+            try 
+            {
+                // ניסיון להשתמש ב-EF Core במקום Dapper
+                var query = _context.Issues.AsNoTracking()  // משפר ביצועים
+                    .Where(i => string.IsNullOrEmpty(q) || EF.Functions.ILike(i.Title, $"%{q}%"))
+                    .OrderByDescending(i => i.IssueDate)
+                    .ThenByDescending(i => i.IssueId);
+
+                var total = await query.CountAsync();
+                var items = await query
+                    .Skip(offset)
+                    .Take(pageSize)
+                    .Select(i => new IssueDto
+                    {
+                        Issue_id = i.IssueId,
+                        Title = i.Title,
+                        Issue_date = i.IssueDate,
+                        File_url = i.FileUrl,
+                        Pdf_url = i.PdfUrl
+                    })
+                    .ToListAsync();
+
+                return Ok(new PagedResult<IssueDto>(total, page, pageSize, items));
+            }
+            catch (Exception ex)
+            {
+                // לוג מפורט יותר של השגיאה
+                var errorMessage = $"❌ שגיאה בשליפת גיליונות: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorMessage += $"\nInner Exception: {ex.InnerException.Message}";
+                }
+                Console.WriteLine(errorMessage);
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+
+                return StatusCode(500, new { error = "שגיאה בשליפת נתונים מבסיס הנתונים", details = ex.Message });
+            }
         }
 
-        /// <summary>
-        /// מחזיר גיליון לפי מזהה
-        /// GET: api/Issues/{id}
-        /// </summary>
+        // GET /api/issues/123
         [HttpGet("{id}")]
-        public ActionResult<Issue> GetById(int id)
+        public async Task<ActionResult<Issue>> GetIssue(int id)
         {
-            var issue = _context.Issues.Find(id);
+            try
+            {
+                var issue = await _context.Issues.FindAsync(id);
+
+                if (issue == null)
+                {
+                    Console.WriteLine($"❌ גיליון לא נמצא: ID {id}");
+                    return NotFound();
+                }
+
+                Console.WriteLine($"✅ גיליון נמצא: {issue.Title}, PDF URL: {issue.PdfUrl}");
+                return issue;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ שגיאה בשליפת גיליון: {ex.Message}");
+                return StatusCode(500, "שגיאה פנימית בשרת");
+            }
+        }
+
+        // POST /api/issues
+        [HttpPost]
+        public async Task<ActionResult<Issue>> CreateIssue(Issue issue)
+        {
+            _context.Issues.Add(issue);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetIssue), new { id = issue.IssueId }, issue);
+        }
+
+        // PUT /api/issues/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateIssue(int id, Issue issue)
+        {
+            if (id != issue.IssueId)
+                return BadRequest();
+
+            var existing = await _context.Issues.FindAsync(id);
+            if (existing == null)
+                return NotFound();
+
+            existing.Title = issue.Title;
+            existing.IssueDate = issue.IssueDate;
+            existing.FileUrl = issue.FileUrl;
+            existing.PdfUrl = issue.PdfUrl;
+            existing.Summary = issue.Summary;
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // DELETE /api/issues/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteIssue(int id)
+        {
+            var issue = await _context.Issues.FindAsync(id);
             if (issue == null)
                 return NotFound();
 
-            return issue;
+            _context.Issues.Remove(issue);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
 
-        /// <summary>
-        /// יוצר גיליון חדש
-        /// POST: api/Issues
-        /// </summary>
-        [HttpPost]
-        public ActionResult<Issue> Create(Issue issue)
+        // GET /api/issues/{id}/pdf - טעינת PDF דרך הבקנד
+        [HttpGet("{id}/pdf")]
+        public async Task<IActionResult> GetIssuePdf(int id)
         {
-            _context.Issues.Add(issue);
-            _context.SaveChanges();
+            try
+            {
+                var issue = await _context.Issues.FindAsync(id);
 
-            // מחזיר 201 Created עם קישור למשאב החדש
-            return CreatedAtAction(nameof(GetById), new { id = issue.IssueId }, issue);
+                if (issue == null)
+                {
+                    return NotFound();
+                }
+
+                if (string.IsNullOrEmpty(issue.PdfUrl))
+                {
+                    return NotFound("PDF לא נמצא");
+                }
+
+                // טעינת ה-PDF מ-S3
+                using var httpClient = new HttpClient();
+                var response = await httpClient.GetAsync(issue.PdfUrl);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    return StatusCode(500, "שגיאה בטעינת PDF מ-S3");
+                }
+
+                var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+                
+                return File(pdfBytes, "application/pdf", $"{issue.Title}.pdf");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ שגיאה בטעינת PDF: {ex.Message}");
+                return StatusCode(500, "שגיאה פנימית בשרת");
+            }
         }
     }
 }

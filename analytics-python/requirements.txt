@@ -2,3 +2,6 @@ pandas
 sqlalchemy
 psycopg2-binary
 matplotlib
+flask
+flask-cors
+requests
