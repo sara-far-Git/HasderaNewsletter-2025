@@ -117,3 +117,9 @@ share/python-wheels/
 # Environment variables
 .env
 .env.*
+
+# Sensitive configuration files
+HasderaApi/appsettings.json
+HasderaApi/appsettings.*.json
+!HasderaApi/appsettings.json.example
+!HasderaApi/appsettings.Development.json.example
