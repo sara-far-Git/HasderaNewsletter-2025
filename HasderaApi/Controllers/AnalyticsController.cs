@@ -76,6 +76,17 @@ namespace HasderaApi.Controllers
             return analytics;
         }
 
+        // === GET: /api/analytics?issue_id={issueId} ===
+        [HttpGet("by-issue")]
+        public async Task<ActionResult<IEnumerable<Analytics>>> GetAnalyticsByIssueId([FromQuery] int issue_id)
+        {
+            var analytics = await _context.Analytics
+                .Where(a => a.IssueId == issue_id)
+                .ToListAsync();
+
+            return analytics;
+        }
+
         // === POST: /api/analytics ===
         [HttpPost]
         public async Task<ActionResult<Analytics>> CreateAnalytics(Analytics analytics)
