@@ -152,11 +152,11 @@ export default function PaymentsManagement() {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'paid':
-        return <CheckCircle size={20} color={hasederaTheme.colors.success.main} />;
+        return <CheckCircle size={20} color={hasederaTheme.colors.status.success} />;
       case 'pending':
-        return <Clock size={20} color={hasederaTheme.colors.warning.main} />;
+        return <Clock size={20} color={hasederaTheme.colors.status.warning} />;
       case 'overdue':
-        return <XCircle size={20} color={hasederaTheme.colors.error.main} />;
+        return <XCircle size={20} color={hasederaTheme.colors.status.error} />;
       default:
         return null;
     }

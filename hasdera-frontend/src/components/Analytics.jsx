@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getAnalytics, createDemoAnalytics } from "../apiService";
+import { getAnalytics, createDemoAnalytics } from "../Services/analyticsService";
 
 
 export default function Analytics() {   

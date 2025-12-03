@@ -66,6 +66,41 @@ namespace HasderaApi.Controllers
             return Ok(new { token, user });
         }
 
+        // 📌 יצירת משתמש Admin (רק לפיתוח/הגדרה ראשונית)
+        [HttpPost("create-admin")]
+        public async Task<IActionResult> CreateAdminUser()
+        {
+            var adminEmail = "8496444@gmail.com";
+            var adminPassword = "039300165";
+            var adminName = "רבקי פרקש";
+
+            // בדיקה אם המשתמש כבר קיים
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
+            if (existingUser != null)
+            {
+                // אם המשתמש קיים, נעדכן אותו להיות Admin
+                existingUser.Role = "Admin";
+                existingUser.FullName = adminName;
+                existingUser.PasswordHash = _authService.HashPassword(adminPassword);
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "משתמש Admin עודכן בהצלחה", user = existingUser });
+            }
+
+            // יצירת משתמש Admin חדש
+            var adminUser = new User
+            {
+                FullName = adminName,
+                Email = adminEmail,
+                Role = "Admin",
+                PasswordHash = _authService.HashPassword(adminPassword)
+            };
+
+            _context.Users.Add(adminUser);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "משתמש Admin נוצר בהצלחה", user = adminUser });
+        }
+
         // 📌 התחברות רגילה
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
@@ -198,37 +233,67 @@ namespace HasderaApi.Controllers
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == payload.Email);
 
+            // בדיקה אם זה המשתמש המנהל - רבקי פרקש עם המייל 8496444@gmail.com
+            bool isAdminUser = payload.Email == "8496444@gmail.com" || 
+                              (payload.Name != null && payload.Name.Contains("רבקי פרקש"));
+
             if (user == null)
             {
-                user = new User
+                if (isAdminUser)
                 {
-                    FullName = payload.Name,
-                    Email = payload.Email,
-                    GoogleId = payload.Subject,
-                    Role = "Advertiser", // ⚠️ כל הברנץ' הזה מיועד למפרסמים בלבד
-                    PasswordHash = "" // כי אין סיסמה מקומית
-                };
-
-                // במידה וזה מפרסם — ניצור עסק
-                var adv = new Advertiser
+                    // יצירת משתמש Admin
+                    user = new User
+                    {
+                        FullName = payload.Name ?? "רבקי פרקש",
+                        Email = payload.Email,
+                        GoogleId = payload.Subject,
+                        Role = "Admin",
+                        PasswordHash = "" // כי אין סיסמה מקומית
+                    };
+                }
+                else
                 {
-                    Name = payload.Name,
-                    Company = payload.Name,
-                    Email = payload.Email
-                };
+                    // יצירת משתמש Advertiser רגיל
+                    user = new User
+                    {
+                        FullName = payload.Name,
+                        Email = payload.Email,
+                        GoogleId = payload.Subject,
+                        Role = "Advertiser",
+                        PasswordHash = "" // כי אין סיסמה מקומית
+                    };
 
-                _context.Advertisers.Add(adv);
-                await _context.SaveChangesAsync();
+                    // במידה וזה מפרסם — ניצור עסק
+                    var adv = new Advertiser
+                    {
+                        Name = payload.Name,
+                        Company = payload.Name,
+                        Email = payload.Email
+                    };
 
-                user.AdvertiserId = adv.AdvertiserId;
+                    _context.Advertisers.Add(adv);
+                    await _context.SaveChangesAsync();
+
+                    user.AdvertiserId = adv.AdvertiserId;
+                }
 
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
             }
-            else if (user.Role != "Advertiser")
+            else
             {
-                // אם המשתמש קיים אבל לא מפרסם, נחזיר שגיאה
-                return Unauthorized("רק מפרסמים יכולים להיכנס למערכת");
+                // אם המשתמש קיים, נבדוק אם זה המשתמש המנהל ונעדכן את התפקיד
+                if (isAdminUser && user.Role != "Admin")
+                {
+                    user.Role = "Admin";
+                    await _context.SaveChangesAsync();
+                }
+                // אם המשתמש קיים ולא זה המשתמש המנהל, נבדוק אם הוא מפרסם או מנהל
+                else if (!isAdminUser && user.Role != "Advertiser" && user.Role != "Admin")
+                {
+                    // אם המשתמש קיים אבל לא מפרסם ולא מנהל, נחזיר שגיאה
+                    return Unauthorized("רק מפרסמים ומנהלים יכולים להיכנס למערכת");
+                }
             }
 
             var token = _authService.GenerateJwtToken(user);
@@ -254,6 +319,25 @@ namespace HasderaApi.Controllers
                 return NotFound("משתמש לא נמצא");
 
             return Ok(user);
+        }
+
+        // 📌 עדכון תפקיד משתמש (זמנית ללא הרשאה - לעדכון ראשוני)
+        // TODO: להחזיר [Authorize(Roles = "Admin")] אחרי עדכון המשתמשים הראשונים
+        [HttpPut("update-role")]
+        public async Task<IActionResult> UpdateUserRole([FromBody] User userUpdate)
+        {
+            if (userUpdate.Id == 0)
+                return BadRequest("User Id is required");
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userUpdate.Id);
+            if (user == null)
+                return NotFound("משתמש לא נמצא");
+
+            // מעדכן רק את השדה Role ממודל User
+            user.Role = userUpdate.Role;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "תפקיד המשתמש עודכן בהצלחה", user });
         }
 
         // 📌 איזור אישי של מפרסם

@@ -378,13 +378,16 @@ export default function LoginPage() {
     }
   }, [isAuthenticated]);
 
-  // ⚠️ כל הברנץ' הזה מיועד למפרסמים בלבד
+  // הפניה לפי תפקיד המשתמש
   const redirectByRole = (userRole) => {
-    // כל המשתמשים (מפרסמים) מועברים לדף הבית
-    if (userRole === 'Advertiser') {
+    if (userRole === 'Admin' || userRole === 'admin') {
+      // מנהלים מועברים לאזור הניהול
+      navigate('/admin');
+    } else if (userRole === 'Advertiser') {
+      // מפרסמים מועברים לדף הבית
       navigate('/');
     } else {
-      // אם זה לא מפרסם, נחזיר לדף הבית
+      // משתמשים אחרים מועברים לדף הבית
       navigate('/');
     }
   };
@@ -461,9 +464,9 @@ export default function LoginPage() {
       
       const { token, user } = await loginWithGoogle(idToken);
       
-      // בדיקה שהמשתמש הוא מפרסם
-      if (user.role !== 'Advertiser') {
-        setMsg("רק מפרסמים יכולים להיכנס למערכת");
+      // בדיקה שהמשתמש הוא מפרסם או מנהל
+      if (user.role !== 'Advertiser' && user.role !== 'Admin' && user.role !== 'admin') {
+        setMsg("רק מפרסמים ומנהלים יכולים להיכנס למערכת");
         setMsgType("error");
         setIsLoading(false);
         return;

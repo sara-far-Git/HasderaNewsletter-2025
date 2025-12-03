@@ -13,8 +13,21 @@ import Navbar from "./Components/Navbar";
 import AdvertiserChat from "./Components/AdvertiserChat";
 import AdvertiserProfile from "./Components/AdvertiserProfile";
 import ProtectedRoute from "./Components/ProtectedRoute";
+import AdminProtectedRoute from "./Components/AdminProtectedRoute";
 import PublicRoute from "./Components/PublicRoute";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+
+// 🛠️ אזור ניהול - Components
+import AdminDashboard from "./Components/AdminDashboard";
+import UsersManagement from "./Components/UsersManagement";
+import ContentManagement from "./Components/ContentManagement";
+import AdvertisersManagement from "./Components/AdvertisersManagement";
+import PaymentsManagement from "./Components/PaymentsManagement";
+import IssuesManagement from "./Components/IssuesManagement";
+import AdSlotsManagement from "./Components/AdSlotsManagement";
+import AnalyticsManagement from "./Components/AnalyticsManagement";
+import InfrastructureManagement from "./Components/InfrastructureManagement";
+import IntegrationsManagement from "./Components/IntegrationsManagement";
 
 // 🎨 הגדרת סטיילים גלובליים
 const GlobalStyleComponent = createGlobalStyle`
@@ -345,6 +358,88 @@ function App() {
                 <ProtectedRoute>
                   <FlipIssue />
                 </ProtectedRoute>
+              } 
+            />
+            
+            {/* 🛠️ אזור ניהול (מוגן - מנהלים בלבד) */}
+            <Route 
+              path="/admin" 
+              element={
+                <AdminProtectedRoute>
+                  <AdminDashboard />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users" 
+              element={
+                <AdminProtectedRoute>
+                  <UsersManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/content" 
+              element={
+                <AdminProtectedRoute>
+                  <ContentManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/advertisers" 
+              element={
+                <AdminProtectedRoute>
+                  <AdvertisersManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/payments" 
+              element={
+                <AdminProtectedRoute>
+                  <PaymentsManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/issues" 
+              element={
+                <AdminProtectedRoute>
+                  <IssuesManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/ad-slots" 
+              element={
+                <AdminProtectedRoute>
+                  <AdSlotsManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/analytics" 
+              element={
+                <AdminProtectedRoute>
+                  <AnalyticsManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/infrastructure" 
+              element={
+                <AdminProtectedRoute>
+                  <InfrastructureManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/integrations" 
+              element={
+                <AdminProtectedRoute>
+                  <IntegrationsManagement />
+                </AdminProtectedRoute>
               } 
             />
           </Routes>

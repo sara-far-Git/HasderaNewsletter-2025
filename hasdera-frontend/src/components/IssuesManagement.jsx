@@ -78,8 +78,8 @@ const StatusBadge = styled.span`
   border-radius: ${hasederaTheme.borderRadius.full};
   font-size: ${hasederaTheme.typography.fontSize.sm};
   background: ${props => {
-    if (props.$status === 'published') return hasederaTheme.colors.success.main;
-    if (props.$status === 'draft') return hasederaTheme.colors.warning.main;
+    if (props.$status === 'published') return hasederaTheme.colors.status.success;
+    if (props.$status === 'draft') return hasederaTheme.colors.status.warning;
     return hasederaTheme.colors.text.disabled;
   }};
   color: ${hasederaTheme.colors.text.white};

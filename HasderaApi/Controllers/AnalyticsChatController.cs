@@ -25,7 +25,7 @@ namespace HasderaApi.Controllers
         // [HttpPost] - מגדיר שזה endpoint שמקבל POST requests
         // [FromBody] - אומר שהנתונים יגיעו בגוף הבקשה (JSON)
         [HttpPost]
-        public IActionResult Chat([FromBody] ChatRequest request)
+        public IActionResult Chat([FromBody] AnalyticsChatRequest request)
         {
             try
             {
@@ -206,7 +206,7 @@ namespace HasderaApi.Controllers
                         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping  // מאפשר תווים בעברית
                     };
                     // ממירים את ה-JSON לאובייקט C#
-                    var result = JsonSerializer.Deserialize<ChatResponse>(output, options);
+                    var result = JsonSerializer.Deserialize<AnalyticsChatResponse>(output, options);
                     // מחזירים את התשובה למשתמש (200 OK)
                     return Ok(result);
                 }
@@ -234,7 +234,7 @@ namespace HasderaApi.Controllers
     /// <summary>
     /// מחלקה שמייצגת את הבקשה מהמשתמש
     /// </summary>
-    public class ChatRequest
+    public class AnalyticsChatRequest
     {
         // השאלה שהמשתמש שואל
         [JsonPropertyName("Query")]
@@ -242,13 +242,13 @@ namespace HasderaApi.Controllers
         
         // היסטוריית השיחה (כל ההודעות הקודמות)
         [JsonPropertyName("Session")]
-        public List<ChatMessage> Session { get; set; } = new();
+        public List<AnalyticsChatMessage> Session { get; set; } = new();
     }
 
     /// <summary>
     /// מחלקה שמייצגת הודעה אחת בצ'אט
     /// </summary>
-    public class ChatMessage
+    public class AnalyticsChatMessage
     {
         // התפקיד: "user" (משתמש) או "assistant" (AI)
         [JsonPropertyName("Role")]
@@ -262,7 +262,7 @@ namespace HasderaApi.Controllers
     /// <summary>
     /// מחלקה שמייצגת את התשובה מה-Python
     /// </summary>
-    public class ChatResponse
+    public class AnalyticsChatResponse
     {
         // התשובה מה-AI
         [JsonPropertyName("reply")]
