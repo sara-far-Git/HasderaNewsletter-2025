@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate, useParams } from "react-router-dom";
 import { createGlobalStyle } from "styled-components";
 import hasederaTheme, { GlobalStyles } from "./styles/HasederaTheme";
 import AnalyticsTable from "./Components/AnalyticsTable";
@@ -24,6 +24,7 @@ import ContentManagement from "./Components/ContentManagement";
 import AdvertisersManagement from "./Components/AdvertisersManagement";
 import PaymentsManagement from "./Components/PaymentsManagement";
 import IssuesManagement from "./Components/IssuesManagement";
+import AdminFlipbookViewer from "./components/AdminFlipbookViewer";
 import AdSlotsManagement from "./Components/AdSlotsManagement";
 import AnalyticsManagement from "./Components/AnalyticsManagement";
 import InfrastructureManagement from "./Components/InfrastructureManagement";
@@ -183,6 +184,41 @@ function IssueViewer() {
   };
   
   return <FlipCanvasViewer issue={issue} onClose={handleClose} />;
+}
+
+// 🎯 קומפוננט Wrapper לעיתון באזור הניהול
+function AdminFlipbookViewerWrapper() {
+  const { issueId } = useParams();
+  const navigate = useNavigate();
+  
+  console.log('🔍 AdminFlipbookViewerWrapper - issueId from params:', issueId);
+  
+  const handleClose = () => {
+    navigate("/admin/issues");
+  };
+  
+  if (!issueId || issueId === 'undefined') {
+    console.error('❌ AdminFlipbookViewerWrapper: Invalid issueId!', issueId);
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <h2>שגיאה: לא נמצא מזהה גיליון</h2>
+        <button onClick={handleClose}>חזרה לניהול גליונות</button>
+      </div>
+    );
+  }
+  
+  const parsedIssueId = parseInt(issueId);
+  if (isNaN(parsedIssueId)) {
+    console.error('❌ AdminFlipbookViewerWrapper: issueId is not a number!', issueId);
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <h2>שגיאה: מזהה גיליון לא תקין</h2>
+        <button onClick={handleClose}>חזרה לניהול גליונות</button>
+      </div>
+    );
+  }
+  
+  return <AdminFlipbookViewer issueId={parsedIssueId} onClose={handleClose} />;
 }
 
 // 🏠 קומפוננט Wrapper לדף הבית - מעביר לדף התחברות אם לא מחובר
@@ -407,6 +443,14 @@ function App() {
               element={
                 <AdminProtectedRoute>
                   <IssuesManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/flipbook/:issueId" 
+              element={
+                <AdminProtectedRoute>
+                  <AdminFlipbookViewerWrapper />
                 </AdminProtectedRoute>
               } 
             />

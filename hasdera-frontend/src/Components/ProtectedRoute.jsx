@@ -25,8 +25,8 @@ export default function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  // רק מפרסמים יכולים לגשת
-  if (user.role !== 'Advertiser') {
+  // מפרסמים ומנהלים יכולים לגשת
+  if (user.role !== 'Advertiser' && user.role !== 'Admin') {
     return <Navigate to="/login" replace />;
   }
 

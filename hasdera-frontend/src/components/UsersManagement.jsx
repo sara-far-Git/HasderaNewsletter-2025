@@ -231,23 +231,23 @@ const Badge = styled.span`
   display: inline-block;
   padding: 0.375rem 0.75rem;
   background: ${props => {
-    if (props.variant === 'success') return 'rgba(16, 185, 129, 0.2)';
-    if (props.variant === 'error') return 'rgba(239, 68, 68, 0.2)';
-    if (props.variant === 'info') return 'rgba(59, 130, 246, 0.2)';
+    if (props.$variant === 'success') return 'rgba(16, 185, 129, 0.2)';
+    if (props.$variant === 'error') return 'rgba(239, 68, 68, 0.2)';
+    if (props.$variant === 'info') return 'rgba(59, 130, 246, 0.2)';
     return 'rgba(255, 255, 255, 0.1)';
   }};
   border: 1px solid ${props => {
-    if (props.variant === 'success') return 'rgba(16, 185, 129, 0.3)';
-    if (props.variant === 'error') return 'rgba(239, 68, 68, 0.3)';
-    if (props.variant === 'info') return 'rgba(59, 130, 246, 0.3)';
+    if (props.$variant === 'success') return 'rgba(16, 185, 129, 0.3)';
+    if (props.$variant === 'error') return 'rgba(239, 68, 68, 0.3)';
+    if (props.$variant === 'info') return 'rgba(59, 130, 246, 0.3)';
     return 'rgba(255, 255, 255, 0.1)';
   }};
   border-radius: 20px;
   font-size: 0.75rem;
   color: ${props => {
-    if (props.variant === 'success') return '#10b981';
-    if (props.variant === 'error') return '#ef4444';
-    if (props.variant === 'info') return '#3b82f6';
+    if (props.$variant === 'success') return '#10b981';
+    if (props.$variant === 'error') return '#ef4444';
+    if (props.$variant === 'info') return '#3b82f6';
     return 'rgba(255, 255, 255, 0.7)';
   }};
 `;
@@ -386,10 +386,10 @@ export default function UsersManagement() {
                 <TableCell>{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
-                  <Badge variant="info">{user.roleLabel}</Badge>
+                  <Badge $variant="info">{user.roleLabel}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={user.status === 'active' ? 'success' : 'error'}>
+                  <Badge $variant={user.status === 'active' ? 'success' : 'error'}>
                     {user.status === 'active' ? 'פעיל' : 'לא פעיל'}
                   </Badge>
                 </TableCell>

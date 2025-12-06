@@ -29,13 +29,18 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 
 // Entity Framework and Database Configuration
 builder.Services.AddDbContext<AppDbContext>(options =>
+{
     options.UseNpgsql(connStr, npgsqlOptions =>
     {
         npgsqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 3,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
+            maxRetryCount: 5, // מספר retries
+            maxRetryDelay: TimeSpan.FromSeconds(10), // delay בין retries
             errorCodesToAdd: null);
-    }));
+        npgsqlOptions.CommandTimeout(60); // timeout ארוך יותר
+    });
+    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+    options.EnableServiceProviderCaching();
+});
 
 // חיבור DB פר בקשה
 builder.Services.AddScoped<NpgsqlConnection>(_ => new NpgsqlConnection(connStr));

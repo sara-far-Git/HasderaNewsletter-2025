@@ -1,69 +1,127 @@
 /**
  * IntegrationsManagement.jsx
  * אזור התממשקות - Monday.com, Supabase, AWS S3, OpenAI, WhatsApp
+ * מעוצב כמו אזור המפרסמים
  */
 
 import { useState } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { Plug, CheckCircle, XCircle, Settings, RefreshCw } from 'lucide-react';
-import hasederaTheme from '../styles/HasederaTheme';
-import { Card, CardHeader, CardTitle, PrimaryButton, SecondaryButton, Badge } from '../styles';
+import AdminLayout from './AdminLayout';
 
-const Container = styled.div`
-  padding: ${hasederaTheme.spacing.xl};
-  direction: rtl;
-  max-width: 1400px;
-  margin: 0 auto;
+// 🎬 אנימציות
+const fadeInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 `;
 
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+// 🎨 Container
+const Container = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: ${fadeIn} 0.8s ease-out;
+`;
+
+// 🎨 Header
 const Header = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: ${hasederaTheme.spacing['2xl']};
+  margin-bottom: 3rem;
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.2s;
+  animation-fill-mode: both;
 `;
 
-const Title = styled.h1`
-  font-size: ${hasederaTheme.typography.fontSize['3xl']};
-  font-weight: ${hasederaTheme.typography.fontWeight.bold};
-  color: ${hasederaTheme.colors.text.primary};
-  margin: 0;
+const AddButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(16, 185, 129, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 50px;
+  color: #10b981;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  
+  &:hover {
+    background: rgba(16, 185, 129, 0.3);
+    border-color: #10b981;
+    transform: translateY(-2px);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
 `;
 
+// 🎨 Integrations Grid
 const IntegrationsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: ${hasederaTheme.spacing.xl};
+  gap: 2rem;
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.4s;
+  animation-fill-mode: both;
 `;
 
-const IntegrationCard = styled(Card)`
-  position: relative;
+const IntegrationCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: translateY(-4px);
+  }
 `;
 
 const IntegrationHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${hasederaTheme.spacing.lg};
+  margin-bottom: 1.5rem;
 `;
 
 const IntegrationInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: ${hasederaTheme.spacing.md};
+  gap: 1rem;
 `;
 
 const IntegrationIcon = styled.div`
   width: 60px;
   height: 60px;
-  border-radius: ${hasederaTheme.borderRadius.lg};
-  background: linear-gradient(135deg, ${hasederaTheme.colors.primary.main} 0%, ${hasederaTheme.colors.primary.dark} 100%);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${hasederaTheme.colors.text.white};
-  font-size: ${hasederaTheme.typography.fontSize['2xl']};
-  font-weight: ${hasederaTheme.typography.fontWeight.bold};
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
 `;
 
 const IntegrationDetails = styled.div`
@@ -71,49 +129,122 @@ const IntegrationDetails = styled.div`
 `;
 
 const IntegrationName = styled.h3`
-  font-size: ${hasederaTheme.typography.fontSize.xl};
-  font-weight: ${hasederaTheme.typography.fontWeight.semibold};
-  color: ${hasederaTheme.colors.text.primary};
-  margin: 0 0 ${hasederaTheme.spacing.xs} 0;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: white;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 1px;
 `;
 
 const IntegrationDescription = styled.p`
-  font-size: ${hasederaTheme.typography.fontSize.sm};
-  color: ${hasederaTheme.colors.text.secondary};
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
   margin: 0;
   line-height: 1.5;
+`;
+
+const Badge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: ${props => {
+    if (props.$variant === 'success') return 'rgba(16, 185, 129, 0.2)';
+    if (props.$variant === 'error') return 'rgba(239, 68, 68, 0.2)';
+    return 'rgba(255, 255, 255, 0.1)';
+  }};
+  border: 1px solid ${props => {
+    if (props.$variant === 'success') return 'rgba(16, 185, 129, 0.3)';
+    if (props.$variant === 'error') return 'rgba(239, 68, 68, 0.3)';
+    return 'rgba(255, 255, 255, 0.1)';
+  }};
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: ${props => {
+    if (props.$variant === 'success') return '#10b981';
+    if (props.$variant === 'error') return '#ef4444';
+    return 'rgba(255, 255, 255, 0.7)';
+  }};
+  
+  svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+  }
 `;
 
 const IntegrationFeatures = styled.ul`
   list-style: none;
   padding: 0;
-  margin: ${hasederaTheme.spacing.lg} 0;
+  margin: 0 0 1.5rem 0;
   display: flex;
   flex-direction: column;
-  gap: ${hasederaTheme.spacing.xs};
+  gap: 0.5rem;
 `;
 
 const FeatureItem = styled.li`
   display: flex;
   align-items: center;
-  gap: ${hasederaTheme.spacing.sm};
-  font-size: ${hasederaTheme.typography.fontSize.sm};
-  color: ${hasederaTheme.colors.text.secondary};
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
 
   &::before {
     content: '•';
-    color: ${hasederaTheme.colors.primary.main};
+    color: #10b981;
     font-weight: bold;
-    font-size: ${hasederaTheme.typography.fontSize.lg};
+    font-size: 1rem;
   }
 `;
 
 const CardActions = styled.div`
   display: flex;
-  gap: ${hasederaTheme.spacing.sm};
-  margin-top: ${hasederaTheme.spacing.lg};
-  padding-top: ${hasederaTheme.spacing.lg};
-  border-top: 1px solid ${hasederaTheme.colors.border.light};
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const ActionButton = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+`;
+
+const PrimaryActionButton = styled(ActionButton)`
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  
+  &:hover {
+    background: rgba(16, 185, 129, 0.3);
+    border-color: #10b981;
+  }
 `;
 
 export default function IntegrationsManagement() {
@@ -178,14 +309,14 @@ export default function IntegrationsManagement() {
     switch (status) {
       case 'connected':
         return (
-          <Badge variant="success" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Badge $variant="success">
             <CheckCircle size={14} />
             מחובר
           </Badge>
         );
       case 'disconnected':
         return (
-          <Badge variant="error" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Badge $variant="error">
             <XCircle size={14} />
             לא מחובר
           </Badge>
@@ -196,58 +327,58 @@ export default function IntegrationsManagement() {
   };
 
   return (
-    <Container>
-      <Header>
-        <Title>אזור התממשקות</Title>
-        <PrimaryButton>
-          <Plug size={18} style={{ marginLeft: '8px' }} />
-          הוספת אינטגרציה
-        </PrimaryButton>
-      </Header>
+    <AdminLayout title="אזור התממשקות">
+      <Container>
+        <Header>
+          <AddButton>
+            <Plug size={18} />
+            הוספת אינטגרציה
+          </AddButton>
+        </Header>
 
-      <IntegrationsGrid>
-        {integrations.map((integration) => (
-          <IntegrationCard key={integration.id}>
-            <IntegrationHeader>
-              <IntegrationInfo>
-                <IntegrationIcon>{integration.icon}</IntegrationIcon>
-                <IntegrationDetails>
-                  <IntegrationName>{integration.name}</IntegrationName>
-                  <IntegrationDescription>{integration.description}</IntegrationDescription>
-                </IntegrationDetails>
-              </IntegrationInfo>
-              {getStatusBadge(integration.status)}
-            </IntegrationHeader>
+        <IntegrationsGrid>
+          {integrations.map((integration) => (
+            <IntegrationCard key={integration.id}>
+              <IntegrationHeader>
+                <IntegrationInfo>
+                  <IntegrationIcon>{integration.icon}</IntegrationIcon>
+                  <IntegrationDetails>
+                    <IntegrationName>{integration.name}</IntegrationName>
+                    <IntegrationDescription>{integration.description}</IntegrationDescription>
+                  </IntegrationDetails>
+                </IntegrationInfo>
+                {getStatusBadge(integration.status)}
+              </IntegrationHeader>
 
-            <IntegrationFeatures>
-              {integration.features.map((feature, idx) => (
-                <FeatureItem key={idx}>{feature}</FeatureItem>
-              ))}
-            </IntegrationFeatures>
+              <IntegrationFeatures>
+                {integration.features.map((feature, idx) => (
+                  <FeatureItem key={idx}>{feature}</FeatureItem>
+                ))}
+              </IntegrationFeatures>
 
-            <CardActions>
-              {integration.status === 'connected' ? (
-                <>
-                  <SecondaryButton style={{ flex: 1 }}>
-                    <Settings size={16} style={{ marginLeft: '4px' }} />
-                    הגדרות
-                  </SecondaryButton>
-                  <SecondaryButton style={{ flex: 1 }}>
-                    <RefreshCw size={16} style={{ marginLeft: '4px' }} />
-                    רענון
-                  </SecondaryButton>
-                </>
-              ) : (
-                <PrimaryButton style={{ flex: 1 }}>
-                  <Plug size={16} style={{ marginLeft: '4px' }} />
-                  התחברות
-                </PrimaryButton>
-              )}
-            </CardActions>
-          </IntegrationCard>
-        ))}
-      </IntegrationsGrid>
-    </Container>
+              <CardActions>
+                {integration.status === 'connected' ? (
+                  <>
+                    <ActionButton>
+                      <Settings size={16} />
+                      הגדרות
+                    </ActionButton>
+                    <ActionButton>
+                      <RefreshCw size={16} />
+                      רענון
+                    </ActionButton>
+                  </>
+                ) : (
+                  <PrimaryActionButton>
+                    <Plug size={16} />
+                    התחברות
+                  </PrimaryActionButton>
+                )}
+              </CardActions>
+            </IntegrationCard>
+          ))}
+        </IntegrationsGrid>
+      </Container>
+    </AdminLayout>
   );
 }
-

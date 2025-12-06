@@ -727,6 +727,7 @@ export default function FlipCanvasViewer({ issue, onClose }) {
   const [error, setError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showHint, setShowHint] = useState(true);
+  const [links, setLinks] = useState([]);
   
   // 🎯 מצב עיקול פינה
   const [curlState, setCurlState] = useState({
@@ -734,6 +735,22 @@ export default function FlipCanvasViewer({ issue, onClose }) {
     side: null,
     size: 0,
   });
+
+  // טעינת קישורים מה-metadata
+  useEffect(() => {
+    if (issue?.Summary || issue?.summary) {
+      try {
+        const summary = issue.Summary || issue.summary;
+        const metadata = JSON.parse(summary);
+        if (metadata.links && Array.isArray(metadata.links)) {
+          console.log('🔗 FlipCanvasViewer: Loaded links:', metadata.links);
+          setLinks(metadata.links);
+        }
+      } catch (e) {
+        console.error('Error parsing metadata:', e);
+      }
+    }
+  }, [issue?.Summary, issue?.summary]);
 
   // הסתרת רמז
   useEffect(() => {

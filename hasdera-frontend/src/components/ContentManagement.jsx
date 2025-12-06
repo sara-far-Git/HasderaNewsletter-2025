@@ -1,97 +1,279 @@
 /**
  * ContentManagement.jsx
  * מערכת תוכן (CMS) - מדורים, כתבות, עורכים ופריסה
+ * מעוצב כמו אזור המפרסמים
  */
 
 import { useState } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { FileEdit, Users, Image, Layout, FileText, CheckCircle, Clock, Edit } from 'lucide-react';
-import hasederaTheme from '../styles/HasederaTheme';
-import { Card, CardHeader, CardTitle, PrimaryButton, SecondaryButton, Badge } from '../styles';
+import AdminLayout from './AdminLayout';
 
-const Container = styled.div`
-  padding: ${hasederaTheme.spacing.xl};
-  direction: rtl;
-  max-width: 1400px;
-  margin: 0 auto;
+// 🎬 אנימציות
+const fadeInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 `;
 
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+// 🎨 Container
+const Container = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: ${fadeIn} 0.8s ease-out;
+`;
+
+// 🎨 Header
 const Header = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: ${hasederaTheme.spacing['2xl']};
+  margin-bottom: 3rem;
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.2s;
+  animation-fill-mode: both;
 `;
 
-const Title = styled.h1`
-  font-size: ${hasederaTheme.typography.fontSize['3xl']};
-  font-weight: ${hasederaTheme.typography.fontWeight.bold};
-  color: ${hasederaTheme.colors.text.primary};
-  margin: 0;
+const AddButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(16, 185, 129, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 50px;
+  color: #10b981;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  
+  &:hover {
+    background: rgba(16, 185, 129, 0.3);
+    border-color: #10b981;
+    transform: translateY(-2px);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
 `;
 
+// 🎨 Tabs Bar
 const TabsBar = styled.div`
   display: flex;
-  gap: ${hasederaTheme.spacing.md};
-  margin-bottom: ${hasederaTheme.spacing.xl};
-  border-bottom: 2px solid ${hasederaTheme.colors.border.light};
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.4s;
+  animation-fill-mode: both;
 `;
 
 const Tab = styled.button`
-  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing.xl};
-  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: ${props => props.$active 
+    ? 'rgba(16, 185, 129, 0.2)' 
+    : 'transparent'};
+  backdrop-filter: blur(10px);
   border: none;
-  border-bottom: 3px solid ${props => props.$active ? hasederaTheme.colors.primary.main : 'transparent'};
-  color: ${props => props.$active ? hasederaTheme.colors.primary.main : hasederaTheme.colors.text.secondary};
-  font-size: ${hasederaTheme.typography.fontSize.base};
-  font-weight: ${props => props.$active ? hasederaTheme.typography.fontWeight.semibold : hasederaTheme.typography.fontWeight.normal};
+  border-bottom: 3px solid ${props => props.$active 
+    ? '#10b981' 
+    : 'transparent'};
+  color: ${props => props.$active ? '#10b981' : 'rgba(255, 255, 255, 0.7)'};
+  font-size: 0.95rem;
+  font-weight: ${props => props.$active ? 600 : 400};
   cursor: pointer;
-  transition: all ${hasederaTheme.transitions.base};
+  transition: all 0.3s ease;
+  font-family: inherit;
+  
+  &:hover {
+    color: #10b981;
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
 `;
 
+// 🎨 Content Grid
 const ContentGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: ${hasederaTheme.spacing.xl};
+  gap: 2rem;
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.6s;
+  animation-fill-mode: both;
 `;
 
-const ContentCard = styled(Card)`
-  position: relative;
+const ContentCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: translateY(-4px);
+  }
 `;
 
 const ContentImage = styled.div`
   width: 100%;
   height: 150px;
-  background: linear-gradient(135deg, ${hasederaTheme.colors.primary.main} 0%, ${hasederaTheme.colors.primary.dark} 100%);
-  border-radius: ${hasederaTheme.borderRadius.md};
-  margin-bottom: ${hasederaTheme.spacing.lg};
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${hasederaTheme.colors.text.white};
+  color: white;
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+  
+  svg {
+    width: 48px;
+    height: 48px;
+    display: block;
+  }
+`;
+
+const ContentHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+`;
+
+const ContentTitle = styled.h3`
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: white;
+  margin: 0;
+  letter-spacing: 1px;
+`;
+
+const Badge = styled.span`
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  background: ${props => {
+    if (props.$variant === 'success') return 'rgba(16, 185, 129, 0.2)';
+    if (props.$variant === 'warning') return 'rgba(245, 158, 11, 0.2)';
+    if (props.$variant === 'info') return 'rgba(59, 130, 246, 0.2)';
+    return 'rgba(255, 255, 255, 0.1)';
+  }};
+  border: 1px solid ${props => {
+    if (props.$variant === 'success') return 'rgba(16, 185, 129, 0.3)';
+    if (props.$variant === 'warning') return 'rgba(245, 158, 11, 0.3)';
+    if (props.$variant === 'info') return 'rgba(59, 130, 246, 0.3)';
+    return 'rgba(255, 255, 255, 0.1)';
+  }};
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: ${props => {
+    if (props.$variant === 'success') return '#10b981';
+    if (props.$variant === 'warning') return '#f59e0b';
+    if (props.$variant === 'info') return '#3b82f6';
+    return 'rgba(255, 255, 255, 0.7)';
+  }};
 `;
 
 const ContentMeta = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${hasederaTheme.spacing.md};
-  padding-bottom: ${hasederaTheme.spacing.md};
-  border-bottom: 1px solid ${hasederaTheme.colors.border.light};
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
 const AuthorInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: ${hasederaTheme.spacing.sm};
-  color: ${hasederaTheme.colors.text.secondary};
-  font-size: ${hasederaTheme.typography.fontSize.sm};
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  
+  svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
 `;
 
 const CardActions = styled.div`
   display: flex;
-  gap: ${hasederaTheme.spacing.sm};
-  margin-top: ${hasederaTheme.spacing.lg};
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const ActionButton = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 4rem;
+  color: rgba(255, 255, 255, 0.7);
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.6s;
+  animation-fill-mode: both;
+  
+  svg {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    opacity: 0.5;
+    display: block;
+  }
 `;
 
 export default function ContentManagement() {
@@ -132,107 +314,107 @@ export default function ContentManagement() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'ready':
-        return <Badge variant="success">מוכן לדפוס</Badge>;
+        return <Badge $variant="success">מוכן לדפוס</Badge>;
       case 'editing':
-        return <Badge variant="warning">בעריכה</Badge>;
+        return <Badge $variant="warning">בעריכה</Badge>;
       case 'draft':
-        return <Badge variant="info">טיוטה</Badge>;
+        return <Badge $variant="info">טיוטה</Badge>;
       default:
         return null;
     }
   };
 
   return (
-    <Container>
-      <Header>
-        <Title>מערכת תוכן (CMS)</Title>
-        <PrimaryButton>
-          <FileEdit size={18} style={{ marginLeft: '8px' }} />
-          כתבה חדשה
-        </PrimaryButton>
-      </Header>
+    <AdminLayout title="מערכת תוכן (CMS)">
+      <Container>
+        <Header>
+          <AddButton>
+            <FileEdit size={18} />
+            כתבה חדשה
+          </AddButton>
+        </Header>
 
-      <TabsBar>
-        <Tab $active={activeTab === 'articles'} onClick={() => setActiveTab('articles')}>
-          <FileText size={18} style={{ marginLeft: '8px' }} />
-          כתבות
-        </Tab>
-        <Tab $active={activeTab === 'sections'} onClick={() => setActiveTab('sections')}>
-          <Layout size={18} style={{ marginLeft: '8px' }} />
-          מדורים
-        </Tab>
-        <Tab $active={activeTab === 'editors'} onClick={() => setActiveTab('editors')}>
-          <Users size={18} style={{ marginLeft: '8px' }} />
-          עורכים
-        </Tab>
-        <Tab $active={activeTab === 'layout'} onClick={() => setActiveTab('layout')}>
-          <Image size={18} style={{ marginLeft: '8px' }} />
-          פריסה
-        </Tab>
-      </TabsBar>
+        <TabsBar>
+          <Tab $active={activeTab === 'articles'} onClick={() => setActiveTab('articles')}>
+            <FileText size={18} />
+            כתבות
+          </Tab>
+          <Tab $active={activeTab === 'sections'} onClick={() => setActiveTab('sections')}>
+            <Layout size={18} />
+            מדורים
+          </Tab>
+          <Tab $active={activeTab === 'editors'} onClick={() => setActiveTab('editors')}>
+            <Users size={18} />
+            עורכים
+          </Tab>
+          <Tab $active={activeTab === 'layout'} onClick={() => setActiveTab('layout')}>
+            <Image size={18} />
+            פריסה
+          </Tab>
+        </TabsBar>
 
-      {activeTab === 'articles' && (
-        <ContentGrid>
-          {articles.map((article) => (
-            <ContentCard key={article.id}>
-              <ContentImage>
-                <FileText size={48} />
-              </ContentImage>
-              <CardHeader>
-                <CardTitle>{article.title}</CardTitle>
-                {getStatusBadge(article.status)}
-              </CardHeader>
-              <ContentMeta>
-                <AuthorInfo>
-                  <Users size={16} />
-                  {article.author}
-                </AuthorInfo>
-                <div style={{ color: hasederaTheme.colors.text.secondary, fontSize: hasederaTheme.typography.fontSize.sm }}>
-                  {article.date}
+        {activeTab === 'articles' && (
+          <ContentGrid>
+            {articles.map((article) => (
+              <ContentCard key={article.id}>
+                <ContentImage>
+                  <FileText size={48} />
+                </ContentImage>
+                <ContentHeader>
+                  <ContentTitle>{article.title}</ContentTitle>
+                  {getStatusBadge(article.status)}
+                </ContentHeader>
+                <ContentMeta>
+                  <AuthorInfo>
+                    <Users size={16} />
+                    {article.author}
+                  </AuthorInfo>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem' }}>
+                    {article.date}
+                  </div>
+                </ContentMeta>
+                <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <Badge $variant="info">{article.category}</Badge>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem' }}>
+                    {article.wordCount} מילים
+                  </span>
                 </div>
-              </ContentMeta>
-              <div style={{ marginBottom: hasederaTheme.spacing.md }}>
-                <Badge variant="info">{article.category}</Badge>
-                <span style={{ marginRight: hasederaTheme.spacing.sm, color: hasederaTheme.colors.text.secondary }}>
-                  {article.wordCount} מילים
-                </span>
-              </div>
-              <CardActions>
-                <SecondaryButton style={{ flex: 1 }}>
-                  <Edit size={16} style={{ marginLeft: '4px' }} />
-                  עריכה
-                </SecondaryButton>
-                <SecondaryButton style={{ flex: 1 }}>
-                  <FileText size={16} style={{ marginLeft: '4px' }} />
-                  צפייה
-                </SecondaryButton>
-              </CardActions>
-            </ContentCard>
-          ))}
-        </ContentGrid>
-      )}
+                <CardActions>
+                  <ActionButton>
+                    <Edit size={16} />
+                    עריכה
+                  </ActionButton>
+                  <ActionButton>
+                    <FileText size={16} />
+                    צפייה
+                  </ActionButton>
+                </CardActions>
+              </ContentCard>
+            ))}
+          </ContentGrid>
+        )}
 
-      {activeTab === 'sections' && (
-        <div style={{ textAlign: 'center', padding: '4rem', color: hasederaTheme.colors.text.secondary }}>
-          <Layout size={64} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-          <p>ניהול מדורים - בקרוב</p>
-        </div>
-      )}
+        {activeTab === 'sections' && (
+          <EmptyState>
+            <Layout size={64} />
+            <p>ניהול מדורים - בקרוב</p>
+          </EmptyState>
+        )}
 
-      {activeTab === 'editors' && (
-        <div style={{ textAlign: 'center', padding: '4rem', color: hasederaTheme.colors.text.secondary }}>
-          <Users size={64} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-          <p>ניהול עורכים - בקרוב</p>
-        </div>
-      )}
+        {activeTab === 'editors' && (
+          <EmptyState>
+            <Users size={64} />
+            <p>ניהול עורכים - בקרוב</p>
+          </EmptyState>
+        )}
 
-      {activeTab === 'layout' && (
-        <div style={{ textAlign: 'center', padding: '4rem', color: hasederaTheme.colors.text.secondary }}>
-          <Image size={64} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-          <p>מתכנן פריסה - בקרוב</p>
-        </div>
-      )}
-    </Container>
+        {activeTab === 'layout' && (
+          <EmptyState>
+            <Image size={64} />
+            <p>מתכנן פריסה - בקרוב</p>
+          </EmptyState>
+        )}
+      </Container>
+    </AdminLayout>
   );
 }
-

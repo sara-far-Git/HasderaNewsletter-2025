@@ -80,6 +80,13 @@ const Sidebar = styled.aside`
   overflow-y: auto;
   z-index: 100;
   transition: transform 0.3s ease;
+  
+  /* בדף הבית - תמיד גלוי, בשאר העמודים - מוסתר כברירת מחדל */
+  transform: ${props => {
+    if (props.$isDashboard) return 'translateX(0)';
+    if (props.$isOpen) return 'translateX(0)';
+    return 'translateX(100%)';
+  }};
 
   @media (max-width: 968px) {
     transform: translateX(${props => props.$isOpen ? '0' : '100%'});
@@ -171,7 +178,8 @@ const ContentWrapper = styled.div`
   z-index: 1;
   min-height: 100vh;
   padding: 2rem;
-  margin-right: 280px;
+  margin-right: ${props => props.$isDashboard ? '280px' : '0'};
+  transition: margin-right 0.3s ease;
   
   @media (max-width: 968px) {
     margin-right: 0;
@@ -186,9 +194,13 @@ const Header = styled.header`
   max-width: 1200px;
   margin: 0 auto 3rem;
   display: flex;
-  justify-content: space-between;
+  justify-content: ${props => props.$isDashboard ? 'flex-end' : 'space-between'};
   align-items: center;
   animation: ${fadeIn} 0.8s ease-out;
+  
+  @media (max-width: 968px) {
+    justify-content: space-between;
+  }
 `;
 
 const BackButton = styled.button`
@@ -222,7 +234,7 @@ const BackButton = styled.button`
 `;
 
 const MenuButton = styled.button`
-  display: none;
+  display: ${props => props.$isDashboard ? 'none' : 'flex'};
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
@@ -244,6 +256,12 @@ const MenuButton = styled.button`
     background: rgba(255, 255, 255, 0.2);
     border-color: #10b981;
     color: #10b981;
+  }
+  
+  svg {
+    width: 20px;
+    height: 20px;
+    display: block;
   }
 `;
 
@@ -323,6 +341,7 @@ export default function AdminLayout({ children, title }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const currentPath = location.pathname;
+  const isDashboard = currentPath === '/admin';
   const activeModule = modules.find(m => currentPath.startsWith(m.path))?.id || 'dashboard';
 
   const handleModuleClick = (path) => {
@@ -336,9 +355,9 @@ export default function AdminLayout({ children, title }) {
       <PageWrapper>
         <BackgroundImage />
         
-        <Overlay $isOpen={sidebarOpen} onClick={() => setSidebarOpen(false)} />
+        <Overlay $isOpen={sidebarOpen && !isDashboard} onClick={() => setSidebarOpen(false)} />
         
-        <Sidebar $isOpen={sidebarOpen}>
+        <Sidebar $isOpen={sidebarOpen} $isDashboard={isDashboard}>
           <SidebarHeader>
             <Logo>השדרה - ניהול</Logo>
             <CloseButton onClick={() => setSidebarOpen(false)}>
@@ -362,30 +381,35 @@ export default function AdminLayout({ children, title }) {
 
           <NavSection>
             <NavSectionTitle>ניהול</NavSectionTitle>
-            {modules.map((module) => (
-              <NavItem
-                key={module.id}
-                $active={activeModule === module.id}
-                onClick={() => handleModuleClick(module.path)}
-              >
-                <module.icon size={20} />
-                {module.title}
-              </NavItem>
-            ))}
+            {modules.map((module) => {
+              const Icon = module.icon;
+              return (
+                <NavItem
+                  key={module.id}
+                  $active={activeModule === module.id}
+                  onClick={() => handleModuleClick(module.path)}
+                >
+                  <Icon size={20} />
+                  {module.title}
+                </NavItem>
+              );
+            })}
           </NavSection>
         </Sidebar>
 
-        <ContentWrapper>
-          <Header>
-            <MenuButton onClick={() => setSidebarOpen(true)}>
-              <Menu size={20} />
-              תפריט
-            </MenuButton>
-            <BackButton onClick={() => navigate('/admin')}>
-              <ChevronLeft size={20} />
-              חזרה לדשבורד
-            </BackButton>
-          </Header>
+        <ContentWrapper $isDashboard={isDashboard}>
+          {!isDashboard && (
+            <Header $isDashboard={isDashboard}>
+              <MenuButton $isDashboard={isDashboard} onClick={() => setSidebarOpen(true)}>
+                <Menu size={20} />
+                תפריט
+              </MenuButton>
+              <BackButton onClick={() => navigate('/admin')}>
+                <ChevronLeft size={20} />
+                חזרה לדשבורד
+              </BackButton>
+            </Header>
+          )}
 
           {title && (
             <h1 style={{ 

@@ -387,8 +387,8 @@ const Grid = styled.div`
   }
 `;
 
-// 🎨 Card
-const Card = styled.button`
+// 🎨 Card - שונה מ-button ל-div כדי למנוע כפתור בתוך כפתור
+const Card = styled.div`
   background: ${hasederaTheme.colors.background.glass || 'rgba(255, 255, 255, 0.03)'};
   backdrop-filter: blur(20px);
   border: 1px solid ${hasederaTheme.colors.border.glass || 'rgba(255, 255, 255, 0.1)'};
@@ -720,7 +720,7 @@ export default function IssuesList() {
     (async () => {
       try {
         setLoading(true);
-        const rows = await getIssues();
+        const rows = await getIssues(1, 100, true); // publishedOnly=true - רק גליונות שפורסמו
         if (!on) return;
         rows.sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate));
         setIssues(rows);

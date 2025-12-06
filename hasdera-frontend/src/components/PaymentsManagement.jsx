@@ -1,110 +1,268 @@
 /**
  * PaymentsManagement.jsx
  * מערכת תשלומים וגבייה - חשבוניות, תשלומים, תזכורות ודוחות
+ * מעוצב כמו אזור המפרסמים
  */
 
 import { useState } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { CreditCard, FileText, Bell, TrendingUp, CheckCircle, Clock, XCircle } from 'lucide-react';
-import hasederaTheme from '../styles/HasederaTheme';
-import { Card, CardHeader, CardTitle, PrimaryButton, SecondaryButton, Badge } from '../styles';
+import AdminLayout from './AdminLayout';
 
-const Container = styled.div`
-  padding: ${hasederaTheme.spacing.xl};
-  direction: rtl;
-  max-width: 1400px;
-  margin: 0 auto;
+// 🎬 אנימציות
+const fadeInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 `;
 
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+// 🎨 Container
+const Container = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: ${fadeIn} 0.8s ease-out;
+`;
+
+// 🎨 Header
 const Header = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: ${hasederaTheme.spacing['2xl']};
+  margin-bottom: 3rem;
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.2s;
+  animation-fill-mode: both;
 `;
 
-const Title = styled.h1`
-  font-size: ${hasederaTheme.typography.fontSize['3xl']};
-  font-weight: ${hasederaTheme.typography.fontWeight.bold};
-  color: ${hasederaTheme.colors.text.primary};
-  margin: 0;
+const AddButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(16, 185, 129, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 50px;
+  color: #10b981;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  
+  &:hover {
+    background: rgba(16, 185, 129, 0.3);
+    border-color: #10b981;
+    transform: translateY(-2px);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
 `;
 
+// 🎨 Stats Grid
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: ${hasederaTheme.spacing.xl};
-  margin-bottom: ${hasederaTheme.spacing['2xl']};
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.4s;
+  animation-fill-mode: both;
 `;
 
-const StatCard = styled(Card)`
+const StatCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 1.5rem;
   text-align: center;
-  background: linear-gradient(135deg, ${hasederaTheme.colors.primary.main} 0%, ${hasederaTheme.colors.primary.dark} 100%);
-  color: ${hasederaTheme.colors.text.white};
-  border: none;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: translateY(-2px);
+  }
+`;
+
+const StatIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin: 0 auto 1rem;
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+  
+  svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+  }
 `;
 
 const StatValue = styled.div`
-  font-size: ${hasederaTheme.typography.fontSize['3xl']};
-  font-weight: ${hasederaTheme.typography.fontWeight.bold};
-  margin-bottom: ${hasederaTheme.spacing.sm};
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.5rem;
 `;
 
 const StatLabel = styled.div`
-  font-size: ${hasederaTheme.typography.fontSize.base};
-  opacity: 0.9;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
 `;
 
+// 🎨 Tabs Bar
 const TabsBar = styled.div`
   display: flex;
-  gap: ${hasederaTheme.spacing.md};
-  margin-bottom: ${hasederaTheme.spacing.xl};
-  border-bottom: 2px solid ${hasederaTheme.colors.border.light};
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.6s;
+  animation-fill-mode: both;
 `;
 
 const Tab = styled.button`
-  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing.xl};
-  background: transparent;
+  padding: 0.75rem 1.5rem;
+  background: ${props => props.$active 
+    ? 'rgba(16, 185, 129, 0.2)' 
+    : 'transparent'};
+  backdrop-filter: blur(10px);
   border: none;
-  border-bottom: 3px solid ${props => props.$active ? hasederaTheme.colors.primary.main : 'transparent'};
-  color: ${props => props.$active ? hasederaTheme.colors.primary.main : hasederaTheme.colors.text.secondary};
-  font-size: ${hasederaTheme.typography.fontSize.base};
-  font-weight: ${props => props.$active ? hasederaTheme.typography.fontWeight.semibold : hasederaTheme.typography.fontWeight.normal};
+  border-bottom: 3px solid ${props => props.$active 
+    ? '#10b981' 
+    : 'transparent'};
+  color: ${props => props.$active ? '#10b981' : 'rgba(255, 255, 255, 0.7)'};
+  font-size: 0.95rem;
+  font-weight: ${props => props.$active ? 600 : 400};
   cursor: pointer;
-  transition: all ${hasederaTheme.transitions.base};
+  transition: all 0.3s ease;
+  font-family: inherit;
+  
+  &:hover {
+    color: #10b981;
+  }
 `;
 
-const PaymentsTable = styled.table`
+// 🎨 Table
+const TableWrapper = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  animation: ${fadeInUp} 0.8s ease-out;
+  animation-delay: 0.8s;
+  animation-fill-mode: both;
+`;
+
+const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  background: ${hasederaTheme.colors.background.light};
-  border-radius: ${hasederaTheme.borderRadius.lg};
-  overflow: hidden;
-  box-shadow: ${hasederaTheme.shadows.md};
 `;
 
 const TableHeader = styled.thead`
-  background: ${hasederaTheme.colors.primary.main};
-  color: ${hasederaTheme.colors.text.white};
+  background: rgba(16, 185, 129, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
 const TableHeaderCell = styled.th`
-  padding: ${hasederaTheme.spacing.lg};
+  padding: 1.5rem;
   text-align: right;
-  font-weight: ${hasederaTheme.typography.fontWeight.semibold};
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: white;
 `;
 
 const TableRow = styled.tr`
-  border-bottom: 1px solid ${hasederaTheme.colors.border.light};
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
 
   &:hover {
-    background: ${hasederaTheme.colors.background.main};
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &:last-child {
+    border-bottom: none;
   }
 `;
 
 const TableCell = styled.td`
-  padding: ${hasederaTheme.spacing.lg};
-  color: ${hasederaTheme.colors.text.primary};
+  padding: 1.5rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+  text-align: right;
+`;
+
+const StatusCell = styled(TableCell)`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+`;
+
+const Badge = styled.span`
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  background: ${props => {
+    if (props.$variant === 'success') return 'rgba(16, 185, 129, 0.2)';
+    if (props.$variant === 'warning') return 'rgba(245, 158, 11, 0.2)';
+    if (props.$variant === 'error') return 'rgba(239, 68, 68, 0.2)';
+    return 'rgba(255, 255, 255, 0.1)';
+  }};
+  border: 1px solid ${props => {
+    if (props.$variant === 'success') return 'rgba(16, 185, 129, 0.3)';
+    if (props.$variant === 'warning') return 'rgba(245, 158, 11, 0.3)';
+    if (props.$variant === 'error') return 'rgba(239, 68, 68, 0.3)';
+    return 'rgba(255, 255, 255, 0.1)';
+  }};
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: ${props => {
+    if (props.$variant === 'success') return '#10b981';
+    if (props.$variant === 'warning') return '#f59e0b';
+    if (props.$variant === 'error') return '#ef4444';
+    return 'rgba(255, 255, 255, 0.7)';
+  }};
+`;
+
+const ActionButton = styled.button`
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+  }
 `;
 
 export default function PaymentsManagement() {
@@ -152,11 +310,11 @@ export default function PaymentsManagement() {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'paid':
-        return <CheckCircle size={20} color={hasederaTheme.colors.status.success} />;
+        return <CheckCircle size={20} color="#10b981" />;
       case 'pending':
-        return <Clock size={20} color={hasederaTheme.colors.status.warning} />;
+        return <Clock size={20} color="#f59e0b" />;
       case 'overdue':
-        return <XCircle size={20} color={hasederaTheme.colors.status.error} />;
+        return <XCircle size={20} color="#ef4444" />;
       default:
         return null;
     }
@@ -165,90 +323,92 @@ export default function PaymentsManagement() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'paid':
-        return <Badge variant="success">שולם</Badge>;
+        return <Badge $variant="success">שולם</Badge>;
       case 'pending':
-        return <Badge variant="warning">ממתין</Badge>;
+        return <Badge $variant="warning">ממתין</Badge>;
       case 'overdue':
-        return <Badge variant="error">מאוחר</Badge>;
+        return <Badge $variant="error">מאוחר</Badge>;
       default:
         return null;
     }
   };
 
   return (
-    <Container>
-      <Header>
-        <Title>מערכת תשלומים וגבייה</Title>
-        <PrimaryButton>
-          <FileText size={18} style={{ marginLeft: '8px' }} />
-          צירוף חשבונית
-        </PrimaryButton>
-      </Header>
+    <AdminLayout title="מערכת תשלומים וגבייה">
+      <Container>
+        <Header>
+          <AddButton>
+            <FileText size={18} />
+            צירוף חשבונית
+          </AddButton>
+        </Header>
 
-      <StatsGrid>
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <StatCard key={index}>
-              <Icon size={32} style={{ marginBottom: '12px', opacity: 0.8 }} />
-              <StatValue>{stat.value}</StatValue>
-              <StatLabel>{stat.label}</StatLabel>
-            </StatCard>
-          );
-        })}
-      </StatsGrid>
+        <StatsGrid>
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <StatCard key={index}>
+                <StatIcon>
+                  <Icon size={24} />
+                </StatIcon>
+                <StatValue>{stat.value}</StatValue>
+                <StatLabel>{stat.label}</StatLabel>
+              </StatCard>
+            );
+          })}
+        </StatsGrid>
 
-      <TabsBar>
-        <Tab $active={activeTab === 'invoices'} onClick={() => setActiveTab('invoices')}>
-          חשבוניות
-        </Tab>
-        <Tab $active={activeTab === 'payments'} onClick={() => setActiveTab('payments')}>
-          תשלומים
-        </Tab>
-        <Tab $active={activeTab === 'reminders'} onClick={() => setActiveTab('reminders')}>
-          תזכורות
-        </Tab>
-        <Tab $active={activeTab === 'reports'} onClick={() => setActiveTab('reports')}>
-          דוחות
-        </Tab>
-      </TabsBar>
+        <TabsBar>
+          <Tab $active={activeTab === 'invoices'} onClick={() => setActiveTab('invoices')}>
+            חשבוניות
+          </Tab>
+          <Tab $active={activeTab === 'payments'} onClick={() => setActiveTab('payments')}>
+            תשלומים
+          </Tab>
+          <Tab $active={activeTab === 'reminders'} onClick={() => setActiveTab('reminders')}>
+            תזכורות
+          </Tab>
+          <Tab $active={activeTab === 'reports'} onClick={() => setActiveTab('reports')}>
+            דוחות
+          </Tab>
+        </TabsBar>
 
-      <PaymentsTable>
-        <TableHeader>
-          <tr>
-            <TableHeaderCell>מספר חשבונית</TableHeaderCell>
-            <TableHeaderCell>מפרסם</TableHeaderCell>
-            <TableHeaderCell>סכום</TableHeaderCell>
-            <TableHeaderCell>תאריך</TableHeaderCell>
-            <TableHeaderCell>תאריך יעד</TableHeaderCell>
-            <TableHeaderCell>סטטוס</TableHeaderCell>
-            <TableHeaderCell>פעולות</TableHeaderCell>
-          </tr>
-        </TableHeader>
-        <tbody>
-          {payments.map((payment) => (
-            <TableRow key={payment.id}>
-              <TableCell>{payment.invoiceNumber}</TableCell>
-              <TableCell>{payment.advertiser}</TableCell>
-              <TableCell>₪{payment.amount.toLocaleString()}</TableCell>
-              <TableCell>{payment.date}</TableCell>
-              <TableCell>{payment.dueDate}</TableCell>
-              <TableCell>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {getStatusIcon(payment.status)}
-                  {getStatusBadge(payment.status)}
-                </div>
-              </TableCell>
-              <TableCell>
-                <SecondaryButton style={{ padding: '4px 12px', fontSize: '14px' }}>
-                  עריכה
-                </SecondaryButton>
-              </TableCell>
-            </TableRow>
-          ))}
-        </tbody>
-      </PaymentsTable>
-    </Container>
+        <TableWrapper>
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHeaderCell>מספר חשבונית</TableHeaderCell>
+                <TableHeaderCell>מפרסם</TableHeaderCell>
+                <TableHeaderCell>סכום</TableHeaderCell>
+                <TableHeaderCell>תאריך</TableHeaderCell>
+                <TableHeaderCell>תאריך יעד</TableHeaderCell>
+                <TableHeaderCell>סטטוס</TableHeaderCell>
+                <TableHeaderCell>פעולות</TableHeaderCell>
+              </tr>
+            </TableHeader>
+            <tbody>
+              {payments.map((payment) => (
+                <TableRow key={payment.id}>
+                  <TableCell>{payment.invoiceNumber}</TableCell>
+                  <TableCell>{payment.advertiser}</TableCell>
+                  <TableCell>₪{payment.amount.toLocaleString()}</TableCell>
+                  <TableCell>{payment.date}</TableCell>
+                  <TableCell>{payment.dueDate}</TableCell>
+                  <StatusCell>
+                    {getStatusIcon(payment.status)}
+                    {getStatusBadge(payment.status)}
+                  </StatusCell>
+                  <TableCell>
+                    <ActionButton>
+                      עריכה
+                    </ActionButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </tbody>
+          </Table>
+        </TableWrapper>
+      </Container>
+    </AdminLayout>
   );
 }
-

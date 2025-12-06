@@ -451,10 +451,18 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("issues");
 
-            entity.Property(e => e.IssueId).HasColumnName("issue_id");
+            entity.Property(e => e.IssueId)
+                .HasColumnName("issue_id")
+                .ValueGeneratedOnAdd(); // PostgreSQL SERIAL/IDENTITY - EF Core will handle RETURNING automatically
+            
             entity.Property(e => e.FileUrl)
                 .HasMaxLength(500)
                 .HasColumnName("file_url");
+            
+            entity.Property(e => e.PdfUrl)
+                .HasMaxLength(1000)
+                .HasColumnName("pdf_url");
+            
             entity.Property(e => e.IssueDate).HasColumnName("issue_date");
             entity.Property(e => e.Summary).HasColumnName("summary");
             entity.Property(e => e.Title)
