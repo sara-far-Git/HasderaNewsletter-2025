@@ -1,18 +1,18 @@
 import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import AdvertiserNav from "../Components/AdvertiserNav";
-import IssuesList from "../Components/IssuesList";
-import FlipCanvasViewer from "../Components/FlipCanvasViewer";
-import FlipIssue from "../Components/FlipIssue";
-import PlacementBook from "../Components/PlacementBook";
-import AnalyticsTable from "../Components/AnalyticsTable";
-import AdvertisersList from "../Components/AdvertisersList";
-import AdvertiserChat from "../Components/AdvertiserChat";
-import AdvertiserProfile from "../Components/AdvertiserProfile";
-import Navbar from "../Components/Navbar";
-import ProtectedRoute from "../Components/ProtectedRoute";
-import PublicRoute from "../Components/PublicRoute";
-import LoginPage from "../Components/LoginPage";
+import AdvertiserNav from "../components/AdvertiserNav";
+import IssuesList from "../components/IssuesList";
+import FlipCanvasViewer from "../components/FlipCanvasViewer";
+import FlipIssue from "../components/FlipIssue";
+import PlacementBook from "../components/PlacementBook";
+import AnalyticsTable from "../components/AnalyticsTable";
+import AdvertisersList from "../components/AdvertisersList";
+import AdvertiserChat from "../components/AdvertiserChat";
+import AdvertiserProfile from "../components/AdvertiserProfile";
+import Navbar from "../components/Navbar";
+import ProtectedRoute from "../components/ProtectedRoute";
+import PublicRoute from "../components/PublicRoute";
+import LoginPage from "../components/LoginPage";
 import hasederaTheme from "../styles/HasederaTheme";
 
 // 📄 עמוד תשלום זמני

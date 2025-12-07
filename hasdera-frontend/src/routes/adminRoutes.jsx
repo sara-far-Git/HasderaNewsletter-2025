@@ -1,18 +1,18 @@
 import { useParams, useNavigate } from "react-router-dom";
-import AdminDashboard from "../Components/AdminDashboard";
-import UsersManagement from "../Components/UsersManagement";
-import ContentManagement from "../Components/ContentManagement";
-import AdvertisersManagement from "../Components/AdvertisersManagement";
-import PaymentsManagement from "../Components/PaymentsManagement";
-import IssuesManagement from "../Components/IssuesManagement";
-import AdminFlipbookViewer from "../Components/AdminFlipbookViewer";
-import AdSlotsManagement from "../Components/AdSlotsManagement";
-import AnalyticsManagement from "../Components/AnalyticsManagement";
-import InfrastructureManagement from "../Components/InfrastructureManagement";
-import IntegrationsManagement from "../Components/IntegrationsManagement";
-import AdminProtectedRoute from "../Components/AdminProtectedRoute";
-import PublicRoute from "../Components/PublicRoute";
-import LoginPage from "../Components/LoginPage";
+import AdminDashboard from "../components/AdminDashboard";
+import UsersManagement from "../components/UsersManagement";
+import ContentManagement from "../components/ContentManagement";
+import AdvertisersManagement from "../components/AdvertisersManagement";
+import PaymentsManagement from "../components/PaymentsManagement";
+import IssuesManagement from "../components/IssuesManagement";
+import AdminFlipbookViewer from "../components/AdminFlipbookViewer";
+import AdSlotsManagement from "../components/AdSlotsManagement";
+import AnalyticsManagement from "../components/AnalyticsManagement";
+import InfrastructureManagement from "../components/InfrastructureManagement";
+import IntegrationsManagement from "../components/IntegrationsManagement";
+import AdminProtectedRoute from "../components/AdminProtectedRoute";
+import PublicRoute from "../components/PublicRoute";
+import LoginPage from "../components/LoginPage";
 
 // 🎯 קומפוננט Wrapper לעיתון באזור הניהול
 function AdminFlipbookViewerWrapper() {
