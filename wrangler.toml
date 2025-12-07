@@ -1,0 +1,7 @@
+# Cloudflare Pages configuration
+# Note: This file is for reference only
+# Actual build settings should be configured in Cloudflare Pages Dashboard
+#
+# Build command: cd hasdera-frontend && npm install && npm run build
+# Output directory: hasdera-frontend/dist
+

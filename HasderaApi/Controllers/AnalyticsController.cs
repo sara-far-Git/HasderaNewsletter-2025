@@ -46,8 +46,8 @@ namespace HasderaApi.Controllers
                 
                 // אם השירות Python לא זמין, נחזיר מהמסד נתונים
                 var analytics = await _context.Analytics
-                    .Where(a => a.AdId != null && _context.AdPlacements
-                        .Any(ap => ap.AdplacementId == a.AdId && ap.Order.AdvertiserId == advertiserId))
+                    .Where(a => a.AdId != null && _context.Ads
+           .Any(ad => ad.AdId == a.AdId && ad.AdvertiserId == advertiserId))
                     .ToListAsync();
                 
                 return Ok(analytics);
@@ -56,8 +56,8 @@ namespace HasderaApi.Controllers
             {
                 // אם יש שגיאה, נחזיר מהמסד נתונים
                 var analytics = await _context.Analytics
-                    .Where(a => a.AdId != null && _context.AdPlacements
-                        .Any(ap => ap.AdplacementId == a.AdId && ap.Order.AdvertiserId == advertiserId))
+                    .Where(a => a.AdId != null && _context.Ads
+                        .Any(ad => ad.AdId == a.AdId && ad.AdvertiserId == advertiserId))
                     .ToListAsync();
                 
                 return Ok(analytics);

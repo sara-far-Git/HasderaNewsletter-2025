@@ -24,6 +24,7 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 {
     o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     o.SerializerOptions.PropertyNamingPolicy = null;
+    o.SerializerOptions.PropertyNameCaseInsensitive = true; // תמיכה גם ב-lowercase וגם ב-capital
     o.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; // מניעת circular references
 });
 
@@ -114,16 +115,29 @@ if (!app.Environment.IsProduction())
 {
     _ = Task.Run(async () =>
     {
-        await Task.Delay(1000); // מחכה שנייה כדי שהשרת יתחיל
-        try
+        await Task.Delay(2000); // מחכה 2 שניות כדי שהשרת יתחיל
+        int retryCount = 0;
+        const int maxRetries = 3;
+        
+        while (retryCount < maxRetries)
         {
-            using (var scope = app.Services.CreateScope())
+            try
             {
-                var connection = scope.ServiceProvider.GetRequiredService<NpgsqlConnection>();
-                await connection.OpenAsync();
-                
-                try
+                using (var scope = app.Services.CreateScope())
                 {
+                    var connection = scope.ServiceProvider.GetRequiredService<NpgsqlConnection>();
+                    
+                    // בדיקה שה-connection תקין לפני פתיחה
+                    if (connection == null)
+                    {
+                        throw new InvalidOperationException("NpgsqlConnection service not found");
+                    }
+                    
+                    await connection.OpenAsync();
+                    Console.WriteLine($"✅ Database connection opened (attempt {retryCount + 1}/{maxRetries})");
+                    
+                    try
+                    {
                     // יצירת טבלת users (ללא FOREIGN KEY זמנית כדי למנוע בעיות)
                     using (var cmd = new NpgsqlCommand(@"
                         CREATE TABLE IF NOT EXISTS users (
@@ -235,20 +249,42 @@ if (!app.Environment.IsProduction())
                         }
                     }
 
-                    Console.WriteLine("✅ Database tables checked/created successfully");
-                }
-                finally
-                {
-                    if (connection.State == System.Data.ConnectionState.Open)
-                        await connection.CloseAsync();
+                        Console.WriteLine("✅ Database tables checked/created successfully");
+                        return; // הצלחנו, נצא מהלולאה
+                    }
+                    finally
+                    {
+                        if (connection.State == System.Data.ConnectionState.Open)
+                        {
+                            await connection.CloseAsync();
+                            Console.WriteLine("✅ Database connection closed");
+                        }
+                    }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"⚠️ Warning: Could not ensure database tables exist: {ex.Message}");
-            Console.WriteLine($"   Error details: {ex.InnerException?.Message ?? ex.Message}");
-            Console.WriteLine("Please run the SQL script manually: HasderaApi/Scripts/CreateUsersTable.sql");
+            catch (Exception ex)
+            {
+                retryCount++;
+                Console.WriteLine($"⚠️ Warning: Could not ensure database tables exist (attempt {retryCount}/{maxRetries}): {ex.Message}");
+                Console.WriteLine($"   Error details: {ex.InnerException?.Message ?? ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"   Inner exception type: {ex.InnerException.GetType().Name}");
+                }
+                Console.WriteLine($"   Stack trace: {ex.StackTrace}");
+                
+                if (retryCount < maxRetries)
+                {
+                    int delay = retryCount * 2000; // 2, 4, 6 שניות
+                    Console.WriteLine($"   Retrying in {delay}ms...");
+                    await Task.Delay(delay);
+                }
+                else
+                {
+                    Console.WriteLine("❌ Failed to create database tables after all retries");
+                    Console.WriteLine("Please run the SQL script manually: HasderaApi/Scripts/CreateUsersTable.sql");
+                }
+            }
         }
     });
 }

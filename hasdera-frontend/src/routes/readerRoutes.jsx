@@ -1,0 +1,128 @@
+import { useLocation, useNavigate, Navigate } from "react-router-dom";
+import FlipCanvasViewer from "../Components/FlipCanvasViewer";
+import FlipIssue from "../Components/FlipIssue";
+import IssuesList from "../Components/IssuesList";
+import ProtectedRoute from "../Components/ProtectedRoute";
+import PublicRoute from "../Components/PublicRoute";
+import LoginPage from "../Components/LoginPage";
+import { useAuth } from "../contexts/AuthContext";
+
+// ✨ קומפוננט Wrapper לצפייה בגיליון
+function IssueViewer() {
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  
+  console.log("📖 IssueViewer - received state:", state);
+  
+  const handleClose = () => {
+    navigate("/issues");
+  };
+  
+  // אם אין state, נחזיר למסך הגליונות
+  if (!state) {
+    handleClose();
+    return null;
+  }
+  
+  // יצירת אובייקט issue בפורמט שהקומפוננטה מצפה לו
+  const issue = {
+    pdf_url: state.pdf_url || state.fileUrl,
+    title: state.title,
+    issue_id: state.issue_id,
+    issueDate: state.issueDate
+  };
+  
+  return <FlipCanvasViewer issue={issue} onClose={handleClose} />;
+}
+
+// 🏠 קומפוננט Wrapper לדף הבית - מעביר לדף התחברות אם לא מחובר
+function HomePageWrapper() {
+  const { isAuthenticated, loading, user } = useAuth();
+  
+  console.log('🏠 HomePageWrapper (reader) - loading:', loading, 'isAuthenticated:', isAuthenticated, 'user:', user);
+  
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        fontSize: '1.2rem',
+        color: '#666'
+      }}>
+        טוען...
+      </div>
+    );
+  }
+  
+  // אם המשתמש לא מחובר, נעביר אותו לדף ההתחברות
+  if (!isAuthenticated) {
+    console.log('🏠 HomePageWrapper (reader) - user not authenticated, redirecting to /login');
+    return <Navigate to="/login" replace />;
+  }
+  
+  // אם המשתמש הוא Admin, נפנה אותו לאזור הניהול
+  if (user && user.role && (user.role.toLowerCase() === 'admin')) {
+    console.log('🏠 HomePageWrapper (reader) - user is Admin, redirecting to /admin');
+    return <Navigate to="/admin" replace />;
+  }
+  
+  // אם המשתמש הוא Advertiser, נפנה אותו לדשבורד של המפרסם
+  if (user && user.role && (user.role.toLowerCase() === 'advertiser' || user.role === 'מפרסם')) {
+    console.log('🏠 HomePageWrapper (reader) - user is Advertiser, redirecting to /');
+    return <Navigate to="/" replace />;
+  }
+  
+  // אם המשתמש מחובר, נציג את דף הגליונות
+  console.log('🏠 HomePageWrapper (reader) - user authenticated, showing issues list');
+  return <IssuesList />;
+}
+
+export const readerRoutes = [
+  { 
+    path: "/login", 
+    element: (
+      <PublicRoute>
+        <LoginPage />
+      </PublicRoute>
+    ) 
+  },
+  { 
+    path: "/", 
+    element: <HomePageWrapper /> 
+  },
+  { 
+    path: "/issues", 
+    element: (
+      <ProtectedRoute>
+        <IssuesList />
+      </ProtectedRoute>
+    ) 
+  },
+  { 
+    path: "/issues/:id", 
+    element: (
+      <ProtectedRoute>
+        <IssueViewer />
+      </ProtectedRoute>
+    ) 
+  },
+  { 
+    path: "/viewer", 
+    element: (
+      <ProtectedRoute>
+        <FlipCanvasViewer />
+      </ProtectedRoute>
+    ) 
+  },
+  { 
+    path: "/viewer/:id", 
+    element: (
+      <ProtectedRoute>
+        <FlipIssue />
+      </ProtectedRoute>
+    ) 
+  },
+];
+

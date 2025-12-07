@@ -746,16 +746,17 @@ const ButtonGroup = styled.div`
 // ============================================
 // 🔹 Main Component
 // ============================================
-export default function AdminFlipbookViewer({ issueId, onClose }) {
+export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue, slots: propSlots, showSlotsManagement = false }) {
   const navigate = useNavigate();
   const flipbookContainerRef = useRef(null);
   const flipbookInstanceRef = useRef(null);
-  const [issue, setIssue] = useState(null);
+  const [issue, setIssue] = useState(propIssue || null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [slots, setSlots] = useState(propSlots || null);
   
   // 🎯 Link Management
   const [links, setLinks] = useState([]);
@@ -797,20 +798,65 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
       try {
         const data = await getIssueById(issueId);
         console.log('✅ AdminFlipbookViewer: Issue loaded:', data);
+        console.log('✅ Setting issue state - IssueId:', data.issueId, 'PdfUrl:', data.PdfUrl);
         setIssue(data);
+        console.log('✅ Issue state set, useEffect should trigger with new issue data');
         
         // טעינת קישורים ואנימציות אם יש
+        console.log('📄 AdminFlipbookViewer: Checking for Summary...');
+        console.log('📄 AdminFlipbookViewer: data.Summary:', data.Summary);
+        console.log('📄 AdminFlipbookViewer: data.summary:', data.summary);
+        console.log('📄 AdminFlipbookViewer: Full data object:', JSON.stringify(data, null, 2));
+        
         if (data.Summary || data.summary) {
           try {
             const summary = data.Summary || data.summary;
+            console.log('📄 AdminFlipbookViewer: Raw Summary:', summary);
+            console.log('📄 AdminFlipbookViewer: Summary type:', typeof summary);
+            console.log('📄 AdminFlipbookViewer: Summary length:', summary?.length);
+            
             const metadata = JSON.parse(summary);
-            if (metadata.links) {
+            console.log('📄 AdminFlipbookViewer: Parsed metadata:', metadata);
+            console.log('📄 AdminFlipbookViewer: metadata.links:', metadata.links);
+            console.log('📄 AdminFlipbookViewer: metadata.links type:', typeof metadata.links);
+            console.log('📄 AdminFlipbookViewer: Is array?', Array.isArray(metadata.links));
+            
+            if (metadata.links && Array.isArray(metadata.links)) {
               console.log('🔗 AdminFlipbookViewer: Loaded links:', metadata.links);
-              setLinks(metadata.links);
+              console.log('🔗 AdminFlipbookViewer: Links count:', metadata.links.length);
+              // הבאק-אנד מחזיר קישורים עם lowercase keys (id, page, x, y וכו')
+              // נוודא שכל קישור יש לו את כל השדות הנדרשים
+              const normalizedLinks = metadata.links.map((link, index) => {
+                console.log(`🔗 Link ${index}:`, link);
+                return {
+                  id: link.id || link.Id || String(Date.now() + index),
+                  page: link.page || link.Page || 1,
+                  x: link.x || link.X || 0,
+                  y: link.y || link.Y || 0,
+                  width: link.width || link.Width || 100,
+                  height: link.height || link.Height || 50,
+                  url: link.url || link.Url || '',
+                  icon: link.icon || link.Icon || 'Link',
+                  email: link.email || link.Email || ''
+                };
+              });
+              console.log('🔗 AdminFlipbookViewer: Normalized links:', normalizedLinks);
+              setLinks(normalizedLinks);
+            } else {
+              console.log('⚠️ AdminFlipbookViewer: No links found or links is not an array');
+              console.log('⚠️ AdminFlipbookViewer: metadata.links value:', metadata.links);
+              setLinks([]);
             }
           } catch (e) {
-            console.error('Error parsing metadata:', e);
+            console.error('❌ Error parsing metadata:', e);
+            console.error('❌ Error stack:', e.stack);
+            console.error('❌ Summary content:', data.Summary || data.summary);
+            setLinks([]);
           }
+        } else {
+          console.log('⚠️ AdminFlipbookViewer: No Summary field found in issue data');
+          console.log('⚠️ AdminFlipbookViewer: Available fields:', Object.keys(data));
+          setLinks([]);
         }
       } catch (error) {
         console.error('❌ Error loading issue:', error);
@@ -843,7 +889,33 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
 
   // פונקציה נפרדת לאתחול ה-FlipBook
   const initializeFlipBook = useCallback((pdfUrl) => {
-    if (!flipbookContainerRef.current) return;
+    console.log('🎯 initializeFlipBook called with URL:', pdfUrl);
+    
+    if (!flipbookContainerRef.current) {
+      console.warn('⚠️ Flipbook container not available');
+      return;
+    }
+    
+    console.log('✅ Flipbook container available');
+    
+    // הגנה מפני טעינה חוזרת - רק אם ה-FlipBook באמת פעיל
+    if (flipbookInstanceRef.current && flipbookInstanceRef.current.options?.pdfUrl === pdfUrl) {
+      // נבדוק אם ה-FlipBook באמת פעיל
+      try {
+        const currentPage = flipbookInstanceRef.current.getCurrentPageNumber?.() || 0;
+        const totalPages = flipbookInstanceRef.current.options?.numPages || 0;
+        console.log('🔍 Checking existing FlipBook - currentPage:', currentPage, 'totalPages:', totalPages);
+        if (currentPage > 0 || totalPages > 0) {
+          console.log('⚠️ FlipBook already initialized with same URL and is active, skipping...');
+          return;
+        }
+          } catch (e) {
+        // אם יש שגיאה, נמשיך עם טעינה מחדש
+        console.log('⚠️ FlipBook instance exists but may be inactive, reinitializing...', e);
+      }
+    }
+    
+    console.log('🚀 Proceeding with FlipBook initialization...');
     
     if (flipbookInstanceRef.current) {
       try {
@@ -971,6 +1043,7 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
             console.log('✅ Flipbook ready event fired');
             clearTimeout(timeoutId);
             setIsLoading(false);
+            isInitializingRef.current = false; // שחרור ההגנה
             const pages = flipbook.options?.numPages || flipbook.options?.pages?.length || 0;
             setTotalPages(pages);
             console.log(`📄 Total pages: ${pages}`);
@@ -980,6 +1053,7 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
             console.log('✅ PDF initialized');
             clearTimeout(timeoutId);
             setIsLoading(false);
+            isInitializingRef.current = false; // שחרור ההגנה
             const pages = flipbook.options?.numPages || 0;
             setTotalPages(pages);
             console.log(`📄 Total pages after pdfinit: ${pages}`);
@@ -989,6 +1063,7 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
             console.error('❌ FlipBook error:', err);
             console.error('❌ Error type:', typeof err);
             console.error('❌ Error keys:', err ? Object.keys(err) : 'no error object');
+            isInitializingRef.current = false; // שחרור ההגנה גם בשגיאה
             
             let errorMessage = "שגיאה בטעינת המגזין";
             
@@ -1039,28 +1114,157 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
   }, []);
 
   // אתחול FlipBook
+  // הגנה מפני טעינה חוזרת
+  const isInitializingRef = useRef(false);
+  const lastPdfUrlRef = useRef(null);
+
   useEffect(() => {
-    if (!issue) return;
+    console.log('🔍 useEffect triggered - issue:', issue);
+    console.log('🔍 useEffect - issueId:', issue?.IssueId, 'pdfUrl:', issue?.PdfUrl, 'fileUrl:', issue?.FileUrl);
+    console.log('🔍 useEffect - issue object keys:', issue ? Object.keys(issue) : 'null');
+    
+    if (!issue) {
+      console.log('⚠️ No issue, returning');
+      return;
+    }
+    
+    // בדיקה נוספת - אם אין ID, זה אומר שה-issue עדיין לא נטען במלואו
+    if (!issue.IssueId && !issue.issueId && !issue.issue_id) {
+      console.log('⚠️ Issue has no ID yet, returning');
+      return;
+    }
+    
     let pdfUrl = issue.PdfUrl || issue.FileUrl || issue.pdf_url || issue.Pdf_url || issue.pdfUrl || issue.fileUrl || issue.FileUrl || issue.File_url;
-    if (!pdfUrl || !flipbookContainerRef.current) return;
-    if (!window.FlipBook && !window.FLIPBOOK) return;
+    console.log('📄 PDF URL from issue:', pdfUrl);
+    if (!pdfUrl) {
+      console.log('⚠️ No PDF URL, returning');
+      return;
+    }
+    if (!flipbookContainerRef.current) {
+      console.log('⚠️ No flipbook container, waiting for it to mount...');
+      // נחכה קצת שה-container יותקן - אבל לא נעדכן את ה-state כדי למנוע לולאה אינסופית
+      const checkContainer = setInterval(() => {
+        if (flipbookContainerRef.current && !isInitializingRef.current) {
+          clearInterval(checkContainer);
+          console.log('✅ Flipbook container mounted, will retry on next render');
+          // לא נעדכן את ה-state - ה-useEffect ירוץ שוב אוטומטית כשה-container יהיה זמין
+          // פשוט נחזור ונחכה שה-useEffect ירוץ שוב
+        }
+      }, 100);
+      
+      setTimeout(() => {
+        clearInterval(checkContainer);
+        if (!flipbookContainerRef.current) {
+          console.error('❌ Flipbook container still not available after timeout');
+          setError('הקונטיינר לא זמין. אנא רענן את הדף.');
+        }
+      }, 5000);
+      return;
+    }
+    if (!window.FlipBook && !window.FLIPBOOK) {
+      console.log('⚠️ FlipBook library not loaded, waiting...');
+      // נחכה קצת ונבדוק שוב - אבל לא נעדכן את ה-state כדי למנוע לולאה אינסופית
+      const checkLibrary = setInterval(() => {
+        if ((window.FlipBook || window.FLIPBOOK) && !isInitializingRef.current) {
+          clearInterval(checkLibrary);
+          console.log('✅ FlipBook library loaded, will retry on next render');
+          // לא נעדכן את ה-state - ה-useEffect ירוץ שוב אוטומטית כשה-library תהיה זמינה
+          // פשוט נחזור ונחכה שה-useEffect ירוץ שוב
+        }
+      }, 500);
+      
+      setTimeout(() => {
+        clearInterval(checkLibrary);
+        if (!window.FlipBook && !window.FLIPBOOK) {
+          console.error('❌ FlipBook library still not loaded after timeout');
+          setError('הספרייה לא נטענה. אנא רענן את הדף.');
+        }
+      }, 10000);
+      return;
+    }
+    
+    // אם אנחנו כבר בתהליך טעינה, לא נטען שוב
+    if (isInitializingRef.current) {
+      console.log('⚠️ Already initializing FlipBook, skipping...');
+      return;
+    }
+    
+    // אם ה-URL לא השתנה ויש לנו FlipBook פעיל, לא נטען שוב
+    if (lastPdfUrlRef.current === pdfUrl && flipbookInstanceRef.current) {
+      // נבדוק אם ה-FlipBook באמת פעיל
+      try {
+        const currentPage = flipbookInstanceRef.current.getCurrentPageNumber?.() || 0;
+        if (currentPage > 0) {
+          console.log('⚠️ PDF URL unchanged and FlipBook already initialized and active, skipping...');
+          return;
+        }
+      } catch (e) {
+        // אם יש שגיאה, נמשיך עם טעינה מחדש
+        console.log('⚠️ FlipBook instance exists but may be inactive, reinitializing...');
+      }
+    }
+    
+    console.log('🚀 Starting FlipBook initialization...');
+    console.log('🔍 Last PDF URL:', lastPdfUrlRef.current, 'Current PDF URL:', pdfUrl);
+    
+    // בדיקה נוספת - אם ה-URL זהה ואנחנו כבר בתהליך טעינה, לא נטען שוב
+    if (lastPdfUrlRef.current === pdfUrl && isInitializingRef.current) {
+      console.log('⚠️ Same URL and already initializing, skipping...');
+      return;
+    }
+    
+    isInitializingRef.current = true;
+    lastPdfUrlRef.current = pdfUrl;
+    
+    console.log('📄 Original PDF URL from issue:', pdfUrl);
     
     // טיפול בקבצי טיוטה - המרה ל-URL מלא
+    // הגדרת checkPdfPromise לפני ה-try block כדי שיהיה זמין תמיד
+    let checkPdfPromise;
+    
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || window.location.origin.replace(':5173', ':5000');
+      // ננסה לקבל את ה-API URL מה-env או מה-API service
+      let apiBaseUrl = import.meta.env.VITE_API_URL;
+      
+      // אם אין VITE_API_URL, נשתמש בפורט הנכון מה-API service (5055)
+      if (!apiBaseUrl) {
+        // נשתמש בפורט 5055 (הפורט ב-launchSettings.json וב-api.js)
+        const currentOrigin = window.location.origin;
+        // נחליף את הפורט ל-5055
+        apiBaseUrl = currentOrigin.replace(':5173', ':5055').replace('5173', '5055');
+        // אם זה לא עבד, ננסה פשוט להחליף את הפורט
+        if (apiBaseUrl === currentOrigin) {
+          apiBaseUrl = currentOrigin.replace(/:\d+/, ':5055');
+        }
+      }
+      
+      console.log('🌐 API Base URL:', apiBaseUrl);
       
       // אם זה קובץ טיוטה (pending-upload או draft-file), נמיר ל-URL מלא
+      // אבל רק אם זה לא URL מלא כבר
       if (pdfUrl.startsWith('pending-upload-')) {
         const tempFileName = pdfUrl.replace('pending-upload-', '');
         pdfUrl = `${apiBaseUrl}/api/issues/draft-file/${tempFileName}`;
-        console.log('🔧 Converted draft file URL:', pdfUrl);
+        console.log('🔧 Converted pending-upload to full URL:', pdfUrl);
       } else if (pdfUrl.startsWith('/api/issues/draft-file/')) {
+        // אם זה URL יחסי, נמיר אותו ל-URL מלא
         pdfUrl = `${apiBaseUrl}${pdfUrl}`;
-        console.log('🔧 Converted relative draft file URL:', pdfUrl);
+        console.log('🔧 Converted relative draft file URL to full URL:', pdfUrl);
       } else if (pdfUrl.startsWith('/uploads/')) {
+        // אם זה URL יחסי, נמיר אותו ל-URL מלא
         pdfUrl = `${apiBaseUrl}${pdfUrl}`;
-        console.log('🔧 Converted relative uploads URL:', pdfUrl);
+        console.log('🔧 Converted relative uploads URL to full URL:', pdfUrl);
+      } else if (pdfUrl.includes('/api/issues/draft-file/') && !pdfUrl.startsWith('http')) {
+        // אם ה-URL מכיל את הנתיב אבל לא מתחיל ב-http, נמיר אותו
+        pdfUrl = `${apiBaseUrl}${pdfUrl.startsWith('/') ? '' : '/'}${pdfUrl}`;
+        console.log('🔧 Converted draft file path to full URL:', pdfUrl);
+      } else if (pdfUrl.includes('localhost:5000')) {
+        // אם ה-URL מכיל localhost:5000, נחליף אותו ל-5055
+        pdfUrl = pdfUrl.replace('localhost:5000', 'localhost:5055').replace(':5000', ':5055');
+        console.log('🔧 Fixed port from 5000 to 5055:', pdfUrl);
       }
+      
+      console.log('✅ Final PDF URL:', pdfUrl);
       
       // בדיקה שהקובץ נגיש לפני טעינה
       console.log('🔍 Checking PDF accessibility:', pdfUrl);
@@ -1078,7 +1282,7 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      const checkPdfPromise = fetch(pdfUrl, { 
+      checkPdfPromise = fetch(pdfUrl, { 
         method: 'GET', 
         mode: 'cors',
         cache: 'no-cache',
@@ -1238,6 +1442,16 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
     } catch (e) {
       console.error('❌ Error fixing URL encoding:', e);
       // נמשיך עם ה-URL המקורי אם יש שגיאה
+      // אם checkPdfPromise לא הוגדר, נגדיר אותו כ-Promise שמתממש מיד
+      if (!checkPdfPromise) {
+        checkPdfPromise = Promise.resolve(true);
+      }
+    }
+    
+    // אם checkPdfPromise עדיין לא הוגדר (בגלל שגיאה ב-try), נגדיר אותו
+    if (!checkPdfPromise) {
+      console.warn('⚠️ checkPdfPromise not defined, skipping PDF validation');
+      checkPdfPromise = Promise.resolve(true);
     }
     
     if (flipbookInstanceRef.current) {
@@ -1249,19 +1463,55 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
 
     // הוספת token ל-URL עבור קבצי טיוטה (FlipBook לא תומך ב-custom headers)
     let finalPdfUrl = pdfUrl;
-    if (token && (pdfUrl.includes('/api/issues/draft-file/') || pdfUrl.includes('/uploads/'))) {
-      const urlObj = new URL(pdfUrl);
-      urlObj.searchParams.set('token', token);
-      finalPdfUrl = urlObj.toString();
-      console.log('🔧 Added token to PDF URL for FlipBook');
+    const token = localStorage.getItem('hasdera_token');
+    
+    // וידוא שה-URL הוא URL מלא תקין
+    try {
+      // אם זה לא URL מלא, ננסה ליצור אותו
+      if (!pdfUrl.startsWith('http://') && !pdfUrl.startsWith('https://')) {
+        const apiBaseUrl = import.meta.env.VITE_API_URL || window.location.origin.replace(':5173', ':5000');
+        if (pdfUrl.startsWith('/')) {
+          finalPdfUrl = `${apiBaseUrl}${pdfUrl}`;
+        } else {
+          finalPdfUrl = `${apiBaseUrl}/${pdfUrl}`;
+        }
+        console.log('🔧 Converted to full URL:', finalPdfUrl);
+      } else {
+        finalPdfUrl = pdfUrl;
+      }
+      
+      // הוספת token ל-URL עבור קבצי טיוטה
+      if (token && (finalPdfUrl.includes('/api/issues/draft-file/') || finalPdfUrl.includes('/uploads/'))) {
+        const urlObj = new URL(finalPdfUrl);
+        urlObj.searchParams.set('token', token);
+        finalPdfUrl = urlObj.toString();
+        console.log('🔧 Added token to PDF URL for FlipBook:', finalPdfUrl);
+      }
+    } catch (urlError) {
+      console.error('❌ Error processing PDF URL:', urlError);
+      console.error('❌ Original URL:', pdfUrl);
+      setError('שגיאה בעיבוד כתובת הקובץ PDF. אנא בדוק שהשרת רץ ונסה שוב.');
+      setIsLoading(false);
+      return;
     }
     
+    console.log('✅ Final PDF URL for FlipBook:', finalPdfUrl);
+    console.log('🔍 checkPdfPromise:', checkPdfPromise);
+    
     // נחכה לבדיקת ה-PDF לפני טעינת ה-FlipBook
+    if (!checkPdfPromise) {
+      console.error('❌ checkPdfPromise is undefined! Initializing FlipBook directly...');
+      initializeFlipBook(finalPdfUrl);
+      isInitializingRef.current = false;
+      return;
+    }
+    
     checkPdfPromise
       .then(() => {
         // אם הבדיקה הצליחה, נטען את ה-FlipBook
         console.log('✅ PDF validation passed, initializing FlipBook');
         initializeFlipBook(finalPdfUrl);
+        isInitializingRef.current = false;
       })
       .catch(err => {
         console.error('❌ PDF validation failed:', err);
@@ -1273,7 +1523,9 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
           console.log('⚠️ Draft file validation failed, but will try to load anyway');
           console.log('⚠️ This might be a Range request issue or the PDF might be valid despite the check failing');
           // ננסה לטעון את הקובץ ישירות ל-FlipBook
+          console.log('🚀 Initializing FlipBook despite validation failure...');
           initializeFlipBook(finalPdfUrl);
+          isInitializingRef.current = false;
           return;
         }
         
@@ -1291,8 +1543,13 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
         
         setError(userMessage);
         setIsLoading(false);
+        isInitializingRef.current = false;
       });
-  }, [issue, initializeFlipBook]);
+  }, [
+    issue?.IssueId ?? issue?.issueId ?? issue?.issue_id ?? null,
+    issue?.PdfUrl ?? issue?.pdfUrl ?? issue?.pdf_url ?? null,
+    issue?.FileUrl ?? issue?.fileUrl ?? issue?.file_url ?? null
+  ]); // תלויים ב-properties של issue כדי שירוץ כשה-issue נטען
 
   // Cleanup function
   useEffect(() => {
@@ -1454,6 +1711,29 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
     });
   };
 
+  const handleLinkClick = (link) => {
+    if (!link.url) return;
+    
+    // אם זה mailto, נפתח את תוכנת המייל
+    if (link.url.startsWith('mailto:')) {
+      window.location.href = link.url;
+      return;
+    }
+    
+    // אם זה URL רגיל, נפתח אותו בחלון חדש
+    try {
+      // וידוא שה-URL מתחיל ב-http:// או https://
+      let urlToOpen = link.url;
+      if (!urlToOpen.startsWith('http://') && !urlToOpen.startsWith('https://')) {
+        urlToOpen = `https://${urlToOpen}`;
+      }
+      window.open(urlToOpen, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Error opening link:', error);
+      alert('שגיאה בפתיחת הקישור');
+    }
+  };
+
   // 🖱️ Drag & Drop Functions
   const handleLinkMouseDown = (e, linkId) => {
     e.preventDefault();
@@ -1506,14 +1786,70 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
   const handleSaveDraft = async () => {
     setIsSaving(true);
     try {
-      await updateIssueMetadata(issueId, {
-        title: issue?.Title || issue?.title,
-        links: links,
-        animations: [],
-      });
+      // Ensure links are properly formatted with all required properties
+      const formattedLinks = (links || []).map(link => ({
+        Id: String(link.id || link.Id || ''),
+        Page: Number(link.page || link.Page || 1),
+        X: Number(link.x || link.X || 0),
+        Y: Number(link.y || link.Y || 0),
+        Width: Number(link.width || link.Width || 100),
+        Height: Number(link.height || link.Height || 50),
+        Url: String(link.url || link.Url || ''),
+        Icon: link.icon || link.Icon || 'Link',
+        Email: link.email || link.Email || ''
+      }));
+      
+      const dataToSend = {
+        Title: issue?.Title || issue?.title || '',
+        Links: formattedLinks,
+        Animations: [],
+      };
+      console.log('💾 Saving draft with data:', dataToSend);
+      console.log('💾 Links to save:', formattedLinks);
+      await updateIssueMetadata(issueId, dataToSend);
+      
+      // טעינה מחדש של הנתונים כדי לראות את הקישורים שנשמרו
+      const updatedData = await getIssueById(issueId);
+      setIssue(updatedData);
+      
+      // טעינת קישורים מה-metadata המעודכן
+      if (updatedData.Summary || updatedData.summary) {
+        try {
+          const summary = updatedData.Summary || updatedData.summary;
+          const metadata = JSON.parse(summary);
+          if (metadata.links && Array.isArray(metadata.links)) {
+            console.log('🔗 AdminFlipbookViewer: Reloaded links after save:', metadata.links);
+            // הבאק-אנד מחזיר קישורים עם lowercase keys (id, page, x, y וכו')
+            setLinks(metadata.links);
+          } else {
+            // אם אין קישורים, נאפס את המערך
+            console.log('🔗 AdminFlipbookViewer: No links found in metadata, clearing links');
+            setLinks([]);
+          }
+        } catch (e) {
+          console.error('Error parsing metadata after save:', e);
+          setLinks([]);
+        }
+      } else {
+        // אם אין Summary בכלל, נאפס את הקישורים
+        console.log('🔗 AdminFlipbookViewer: No Summary found, clearing links');
+        setLinks([]);
+      }
+      
       alert('טיוטה נשמרה בהצלחה!');
+      
+      // חזרה לעמוד הגיליונות
+      if (onClose) {
+        onClose();
+      } else {
+        navigate('/admin/issues');
+      }
     } catch (error) {
-      console.error('Error saving draft:', error);
+      console.error('❌ Error saving draft:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
+      if (error.response?.data?.errors) {
+        console.error('❌ Validation errors:', JSON.stringify(error.response.data.errors, null, 2));
+      }
       alert('שגיאה בשמירת הטיוטה');
     } finally {
       setIsSaving(false);
@@ -1523,11 +1859,26 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
   const handlePublish = async () => {
     setIsPublishing(true);
     try {
-      await updateIssueMetadata(issueId, {
-        title: issue?.Title || issue?.title,
-        links: links,
-        animations: [],
-      });
+      // Ensure links are properly formatted with all required properties
+      const formattedLinks = (links || []).map(link => ({
+        Id: String(link.id || link.Id || ''),
+        Page: Number(link.page || link.Page || 1),
+        X: Number(link.x || link.X || 0),
+        Y: Number(link.y || link.Y || 0),
+        Width: Number(link.width || link.Width || 100),
+        Height: Number(link.height || link.Height || 50),
+        Url: String(link.url || link.Url || ''),
+        Icon: link.icon || link.Icon || 'Link',
+        Email: link.email || link.Email || ''
+      }));
+      
+      const dataToSend = {
+        Title: issue?.Title || issue?.title || '',
+        Links: formattedLinks,
+        Animations: [],
+      };
+      console.log('📤 Publishing with data:', dataToSend);
+      await updateIssueMetadata(issueId, dataToSend);
       await publishIssue(issueId);
       alert('הגיליון פורסם בהצלחה!');
       if (onClose) onClose();
@@ -1677,10 +2028,22 @@ export default function AdminFlipbookViewer({ issueId, onClose }) {
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!isDraggingLink) {
+                      // לחיצה כפולה פותחת את הקישור
+                      if (e.detail === 2) {
+                        handleLinkClick(link);
+                      } else {
+                        // לחיצה אחת פותחת את מודל העריכה
                       handleEditLink(link);
+                      }
                     }
                   }}
-                  style={{ cursor: isDraggingLink && draggingLinkId === link.id ? 'grabbing' : 'grab' }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    if (!isDraggingLink) {
+                      handleLinkClick(link);
+                    }
+                  }}
+                  style={{ cursor: isDraggingLink && draggingLinkId === link.id ? 'grabbing' : 'pointer' }}
                 >
                   <LinkBadge $isBlinking={isPublished}>
                     <LinkIconWrapper>

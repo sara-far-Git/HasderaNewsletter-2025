@@ -1,0 +1,12 @@
+# Cloudflare Pages configuration
+# 
+# IMPORTANT: Set these in Cloudflare Pages Dashboard → Settings → Builds & deployments:
+# 
+# Build command: cd hasdera-frontend && npm install && npm run build
+# Output directory: hasdera-frontend/dist
+#
+# Environment variables (if needed):
+#   VITE_APP_MODE=reader (or advertiser, or admin)
+#
+# Note: This is the proper way - no need for package.json in root
+

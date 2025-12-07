@@ -119,4 +119,15 @@ export async function deleteIssue(issueId) {
     throw err;
   }
 }
+
+// קבלת מקומות פרסום לפי גיליון
+export async function getIssueSlots(issueId) {
+  try {
+    const res = await api.get(`/Issues/${issueId}/slots`);
+    return res.data;
+  } catch (err) {
+    console.error("❌ שגיאה ב-GET Issue Slots:", err);
+    throw err;
+  }
+}
   
