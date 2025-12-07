@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Authorization;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization;
 
 namespace HasderaApi.Controllers
 {
@@ -266,6 +265,8 @@ namespace HasderaApi.Controllers
                 }
 
                 Console.WriteLine($"✅ גיליון נמצא: {issue.Title}, PDF URL: {issue.PdfUrl}");
+                Console.WriteLine($"📄 Summary length: {issue.Summary?.Length ?? 0}");
+                Console.WriteLine($"📄 Summary content: {(string.IsNullOrEmpty(issue.Summary) ? "null/empty" : issue.Summary.Substring(0, Math.Min(100, issue.Summary.Length)))}");
                 return issue;
             }
             catch (Exception ex)
@@ -456,9 +457,16 @@ namespace HasderaApi.Controllers
             {
                 // לוגים לבדיקה
                 Console.WriteLine($"📝 UpdateIssueWithMetadata called for issue {id}");
-                Console.WriteLine($"📝 Request Title: {request?.Title}");
-                Console.WriteLine($"📝 Request Links count: {request?.Links?.Count ?? 0}");
-                Console.WriteLine($"📝 Request Animations count: {request?.Animations?.Count ?? 0}");
+                
+                if (request == null)
+                {
+                    Console.WriteLine($"❌ Request is null");
+                    return BadRequest("Request body is required");
+                }
+                
+                Console.WriteLine($"📝 Request Title: {request.Title}");
+                Console.WriteLine($"📝 Request Links count: {request.Links?.Count ?? 0}");
+                Console.WriteLine($"📝 Request Animations count: {request.Animations?.Count ?? 0}");
                 
                 var issue = await _context.Issues.FindAsync(id);
                 if (issue == null)
@@ -503,6 +511,7 @@ namespace HasderaApi.Controllers
                 // עדכון קישורים אם נשלחו - תמיכה גם ב-lowercase וגם ב-capital
                 // חשוב: נעדכן גם כשהמערך ריק כדי למחוק קישורים קיימים
                 var links = request.GetLinks();
+                Console.WriteLine($"📝 UpdateIssueWithMetadata - Links received: {(links != null ? links.Count : 0)}");
                 if (links != null)
                 {
                     // המרה ל-array של dictionaries בפורמט הנכון
@@ -520,6 +529,14 @@ namespace HasderaApi.Controllers
                     }).ToList();
                     metadata["links"] = linksArray;
                     Console.WriteLine($"✅ Saving {linksArray.Count} links to metadata");
+                    foreach (var link in linksArray)
+                    {
+                        Console.WriteLine($"  🔗 Link: id={link["id"]}, page={link["page"]}, url={link["url"]}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"⚠️ Links is null - not updating links");
                 }
                 
                 // עדכון אנימציות אם נשלחו
@@ -538,12 +555,18 @@ namespace HasderaApi.Controllers
                 {
                     // שמירת metadata כ-JSON - נעדכן גם אם יש קישורים או אנימציות (גם אם ריקים)
                     issue.Summary = System.Text.Json.JsonSerializer.Serialize(metadata);
+                    Console.WriteLine($"💾 Saving Summary with metadata: {issue.Summary}");
+                }
+                else
+                {
+                    Console.WriteLine($"⚠️ No links, animations, or metadata to save");
                 }
 
                 await _context.SaveChangesAsync();
                 
                 Console.WriteLine($"✅ Issue {id} updated successfully");
                 Console.WriteLine($"✅ Summary length: {issue.Summary?.Length ?? 0}");
+                Console.WriteLine($"✅ Summary content: {(string.IsNullOrEmpty(issue.Summary) ? "null/empty" : issue.Summary.Substring(0, Math.Min(200, issue.Summary.Length)))}");
 
                 return Ok(new
                 {

@@ -1809,7 +1809,11 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       await updateIssueMetadata(issueId, dataToSend);
       
       // טעינה מחדש של הנתונים כדי לראות את הקישורים שנשמרו
+      console.log('🔄 Reloading issue data after save...');
       const updatedData = await getIssueById(issueId);
+      console.log('📥 Updated issue data received:', updatedData);
+      console.log('📥 Updated issue Summary:', updatedData.Summary || updatedData.summary);
+      console.log('📥 Updated issue keys:', Object.keys(updatedData));
       setIssue(updatedData);
       
       // טעינת קישורים מה-metadata המעודכן
@@ -1820,7 +1824,25 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
           if (metadata.links && Array.isArray(metadata.links)) {
             console.log('🔗 AdminFlipbookViewer: Reloaded links after save:', metadata.links);
             // הבאק-אנד מחזיר קישורים עם lowercase keys (id, page, x, y וכו')
-            setLinks(metadata.links);
+            // נוודא שכל קישור יש לו את כל השדות הנדרשים וטיפוסים נכונים
+            const normalizedLinks = metadata.links.map((link, index) => {
+              console.log(`🔗 Link ${index} after save:`, link);
+              return {
+                id: String(link.id || link.Id || Date.now() + index),
+                page: Number(link.page || link.Page || 1), // חשוב: לוודא שזה number
+                x: Number(link.x || link.X || 0),
+                y: Number(link.y || link.Y || 0),
+                width: Number(link.width || link.Width || 100),
+                height: Number(link.height || link.Height || 50),
+                url: String(link.url || link.Url || ''),
+                icon: link.icon || link.Icon || 'Link',
+                email: link.email || link.Email || ''
+              };
+            });
+            console.log('🔗 AdminFlipbookViewer: Normalized links after save:', normalizedLinks);
+            console.log('🔗 AdminFlipbookViewer: Current page:', currentPage);
+            console.log('🔗 AdminFlipbookViewer: Links for current page:', normalizedLinks.filter(l => l.page === currentPage));
+            setLinks(normalizedLinks);
           } else {
             // אם אין קישורים, נאפס את המערך
             console.log('🔗 AdminFlipbookViewer: No links found in metadata, clearing links');
@@ -2009,9 +2031,11 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
           <FlipbookContainer ref={flipbookContainerRef} />
           
           {/* Link Overlays - רק עבור העמוד הנוכחי, רק אחרי שהעיתון נטען */}
-          {!isLoading && !error && totalPages && links
-            .filter(link => link.page === currentPage)
-            .map(link => {
+          {(() => {
+            if (!isLoading && !error && totalPages && links && links.length > 0) {
+              const filteredLinks = links.filter(link => Number(link.page) === Number(currentPage));
+              console.log('🔗 Rendering links - total:', links.length, 'currentPage:', currentPage, 'filtered:', filteredLinks.length);
+              return filteredLinks.map(link => {
               const IconComponent = availableIcons.find(icon => icon.name === (link.icon || 'Link'))?.component || Link;
               return (
                 <LinkOverlay
@@ -2052,7 +2076,10 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
                   </LinkBadge>
                 </LinkOverlay>
               );
-            })}
+            });
+            }
+            return null;
+          })()}
           
           {/* הודעת מיקום קישור */}
           {isPlacingLink && (
