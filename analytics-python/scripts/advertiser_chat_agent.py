@@ -3,8 +3,8 @@
 
 """
 Assistant למפרסמים של 'השדרה'
-עוזר למפרסמים לבחור מיקום לפרסום, גודל מודעה, רעיונות למודעה,
-ומשתמש גם בפרופיל אישי של המפרסם כדי לתת המלצות מותאמות.
+עוזר למפרסמים לבחור מיקום לפרסום ולסגור עסקה.
+תומך בהיסטוריית שיחה!
 """
 
 import os
@@ -15,25 +15,29 @@ import urllib3
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# השבתת אזהרות SSL (לפיתוח)
+# השבתת אזהרות SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# טעינת משתני סביבה
 load_dotenv()
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 
-# קביעת encoding
-try:
-    sys.stdout.reconfigure(encoding='utf-8')
-except:
-    pass
+# תיקון encoding ל-Windows
+import io
+# שמירת reference ל-stdout המקורי לפני שינוי
+_original_stdout = sys.stdout
+_original_stderr = sys.stderr
+if sys.platform == 'win32':
+    # ב-Windows, נשתמש ב-buffer ישירות
+    pass  # נשאיר את sys.stdout כמו שהוא ונכתוב ישירות ל-buffer
+else:
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except:
+        pass
 
 API_BASE_URL = "https://localhost:7083/api"
 
 
-# ------------------------------------------------------------
-# 1. ניקוי טקסטים
-# ------------------------------------------------------------
 def sanitize_text(text):
     if not text:
         return text
@@ -45,14 +49,7 @@ def sanitize_text(text):
         return ''.join(c for c in text if ord(c) < 0xD800 or ord(c) > 0xDFFF)
 
 
-# ------------------------------------------------------------
-# 2. הבאת עמודים פנויים מה-API
-# ------------------------------------------------------------
 def fetch_available_pages(issue_id=None):
-    """
-    מביא רשימת Slots פנויים מה-API
-    מחזיר רק slots שפנויים (is_available=True או שלא מסומנים כלא פנויים)
-    """
     try:
         url = f"{API_BASE_URL}/Slots"
         if issue_id:
@@ -61,32 +58,22 @@ def fetch_available_pages(issue_id=None):
         response = requests.get(url, timeout=10, verify=False)
         if response.status_code == 200:
             slots = response.json()
-            # סינון רק slots פנויים
-            # אם יש שדה is_available, נשתמש בו
-            # אם אין, נניח שכולם פנויים (או נבדוק לפי שדות אחרים)
             available_slots = []
             for slot in slots:
-                # בדיקה אם יש שדה is_available
                 is_available = slot.get('is_available', slot.get('IsAvailable', True))
-                # אם יש שדה occupied או booked, נבדוק גם אותם
                 is_occupied = slot.get('occupied', slot.get('Occupied', False))
                 is_booked = slot.get('booked', slot.get('Booked', False))
                 
-                # Slot פנוי אם: is_available=True ולא occupied ולא booked
                 if is_available and not is_occupied and not is_booked:
                     available_slots.append(slot)
             
             return available_slots
         return []
     except Exception as e:
-        error_msg = sanitize_text(str(e))
-        print(f"DEBUG: Error fetching slots: {error_msg}", file=sys.stderr)
+        print(f"DEBUG: Error fetching slots: {sanitize_text(str(e))}", file=sys.stderr)
         return []
 
 
-# ------------------------------------------------------------
-# 3. הבאת מידע על גיליון
-# ------------------------------------------------------------
 def fetch_issue_info(issue_id):
     try:
         url = f"{API_BASE_URL}/Issues/{issue_id}"
@@ -99,187 +86,226 @@ def fetch_issue_info(issue_id):
         return None
 
 
-# ------------------------------------------------------------
-# 4. בניית פרומפט מלא
-# ------------------------------------------------------------
-def build_prompt(
-    user_query,
-    available_pages=None,
-    issue_info=None,
-    user_profile=None,
-    payment_link=None,
-    manager_contact_link=None,
-    graphics_link=None
-):
-    """
-    בונה את ה-system_message ואת ה-user_message
-    עבור ה-AI Assistant שמלווה מפרסמים במגזין 'השדרה'.
-    """
+def build_system_message(available_pages=None, issue_info=None):
+    """בונה את ה-system message"""
+    
+    system_message = """אתה יועץ פרסום בכיר במגזין 'השדרה' - מגזין דיגיטלי לקהל שומר מסורת.
 
-    # ---------------------------
-    #  SYSTEM MESSAGE (קבוע)
-    # ---------------------------
-    system_message = """
-אתה Assistant מקצועי למפרסמים במגזין 'השדרה'.
+התפקיד שלך הוא כפול:
+1. **מנתח ואסטרטג**: להדריך את המפרסם דרך נתוני אנליטיקות, ביצועי עבר, ולעזור לו **לגבש החלטה עסקית נבונה** לגבי כדאיות הפרסום.
+2. **מנהל מכירות**: לעזור למפרסם לבחור את חבילת הפרסום האופטימלית, לספק מידע טכני מדויק (מחירים, דדליינים, מיקומים פנויים), ולסגור עסקה.
 
-המטרה שלך:
-ללוות את המפרסם מההתעניינות הראשונית ועד קבלת החלטה:
-תשלום, יצירת קשר עם הניהול, או יציאה.
+=== חוקים קריטיים וניהול שיחה ===
+1. **עדיפות עליונה: קריאת שיחה והימנעות מחזרות!** עליך לעבור על ההיסטוריה ולזהות כל נתון שהמפרסם סיפק (כגון סוג עסק, תקציב, מטרה). **לעולם, אבל לעולם**, אל תחזור ותשאל שאלה שכבר נענתה.
+2. **התקדמות עקבית**: תמיד להתקדם לשלב הבא בשיחה. אם קיבלת תשובה, השתמש בה כדי להמשיך מיד להמלצה או לבירור הבא.
+3. ניתוח קודם למכירה: אם המפרסם שואל לגבי כדאיות או מחפש נתונים, **התחל בניתוח** לפני שאתה מציע חבילות.
+4. לעולם אל תשתמש בביטויים כמו "איך אפשר לעזור" או תחזור על תשובה קודמת.
 
-סגנון:
-שירותי, קצר, ענייני, מקצועי. ללא Markdown וללא כוכביות.
+=== מידע שצריך לאסוף (בהדרגה, ורק אם חסר) ===
+- סוג העסק (אם נאמר: השתמש במידע והתקדם למטרה)
+- מטרת הפרסום (השקה? מיתוג? מבצע? צורך מיידי?)
+- תקציב משוער
+- האם יש מודעה מעוצבת?
 
-שלבי העבודה:
+=== נתוני אנליטיקות ואינדיקטורים קריטיים ===
 
-1. להבין את סוג העסק והמטרה.
-2. להציע חבילת התחלה + חבילה בולטת יותר.
-   (רק גודל + יתרון — בלי רעיונות עיצוביים!)
-3. אם צריך — לבדוק מיקומים.
-   להשתמש רק בעמודים הפנויים שמוזרמים ב-user message.
-4. אם אין למפרסם מודעה מעוצבת — להפנות לגרפיקאית.
-5. שלב סיום:
-   תמיד להציע שלוש אפשרויות:
-   - מעבר לתשלום
-   - יצירת קשר עם הניהול
-   - יציאה
+* **שיעור הקלקה ממוצע (CTR)**: 1.2% - 1.8% (במהלך השבוע הראשון).
+* **זמן שהייה ממוצע (Avg Time on Page)**: 3:30 - 4:45 דקות.
+* **הקלקות למודעה במדורים מרכזיים**:
+    * אופנה/ביוטי: 180-250 קליקים.
+    * בריאות/חינוך: 120-160 קליקים.
+* **השוואה היסטורית**: עמוד כפול (דאבל) מניב בממוצע 40% יותר תנועה מעמוד בודד.
 
-חוקים:
-- אסור להציע מיקומים שלא קשורים לסוג העסק.
-- אסור לשאול שוב על סוג העסק אם נאמר.
-- אסור לחזור על דברי המשתמש.
-- אסור לדחוף להצעה נוספת אחרי שהמשתמש ביקש לצאת.
+=== שלבי ניתוח נתונים (כאשר רלוונטי) ===
+1. הצגת נתונים רלוונטיים: "בגיליון האחרון, מודעות דומות לתחום שלך קיבלו כ-220 קליקים בממוצע."
+2. הערכת כדאיות: "בהתחשב בנתונים אלה ובעובדה שאתה משיק קו חדש, המלצתי היא לפרסם דאבל במדור אופנה כדי למקסם את הנראות."
+3. גיבוש החלטה: "האם מדובר בנתוני ביצועים שיספקו את מטרת הפרסום שלך?"
 
-טריגרים בהתנהגות:
-- אם המשתמש מבקש לשלם → תשיב "מעבירה אותך לעמוד התשלום."
-- אם מבקש לדבר עם הניהול → "מעבירה אותך לניהול."
-- אם אומר שאין מודעה → להפנות לגרפיקאית.
-- אם אומר שהוא רוצה לצאת → לסיים בצורה מכובדת.
+=== גדלי מודעות ומחירים ===
 
-סיום כל תשובה:
-תמיד לסיים בכך שאתה מציג בפניו את שלוש האפשרויות:
-תשלום / יצירת קשר / יציאה.
-"""
+עמוד מלא בודד: 250₪
+- פרסום חד פעמי בגיליון אחד
+... [השאר ללא שינוי, כולל המיקומים המומלצים]
 
-    # ---------------------------
-    #  USER MESSAGE (דינמי)
-    # ---------------------------
+=== תהליך השיחה המשולב ===
+1. זיהוי העסק והצורך.
+2. ניתוח אנליטיקות וגיבוש החלטה על גודל ומיקום ראשוני.
+3. סיכום החבילה: גודל, מיקום, מחיר מדויק, והפניה לדדליינים.
+4. בירור לגבי חומרים (מודעה מעוצבת/צורך בשירותי עיצוב).
+5. סיכום סופי והפניה לתשלום.
 
-    user_message = f"""
-שאלה מהמשתמש:
-{user_query}
+=== סגנון תקשורת ===
+- עברית חמה, מקצועית וטבעית.
+- בלי סימנים מיוחדים (**, ##, מקפים).
+- מקסימום אמוג'י אחד בתשובה.
+- תמיד לסיים בשאלה או הצעה ברורה לשלב הבא."""
 
-קישורים חשובים:
-- עמוד תשלום: {payment_link or "לא סופק קישור"}
-- יצירת קשר עם הניהול: {manager_contact_link or "לא סופק קישור"}
-- קישור לגרפיקאית: {graphics_link or "לא סופק קישור"}
-
-הנחיות נוספות:
-- אם המשתמש רוצה לשלם → עליך להפנות לקישור התשלום.
-- אם המשתמש מבקש ניהול → להפנות לקישור יצירת קשר.
-- אם אין לו מודעה → להפנות לגרפיקאית.
-- אם המשתמש מבקש לצאת → לסיים בנימוס.
-
-"""
-
-    # פרופיל משתמש
-    if user_profile:
-        user_message += f"""
-פרופיל מפרסם אישי:
-{json.dumps(user_profile, ensure_ascii=False, indent=2)}
-
-"""
-
-    # עמודים פנויים
     if available_pages and len(available_pages) > 0:
-        user_message += "עמודים פנויים:\n"
-        for p in available_pages[:20]:
-            page = p.get('page_number') or p.get('PageNumber') or p.get('name') or 'N/A'
-            slot = p.get('slot_type') or p.get('SlotType') or p.get('code') or 'N/A'
+        system_message += "\n\n=== מיקומים פנויים בגיליון הקרוב ===\n"
+        for p in available_pages[:12]:
+            page = p.get('page_number') or p.get('PageNumber') or '?'
+            slot_type = p.get('slot_type') or p.get('SlotType') or ''
             price = p.get('base_price') or p.get('BasePrice') or ''
-            user_message += f"עמוד {page} | סוג: {slot} | מחיר: {price}\n"
-    else:
-        user_message += "אין מידע על עמודים פנויים כרגע.\n"
+            section = p.get('section') or p.get('Section') or ''
+            line = f"עמוד {page}"
+            if slot_type:
+                line += f" | {slot_type}"
+            if section:
+                line += f" | {section}"
+            if price:
+                line += f" | {price}₪"
+            system_message += line + "\n"
 
-    # מידע על הגיליון
     if issue_info:
-        title = issue_info.get("title") or issue_info.get("Title")
-        date = issue_info.get("issueDate") or issue_info.get("IssueDate")
-        user_message += f"""
-מידע על הגיליון:
-כותרת: {title}
-תאריך: {date}
-"""
+        title = issue_info.get("title") or issue_info.get("Title") or ""
+        date = issue_info.get("issueDate") or issue_info.get("IssueDate") or ""
+        deadline = issue_info.get("deadline") or issue_info.get("Deadline") or ""
+        if title:
+            system_message += f"\nנושא הגיליון הקרוב: {title}\n"
+        if date:
+            system_message += f"תאריך יציאה: {date}\n"
+        if deadline:
+            system_message += f"דדליין: {deadline}\n"
 
-    return system_message, user_message
+    return system_message
 
-# ------------------------------------------------------------
-# 5. MAIN – ריצה בפועל
-# ------------------------------------------------------------
+
 def main():
     try:
-        # קריאת קלט מ-stdin - יכול להיות JSON או טקסט פשוט
+        # תיקון קריאת input ב-Windows
+        if sys.platform == 'win32':
+            import codecs
+            sys.stdin = codecs.getreader('utf-8')(sys.stdin.buffer, errors='replace')
         input_line = sys.stdin.readline().strip()
         
         if not input_line:
-            print(json.dumps({"reply": "שלום! אני כאן כדי לעזור לך לחשוב על פרסום במגזין 'השדרה' ולהציע לך חבילת פרסום שמתאימה לעסק שלך. איך אוכל לעזור לך?"}, ensure_ascii=False))
+            output = json.dumps({
+                "reply": "היי! 👋 אני כאן לעזור לך לתכנן את הפרסום במגזין השדרה. אני יכולה לעזור עם בחירת גודל, מיקום, מחירים ודדליינים. ספרי לי, מה העסק שלך?"
+            }, ensure_ascii=False)
+            if sys.platform == 'win32':
+                _original_stdout.buffer.write(output.encode('utf-8'))
+                _original_stdout.buffer.write(b'\n')
+                _original_stdout.buffer.flush()
+            else:
+                print(output)
             return
 
-        # ניסיון לפרסר כ-JSON (אם יש user_profile)
+        # פרסור הקלט
         user_query = None
         user_profile = None
+        conversation_history = []
         
         try:
-            # ניסיון לפרסר כ-JSON
             input_data = json.loads(input_line)
             user_query = sanitize_text(input_data.get("query", ""))
             user_profile = input_data.get("user_profile", None)
+            conversation_history = input_data.get("history", [])
         except (json.JSONDecodeError, AttributeError):
-            # אם זה לא JSON, זה כנראה רק query פשוט
             user_query = sanitize_text(input_line)
-            user_profile = None
 
         if not user_query:
-            print(json.dumps({"reply": "שלום! אני כאן כדי לעזור לך לחשוב על פרסום במגזין 'השדרה' ולהציע לך חבילת פרסום שמתאימה לעסק שלך. איך אוכל לעזור לך?"}, ensure_ascii=False))
+            output = json.dumps({
+                "reply": "היי! 👋 אני כאן לעזור לך לתכנן את הפרסום במגזין השדרה. אני יכולה לעזור עם בחירת גודל, מיקום, מחירים ודדליינים. ספרי לי, מה העסק שלך?"
+            }, ensure_ascii=False)
+            if sys.platform == 'win32':
+                _original_stdout.buffer.write(output.encode('utf-8'))
+                _original_stdout.buffer.write(b'\n')
+                _original_stdout.buffer.flush()
+            else:
+                print(output)
             return
 
         if not OPENAI_KEY:
-            print(json.dumps({"reply": "שגיאה: חסר API key"}, ensure_ascii=False))
+            output = json.dumps({
+                "reply": "יש בעיה טכנית. נסי שוב עוד כמה דקות."
+            }, ensure_ascii=False)
+            if sys.platform == 'win32':
+                _original_stdout.buffer.write(output.encode('utf-8'))
+                _original_stdout.buffer.write(b'\n')
+                _original_stdout.buffer.flush()
+            else:
+                print(output)
             return
 
         client = OpenAI(api_key=OPENAI_KEY)
 
-        # משיכת עמודים פנויים מה-API (רק פנויים)
+        # משיכת נתונים
         available_pages = fetch_available_pages()
         
-        # אם אין עמודים פנויים, available_pages יהיה רשימה ריקה
-        # זה בסדר - ה-AI יתן המלצות כלליות
+        # בניית system message
+        system_message = build_system_message(available_pages)
 
-        # בניית prompt עם הפרופיל (אם קיים)
-        system_message, user_message = build_prompt(
-            user_query,
-            available_pages,
-            issue_info=None,
-            user_profile=user_profile
-        )
+        # בניית רשימת ההודעות
+        messages = [{"role": "system", "content": system_message}]
+        
+        # הוספת פרופיל המפרסם כהודעת מערכת נוספת
+        if user_profile:
+            profile_info = "מידע על המפרסם:\n"
+            if user_profile.get('business_name'):
+                profile_info += f"עסק: {user_profile['business_name']}\n"
+            if user_profile.get('business_type') or user_profile.get('industry'):
+                profile_info += f"תחום: {user_profile.get('business_type') or user_profile.get('industry')}\n"
+            if user_profile.get('name'):
+                profile_info += f"שם: {user_profile['name']}\n"
+            
+            messages.append({"role": "system", "content": profile_info})
+
+        # הוספת היסטוריית השיחה
+        for msg in conversation_history:
+            role = "user" if msg.get("isUser") else "assistant"
+            content = sanitize_text(msg.get("text", ""))
+            if content:
+                messages.append({"role": role, "content": content})
+
+        # הוספת ההודעה הנוכחית
+        messages.append({"role": "user", "content": user_query})
 
         # קריאה ל-OpenAI
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": user_message}
-            ],
+            messages=messages,
             temperature=0.7,
-            max_tokens=450
+            max_tokens=400
         )
 
         reply = sanitize_text(response.choices[0].message.content.strip())
 
-        # הדפסה בפורמט JSON
-        print(json.dumps({"reply": reply}, ensure_ascii=False, indent=2))
+        # זיהוי פעולות
+        actions = []
+        reply_lower = reply.lower()
+        
+        if any(word in reply for word in ["תשלום", "לשלם", "להזמין", "לסגור"]):
+            actions.append({"label": "לתשלום", "url": "/payment"})
+        
+        if any(word in reply for word in ["צוות", "לדבר עם", "אעביר"]):
+            actions.append({"label": "דברי עם הצוות", "url": "/contact"})
+        
+        if any(word in reply for word in ["גרפיקאית", "עיצוב", "מודעה מעוצבת"]):
+            actions.append({"label": "שירותי עיצוב", "url": "/graphics"})
+
+        result = {"reply": reply}
+        if actions:
+            result["actions"] = actions
+
+        # הבטחת encoding נכון לפלט
+        output = json.dumps(result, ensure_ascii=False)
+        if sys.platform == 'win32':
+            _original_stdout.buffer.write(output.encode('utf-8'))
+            _original_stdout.buffer.write(b'\n')
+            _original_stdout.buffer.flush()
+        else:
+            print(output)
 
     except Exception as e:
-        print(json.dumps({"reply": f"שגיאה: {sanitize_text(str(e))}"}, ensure_ascii=False))
+        output = json.dumps({
+            "reply": "משהו השתבש 😕 נסי שוב או פני לצוות שלנו."
+        }, ensure_ascii=False)
+        if sys.platform == 'win32':
+            _original_stdout.buffer.write(output.encode('utf-8'))
+            _original_stdout.buffer.write(b'\n')
+            _original_stdout.buffer.flush()
+        else:
+            print(output)
 
 
 if __name__ == "__main__":

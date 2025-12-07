@@ -1,73 +1,51 @@
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { createGlobalStyle } from "styled-components";
-import hasederaTheme, { GlobalStyles } from "./styles/HasederaTheme";
-import AnalyticsTable from "./Components/AnalyticsTable";
-import AdvertisersList from "./Components/AdvertisersList";
-import IssuesList from "./Components/IssuesList";
-import AdvertiserNav from "./Components/AdvertiserNav"; 
-import PlacementBook from "./Components/PlacementBook";
-import FlipCanvasViewer from "./Components/FlipCanvasViewer";
-import FlipIssue from "./Components/FlipIssue";
+import { GlobalStyles } from "./styles/HasederaTheme";
+import { AuthProvider } from "./contexts/AuthContext";
+import { readerRoutes } from "./routes/readerRoutes";
+import { advertiserRoutes } from "./routes/advertiserRoutes";
+import { adminRoutes } from "./routes/adminRoutes";
 
 // 🎨 הגדרת סטיילים גלובליים
 const GlobalStyleComponent = createGlobalStyle`
   ${GlobalStyles}
 `;
 
-// 📄 עמוד תשלום זמני
-const PaymentPage = () => (
-  <div style={{
-    padding: 40, 
-    textAlign: 'center',
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'column',
-    gap: '1rem'
-  }}>
-    <h1 style={{ 
-      fontSize: hasederaTheme.typography.fontSize['3xl'],
-      color: hasederaTheme.colors.text.primary,
-      marginBottom: '1rem'
-    }}>
-      עמוד תשלום
-    </h1>
-    <p style={{
-      fontSize: hasederaTheme.typography.fontSize.lg,
-      color: hasederaTheme.colors.text.secondary
-    }}>
-      בקרוב...
-    </p>
-  </div>
-);
-
-// ✨ קומפוננט Wrapper לצפייה בגיליון
-function IssueViewer() {
-  const { state } = useLocation();
-  const navigate = useNavigate();
+// 🎯 קומפוננט פנימי שמטען את כל ה-routes
+// ההגנות (ProtectedRoute, AdminProtectedRoute) מטפלות בהרשאות
+function AppRoutes() {
+  // יצירת מפה של routes לפי path כדי למנוע כפילויות
+  // React Router יבחר את ה-route הראשון שהוא מוצא, אז נשמור את הסדר הנכון
+  const routesMap = new Map();
   
-  console.log("📖 IssueViewer - received state:", state);
+  // נטען את ה-routes בסדר הזה: reader -> advertiser -> admin
+  // כך routes של admin יגברו על routes של advertiser אם יש כפילויות
+  const allRoutesInOrder = [
+    ...readerRoutes,
+    ...advertiserRoutes,
+    ...adminRoutes,
+  ];
   
-  const handleClose = () => {
-    navigate("/issues");
-  };
+  // נשמור רק את ה-route האחרון לכל path (כך admin routes יגברו)
+  allRoutesInOrder.forEach(route => {
+    routesMap.set(route.path, route);
+  });
   
-  // אם אין state, נחזיר למסך הגליונות
-  if (!state) {
-    handleClose();
-    return null;
-  }
+  const uniqueRoutes = Array.from(routesMap.values());
   
-  // יצירת אובייקט issue בפורמט שהקומפוננטה מצפה לו
-  const issue = {
-    pdf_url: state.pdf_url || state.fileUrl,
-    title: state.title,
-    issue_id: state.issue_id,
-    issueDate: state.issueDate
-  };
+  console.log(`🚀 Loaded ${uniqueRoutes.length} unique routes (${readerRoutes.length} reader + ${advertiserRoutes.length} advertiser + ${adminRoutes.length} admin, removed ${allRoutesInOrder.length - uniqueRoutes.length} duplicates)`);
   
-  return <FlipCanvasViewer issue={issue} onClose={handleClose} />;
+  return (
+    <Routes>
+      {uniqueRoutes.map((route, index) => (
+        <Route 
+          key={`route-${index}-${route.path}`} 
+          path={route.path} 
+          element={route.element} 
+        />
+      ))}
+    </Routes>
+  );
 }
 
 // 🎯 App - קומפוננט ראשי
@@ -76,31 +54,11 @@ function App() {
     <>
       {/* 🎨 סטיילים גלובליים */}
       <GlobalStyleComponent />
-      
-      <BrowserRouter>
-        <Routes>
-          {/* 🏠 דף הבית - ניווט מפרסמים */}
-          <Route path="/" element={<AdvertiserNav />} />
-          
-          {/* 📖 גליונות */}
-          <Route path="/issues" element={<IssuesList />} />
-          <Route path="/issues/:id" element={<IssueViewer />} />
-          
-          {/* 📊 אנליטיקה */}
-          <Route path="/analytics" element={<AnalyticsTable />} />
-          
-          {/* 👥 רשימת מפרסמים */}
-          <Route path="/advertisers" element={<AdvertisersList />} />
-          
-          {/* 🎨 מפרסם - ניהול */}
-          <Route path="/advertiser/placement" element={<PlacementBook />} />
-          <Route path="/advertiser/payment" element={<PaymentPage />} />
-          
-          {/* 📱 Viewers */}
-          <Route path="/viewer" element={<FlipCanvasViewer />} />
-          <Route path="/viewer/:id" element={<FlipIssue />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
     </>
   );
 }

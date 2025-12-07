@@ -1,0 +1,10 @@
+[build]
+  base = "hasdera-frontend"
+  command = "npm run build"
+  publish = "hasdera-frontend/dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+

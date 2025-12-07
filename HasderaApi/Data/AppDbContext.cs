@@ -65,6 +65,9 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<TestTable> TestTables { get; set; }
 
+    public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         // מחרוזת החיבור תיקרא מקובץ התצורה
@@ -93,13 +96,15 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Status).HasMaxLength(50).HasColumnName("status");
             entity.Property(e => e.OrderDate).HasColumnName("order_date");
 
-            entity.HasOne(d => d.Advertiser).WithMany()
+            entity.HasOne(d => d.Advertiser).WithMany(p => p.Adorders)
                 .HasForeignKey(d => d.AdvertiserId)
-                .HasConstraintName("fk_adorder_advertiser");
+                .HasConstraintName("fk_adorder_advertiser")
+                .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(d => d.Package).WithMany()
+            entity.HasOne(d => d.Package).WithMany(p => p.Adorders)
                 .HasForeignKey(d => d.PackageId)
-                .HasConstraintName("fk_adorder_package");
+                .HasConstraintName("fk_adorder_package")
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // AdPlacement
@@ -114,13 +119,15 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.EndDate).HasColumnName("end_date");
 
-            entity.HasOne(d => d.Order).WithMany()
+            entity.HasOne(d => d.Order).WithMany(p => p.Adplacements)
                 .HasForeignKey(d => d.OrderId)
-                .HasConstraintName("fk_adplacement_adorder");
+                .HasConstraintName("fk_adplacement_adorder")
+                .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(d => d.Slot).WithMany()
+            entity.HasOne(d => d.Slot).WithMany(p => p.Adplacements)
                 .HasForeignKey(d => d.SlotId)
-                .HasConstraintName("fk_adplacement_slot");
+                .HasConstraintName("fk_adplacement_slot")
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Creative - הסרת FileType שלא קיים
@@ -134,9 +141,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.FileUrl).HasColumnName("file_url");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
-            entity.HasOne(d => d.Order).WithMany()
+            entity.HasOne(d => d.Order).WithMany(p => p.Creatives)
                 .HasForeignKey(d => d.OrderId)
-                .HasConstraintName("fk_creative_adorder");
+                .HasConstraintName("fk_creative_adorder")
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Slot
@@ -165,9 +173,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Phone).HasMaxLength(20).HasColumnName("phone");
             entity.Property(e => e.IsPrimary).HasColumnName("is_primary");
 
-            entity.HasOne(d => d.Advertiser).WithMany()
+            entity.HasOne(d => d.Advertiser).WithMany(p => p.Advertisercontacts)
                 .HasForeignKey(d => d.AdvertiserId)
-                .HasConstraintName("fk_contact_advertiser");
+                .HasConstraintName("fk_contact_advertiser")
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // AdEvent
@@ -181,9 +190,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.EventType).HasMaxLength(50).HasColumnName("event_type");
             entity.Property(e => e.EventTime).HasColumnName("event_time");
 
-            entity.HasOne(d => d.Adplacement).WithMany()
+            entity.HasOne(d => d.Adplacement).WithMany(p => p.Adevents)
                 .HasForeignKey(d => d.AdplacementId)
-                .HasConstraintName("fk_adevent_adplacement");
+                .HasConstraintName("fk_adevent_adplacement")
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Ad>(entity =>
@@ -441,10 +451,18 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("issues");
 
-            entity.Property(e => e.IssueId).HasColumnName("issue_id");
+            entity.Property(e => e.IssueId)
+                .HasColumnName("issue_id")
+                .ValueGeneratedOnAdd(); // PostgreSQL SERIAL/IDENTITY - EF Core will handle RETURNING automatically
+            
             entity.Property(e => e.FileUrl)
                 .HasMaxLength(500)
                 .HasColumnName("file_url");
+            
+            entity.Property(e => e.PdfUrl)
+                .HasMaxLength(1000)
+                .HasColumnName("pdf_url");
+            
             entity.Property(e => e.IssueDate).HasColumnName("issue_date");
             entity.Property(e => e.Summary).HasColumnName("summary");
             entity.Property(e => e.Title)
@@ -627,6 +645,44 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Name).HasColumnName("name");
+        });
+
+        // User
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("users_pkey");
+            entity.ToTable("users");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.FullName).HasMaxLength(255).HasColumnName("full_name");
+            entity.Property(e => e.Email).HasMaxLength(255).HasColumnName("email");
+            entity.Property(e => e.PasswordHash).HasMaxLength(255).HasColumnName("password_hash");
+            entity.Property(e => e.Role).HasMaxLength(50).HasColumnName("role");
+            entity.Property(e => e.RefreshToken).HasMaxLength(255).HasColumnName("refresh_token");
+            entity.Property(e => e.GoogleId).HasMaxLength(255).HasColumnName("google_id").IsRequired(false);
+            entity.Property(e => e.AdvertiserId).HasColumnName("advertiser_id");
+
+            entity.HasOne(d => d.Advertiser)
+                  .WithMany()
+                  .HasForeignKey(d => d.AdvertiserId)
+                  .HasConstraintName("fk_users_advertiser");
+        });
+
+        // PasswordResetToken
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("password_reset_tokens_pkey");
+            entity.ToTable("password_reset_tokens");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.Token).HasMaxLength(255).HasColumnName("token");
+            entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
+
+            entity.HasOne(d => d.User)
+                  .WithMany()
+                  .HasForeignKey(d => d.UserId)
+                  .HasConstraintName("fk_password_reset_tokens_user");
         });
 
         OnModelCreatingPartial(modelBuilder);

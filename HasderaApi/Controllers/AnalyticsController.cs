@@ -2,6 +2,9 @@ using HasderaApi.Data;
 using HasderaApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
+using System.Text.Json;
+using System;
 
 namespace HasderaApi.Controllers
 {
@@ -23,6 +26,44 @@ namespace HasderaApi.Controllers
             return await _context.Analytics.ToListAsync();
         }
 
+        // === GET: /api/analytics/advertiser/{advertiserId} ===
+        [HttpGet("advertiser/{advertiserId}")]
+        public async Task<IActionResult> GetAdvertiserAnalytics(int advertiserId)
+        {
+            try
+            {
+                // קריאה לשירות Python
+                using var httpClient = new HttpClient();
+                var pythonServiceUrl = Environment.GetEnvironmentVariable("PYTHON_ANALYTICS_SERVICE_URL") ?? "http://localhost:5001";
+                
+                var response = await httpClient.GetAsync($"{pythonServiceUrl}/analytics/advertiser/{advertiserId}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Ok(JsonSerializer.Deserialize<object>(content));
+                }
+                
+                // אם השירות Python לא זמין, נחזיר מהמסד נתונים
+                var analytics = await _context.Analytics
+                    .Where(a => a.AdId != null && _context.Ads
+           .Any(ad => ad.AdId == a.AdId && ad.AdvertiserId == advertiserId))
+                    .ToListAsync();
+                
+                return Ok(analytics);
+            }
+            catch (Exception)
+            {
+                // אם יש שגיאה, נחזיר מהמסד נתונים
+                var analytics = await _context.Analytics
+                    .Where(a => a.AdId != null && _context.Ads
+                        .Any(ad => ad.AdId == a.AdId && ad.AdvertiserId == advertiserId))
+                    .ToListAsync();
+                
+                return Ok(analytics);
+            }
+        }
+
         // === GET: /api/analytics/{id} ===
         [HttpGet("{id}")]
         public async Task<ActionResult<Analytics>> GetAnalyticsById(int id)
@@ -31,6 +72,17 @@ namespace HasderaApi.Controllers
 
             if (analytics == null)
                 return NotFound();
+
+            return analytics;
+        }
+
+        // === GET: /api/analytics?issue_id={issueId} ===
+        [HttpGet("by-issue")]
+        public async Task<ActionResult<IEnumerable<Analytics>>> GetAnalyticsByIssueId([FromQuery] int issue_id)
+        {
+            var analytics = await _context.Analytics
+                .Where(a => a.IssueId == issue_id)
+                .ToListAsync();
 
             return analytics;
         }

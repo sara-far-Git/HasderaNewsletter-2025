@@ -4,12 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "start:backend": "cd ../HasderaApi && dotnet run",
-    "start:frontend": "vite",
-    "start:all": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
-  },
+  "dev": "vite",
+  "build": "vite build",
+  "preview": "vite preview",
+  "start:backend": "cd ../HasderaApi && dotnet run",
+  "start:frontend": "vite",
+  "start:all": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
+},
+
   "dependencies": {
+    "@react-oauth/google": "^0.12.2",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.4.0",
     "axios": "^1.11.0",

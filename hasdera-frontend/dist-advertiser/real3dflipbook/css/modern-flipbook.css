@@ -1,0 +1,484 @@
+/* Modern FlipHTML5-Style Flipbook CSS */
+
+:root {
+    --flipbook-primary: #2c3e50;
+    --flipbook-accent: #3498db;
+    --flipbook-hover: #2980b9;
+    --flipbook-bg: #ffffff;
+    --flipbook-overlay-bg: rgba(0, 0, 0, 0.85);
+    --flipbook-toolbar-bg: rgba(44, 62, 80, 0.95);
+    --flipbook-toolbar-height: 60px;
+    --flipbook-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    --flipbook-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Main Container */
+.flipbook-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--flipbook-overlay-bg);
+    z-index: 2147483646 !important;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    backdrop-filter: blur(10px);
+}
+
+.flipbook-overlay-visible {
+    opacity: 1;
+}
+
+.flipbook-wrapper {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    box-shadow: none;
+}
+
+.flipbook-main-wrapper {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    direction: ltr !important;
+}
+
+/* Book Layer */
+.flipbook-bookLayer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    cursor: grab;
+    user-select: none;
+}
+
+.flipbook-bookLayer:active {
+    cursor: grabbing;
+}
+
+/* Modern Toolbar - Bottom */
+.flipbook-menuBottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--flipbook-toolbar-height);
+    background: var(--flipbook-toolbar-bg);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    pointer-events: auto;
+}
+
+/* Toolbar Sections */
+.flipbook-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.flipbook-menu-left {
+    justify-content: flex-start;
+}
+
+.flipbook-menu-center {
+    justify-content: center;
+}
+
+.flipbook-menu-right {
+    justify-content: flex-end;
+}
+
+/* Modern Buttons */
+.flipbook-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    fill: #ffffff;
+    cursor: pointer;
+    transition: var(--flipbook-transition);
+    border: none;
+    padding: 0;
+    position: relative;
+}
+
+.flipbook-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.flipbook-menu-btn:active {
+    transform: translateY(0);
+}
+
+.flipbook-menu-btn.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.flipbook-menu-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Navigation Arrows */
+.flipbook-left-arrow,
+.flipbook-right-arrow {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--flipbook-transition);
+    box-shadow: var(--flipbook-shadow);
+    z-index: 10;
+}
+
+.flipbook-left-arrow {
+    left: 20px;
+}
+
+.flipbook-right-arrow {
+    right: 20px;
+}
+
+.flipbook-left-arrow:hover,
+.flipbook-right-arrow:hover {
+    background: #ffffff;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+}
+
+.flipbook-left-arrow svg,
+.flipbook-right-arrow svg {
+    width: 28px;
+    height: 28px;
+    fill: var(--flipbook-primary);
+}
+
+/* Page Counter - Modern Design */
+.flipbook-currentPageHolder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+.flipbook-currentPageInput {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: none !important;
+    color: #ffffff !important;
+    text-align: center !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    font-weight: 600 !important;
+    min-width: 40px !important;
+}
+
+.flipbook-currentPageInput:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.4) !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Tooltips - Modern */
+.flipbook-has-tooltip::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--flipbook-transition);
+    pointer-events: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    z-index: 1000;
+}
+
+.flipbook-has-tooltip::after {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--flipbook-transition);
+}
+
+.flipbook-has-tooltip:hover::before,
+.flipbook-has-tooltip:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Close Button */
+.flipbook-btn-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--flipbook-transition);
+    z-index: 101;
+}
+
+.flipbook-btn-close:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: rotate(90deg);
+}
+
+.flipbook-btn-close svg {
+    width: 20px;
+    height: 20px;
+    fill: #ffffff;
+}
+
+/* Thumbnails Sidebar - Modern */
+.flipbook-thumbHolder {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    z-index: 99;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flipbook-thumbHolder.active {
+    transform: translateX(0);
+}
+
+.flipbook-thumbsWrapper {
+    padding: 20px;
+    overflow-y: auto;
+    height: calc(100% - 60px);
+}
+
+.flipbook-thumb {
+    margin: 12px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: var(--flipbook-transition);
+    cursor: pointer;
+}
+
+.flipbook-thumb:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.flipbook-thumb.flipbook-thumb-active {
+    box-shadow: 0 0 0 3px var(--flipbook-accent);
+}
+
+/* Loading Animation */
+.cssload-container {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 2147483647 !important;
+    pointer-events: none;
+}
+
+.cssload-speeding-wheel {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Fullscreen Mode */
+.flipbook-browser-fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999999 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .flipbook-menuBottom {
+        height: 56px;
+        padding: 0 12px;
+    }
+    
+    .flipbook-menu-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .flipbook-left-arrow,
+    .flipbook-right-arrow {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .flipbook-thumbHolder {
+        width: 100%;
+    }
+}
+
+/* Hide Default Scrollbars */
+.flipbook-thumbsWrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.flipbook-thumbsWrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.flipbook-thumbsWrapper::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.flipbook-thumbsWrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Page Numbers on Thumbnails */
+.flipbook-thumb-num {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Smooth Transitions */
+.flipbook-page3 {
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Modern Glass Effect for Menus */
+.flipbook-submenu {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 12px;
+    box-shadow: var(--flipbook-shadow);
+    padding: 8px;
+}
+
+/* Icon Styling */
+.flipbook-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Prevent Text Selection During Interaction */
+.flipbook-noselect {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Page Click Areas - Hidden */
+.pageClickArea {
+    position: absolute;
+    height: 100%;
+    width: 60px;
+    top: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.pageClickAreaLeft {
+    left: 0;
+}
+
+.pageClickAreaRight {
+    right: 0;
+}
+
+/* Modern Progress Bar */
+.flipbook-progress-bar {
+    position: relative;
+    width: 200px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.flipbook-progress-bar .progress-filled {
+    height: 100%;
+    background: var(--flipbook-accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* Enhanced Focus States */
+*:focus-visible {
+    outline: 2px solid var(--flipbook-accent);
+    outline-offset: 2px;
+}
+
+/* Accessibility */
+.flipbook-hidden {
+    display: none !important;
+}
+
+/* Print Styles */
+@media print {
+    .flipbook-menuBottom,
+    .flipbook-left-arrow,
+    .flipbook-right-arrow,
+    .flipbook-btn-close {
+        display: none !important;
+    }
+}

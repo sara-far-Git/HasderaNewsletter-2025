@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using HasderaApi.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace HasderaApi.Data;
+namespace HasderaApi.Models;
 
 public partial class AppDbContext : DbContext
 {
@@ -15,6 +15,8 @@ public partial class AppDbContext : DbContext
         : base(options)
     {
     }
+    public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     public virtual DbSet<AdOrder> AdOrders { get; set; }
     public virtual DbSet<AdPlacement> AdPlacements { get; set; }
     public virtual DbSet<Creative> Creatives { get; set; }

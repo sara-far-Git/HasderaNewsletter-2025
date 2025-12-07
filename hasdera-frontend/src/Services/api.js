@@ -4,16 +4,42 @@ import axiosRetry from 'axios-retry';
 
 // יצירת אינסטנס עם baseURL
 export const api = axios.create({
-  baseURL: "https://localhost:7083/api",
+  baseURL: "http://localhost:5055/api",
   headers: {
     "Content-Type": "application/json"
   },
-  // הגדרות עבור self-signed certificate
-  withCredentials: false,
-  timeout: 60000  // הגדלת הטיימאאוט ל-60 שניות
+  withCredentials: true, // נדרש עבור CORS עם credentials
+  timeout: 60000 
 });
 
-// הגדרת retry logic
+// ——— REQUEST INTERCEPTOR ———
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("hasdera_token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ——— RESPONSE INTERCEPTOR ———
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // מונע קריסה במקרה ש-response undefined
+    const status = error.response?.status;
+
+    if (status === 401) {
+      localStorage.removeItem("hasdera_token");
+      localStorage.removeItem("hasdera_user");
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// ——— Retry Logic ———
 axiosRetry(api, { 
   retries: 3,
   retryDelay: axiosRetry.exponentialDelay,

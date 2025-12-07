@@ -6,11 +6,12 @@
 import { useEffect, useState, useRef } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import hasederaTheme from '../styles/HasederaTheme';
 
-// 🎨 גופנים גלובליים
+// 🎨 גופנים גלובליים - נטען דרך index.html
 const GlobalFonts = createGlobalStyle`
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Assistant:wght@300;400;500;600&display=swap');
+  /* Fonts are loaded via <link> tag in index.html */
 `;
 
 // 🎨 Scrollbar מותאם
@@ -230,6 +231,38 @@ const LogoHero = styled.h1`
   @media (max-width: 968px) {
     font-size: 3rem;
     letter-spacing: 4px;
+  }
+`;
+
+const WelcomeMessage = styled.div`
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  font-weight: 400;
+  letter-spacing: 2px;
+  margin-bottom: 2rem;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  color: white;
+  animation: fadeInUp 0.8s ease-out;
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  span {
+    color: #10b981;
+    font-weight: 500;
+  }
+
+  @media (max-width: 968px) {
+    font-size: 1.5rem;
+    letter-spacing: 1px;
   }
 `;
 
@@ -540,10 +573,14 @@ const CtaButton = styled.button`
 
 export default function AdvertiserNav() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [navbarVisible, setNavbarVisible] = useState(false);
   const [visibleSections, setVisibleSections] = useState({});
   const [countedElements, setCountedElements] = useState(new Set());
   const sectionRefs = useRef({});
+
+  // קבלת שם המשתמש
+  const userName = user?.fullName || user?.email?.split('@')[0] || 'משתמש';
 
   // Smooth scroll handler
   const handleSmoothScroll = (e, targetId) => {
@@ -683,6 +720,9 @@ export default function AdvertiserNav() {
 
         <HeroSection $isHero>
           <HeroContent>
+            <WelcomeMessage>
+              שלום <span>{userName}</span> 👋
+            </WelcomeMessage>
             <LogoHero>השדרה</LogoHero>
             <Tagline>
               מגזין{' '}
@@ -900,7 +940,7 @@ export default function AdvertiserNav() {
           <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1.1rem', marginBottom: '2rem', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
             הצטרפי ל-100+ מפרסמות מרוצות שבחרו בשדרה
           </p>
-          <CtaButton onClick={() => navigate('/issues')}>
+          <CtaButton onClick={() => navigate('/Navbar')}>
             התחילי עכשיו
           </CtaButton>
         </CtaSection>

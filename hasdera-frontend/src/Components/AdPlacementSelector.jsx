@@ -7,58 +7,73 @@ import hasederaTheme from "../styles/HasederaTheme";
 // 🎨 Styled Components עם Theme
 const SelectorContainer = styled(Card)`
   width: 100%;
-  max-width: 1200px;
-  margin: ${hasederaTheme.spacing['2xl']} auto;
-  padding: ${hasederaTheme.spacing['2xl']};
+  max-width: 100%;
+  margin: 0;
+  padding: ${hasederaTheme.spacing.xl};
   direction: rtl;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 `;
 
 const Header = styled.div`
-  margin-bottom: ${hasederaTheme.spacing['2xl']};
+  margin-bottom: ${hasederaTheme.spacing.lg};
   text-align: center;
+  padding-bottom: ${hasederaTheme.spacing.lg};
+  border-bottom: 1px solid rgba(20, 184, 166, 0.2);
 `;
 
 const Title = styled(CardTitle)`
-  font-size: ${hasederaTheme.typography.fontSize['2xl']};
+  font-size: ${hasederaTheme.typography.fontSize.xl};
   font-weight: ${hasederaTheme.typography.fontWeight.bold};
-  color: ${hasederaTheme.colors.text.primary};
+  color: #ffffff;
   margin-bottom: ${hasederaTheme.spacing.sm};
+  
+  background: linear-gradient(135deg, #ffffff 0%, #14b8a6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 `;
 
 const Subtitle = styled.p`
-  font-size: ${hasederaTheme.typography.fontSize.base};
-  color: ${hasederaTheme.colors.text.secondary};
+  font-size: ${hasederaTheme.typography.fontSize.sm};
+  color: rgba(255, 255, 255, 0.7);
 `;
 
 const SizeSelector = styled(Flex)`
   justify-content: center;
-  margin-bottom: ${hasederaTheme.spacing['2xl']};
+  margin-bottom: ${hasederaTheme.spacing.lg};
   flex-wrap: wrap;
+  gap: ${hasederaTheme.spacing.sm};
 `;
 
 const SizeButton = styled.button`
-  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing.xl};
-  border: 2px solid ${props => props.$active ? hasederaTheme.colors.secondary.main : hasederaTheme.colors.border.light};
-  border-radius: ${hasederaTheme.borderRadius.lg};
-  background: ${props => props.$active ? hasederaTheme.colors.gradient.secondary : hasederaTheme.colors.background.card};
-  color: ${props => props.$active ? hasederaTheme.colors.text.white : hasederaTheme.colors.text.primary};
-  font-size: ${hasederaTheme.typography.fontSize.base};
+  padding: ${hasederaTheme.spacing.sm} ${hasederaTheme.spacing.md};
+  border: 2px solid ${props => props.$active ? '#14b8a6' : 'rgba(255, 255, 255, 0.2)'};
+  border-radius: ${hasederaTheme.borderRadius.md};
+  background: ${props => props.$active ? 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' : 'rgba(255, 255, 255, 0.05)'};
+  color: ${props => props.$active ? '#ffffff' : 'rgba(255, 255, 255, 0.8)'};
+  font-size: ${hasederaTheme.typography.fontSize.sm};
   font-weight: ${hasederaTheme.typography.fontWeight.semibold};
   cursor: pointer;
   transition: ${hasederaTheme.transitions.base};
-  box-shadow: ${props => props.$active ? hasederaTheme.shadows.md : 'none'};
+  box-shadow: ${props => props.$active ? '0 4px 12px rgba(20, 184, 166, 0.3)' : 'none'};
 
   &:hover {
-    border-color: ${hasederaTheme.colors.secondary.main};
+    border-color: #14b8a6;
+    background: ${props => props.$active ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)' : 'rgba(20, 184, 166, 0.1)'};
     transform: translateY(-2px);
-    box-shadow: ${hasederaTheme.shadows.md};
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
   }
 `;
 
 const PageContainer = styled.div`
   position: relative;
   width: 100%;
-  max-width: 800px;
+  max-width: 100%;
   margin: 0 auto;
   aspect-ratio: 1 / 1.414; /* יחס A4 */
   background: ${hasederaTheme.colors.background.card};
@@ -66,6 +81,7 @@ const PageContainer = styled.div`
   border-radius: ${hasederaTheme.borderRadius.md};
   overflow: hidden;
   transition: ${hasederaTheme.transitions.base};
+  max-height: 500px;
 `;
 
 const PageGrid = styled.div`
@@ -241,41 +257,97 @@ const QuarterLabel = styled.div`
 `;
 
 const SelectionInfo = styled.div`
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-radius: 0.75rem;
-  border: 2px solid #bae6fd;
+  margin-top: ${hasederaTheme.spacing.lg};
+  padding: ${hasederaTheme.spacing.lg};
+  background: rgba(20, 184, 166, 0.15);
+  border-radius: ${hasederaTheme.borderRadius.lg};
+  border: 2px solid rgba(20, 184, 166, 0.3);
   text-align: center;
 `;
 
 const SelectionText = styled.div`
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: #0369a1;
+  color: #14b8a6;
   margin-bottom: 0.5rem;
 `;
 
 const SelectionDetails = styled.div`
-  font-size: 0.95rem;
-  color: #075985;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
 `;
 
 const ActionButtons = styled(Flex)`
   justify-content: center;
-  margin-top: ${hasederaTheme.spacing.xl};
+  margin-top: ${hasederaTheme.spacing.lg};
+  gap: ${hasederaTheme.spacing.md};
+  flex-direction: column;
+  padding-top: ${hasederaTheme.spacing.lg};
+  border-top: 1px solid rgba(20, 184, 166, 0.2);
 `;
 
-const CancelButton = styled(SecondaryButton)`
+const CancelButton = styled.button`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: ${hasederaTheme.spacing.sm};
+  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing.xl};
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: ${hasederaTheme.borderRadius.md};
+  font-weight: ${hasederaTheme.typography.fontWeight.semibold};
+  cursor: pointer;
+  transition: ${hasederaTheme.transitions.base};
+  width: 100%;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    display: block;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+  }
 `;
 
-const ConfirmButton = styled(PrimaryButton)`
+const ConfirmButton = styled.button`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: ${hasederaTheme.spacing.sm};
+  padding: ${hasederaTheme.spacing.md} ${hasederaTheme.spacing.xl};
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: ${hasederaTheme.borderRadius.md};
+  font-weight: ${hasederaTheme.typography.fontWeight.semibold};
+  cursor: pointer;
+  transition: ${hasederaTheme.transitions.base};
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+
+  svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    display: block;
+  }
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(20, 184, 166, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 // 🎯 Main Component
@@ -492,4 +564,3 @@ export default function AdPlacementSelector({ onSelect, onCancel }) {
     </SelectorContainer>
   );
 }
-

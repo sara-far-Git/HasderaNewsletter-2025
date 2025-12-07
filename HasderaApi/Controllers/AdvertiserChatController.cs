@@ -22,29 +22,20 @@ namespace HasderaApi.Controllers
         {
             _logger = logger;
             
-            // נתיב לסקריפט Python
-            // ContentRootPath הוא תיקיית HasderaApi, אז צריך לעלות רמה אחת למעלה
             var projectRoot = Path.GetFullPath(Path.Combine(env.ContentRootPath, ".."));
             _pythonScriptPath = Path.Combine(projectRoot, "analytics-python", "scripts", "advertiser_chat_agent.py");
             _pythonWorkingDirectory = Path.Combine(projectRoot, "analytics-python");
             
-            // בדיקה שהתיקייה קיימת
             if (!System.IO.Directory.Exists(_pythonWorkingDirectory))
             {
                 _logger.LogWarning("Python working directory not found: {Dir}, trying alternative path", _pythonWorkingDirectory);
-                // ניסיון חלופי - אולי ContentRootPath כבר בתיקיית הפרויקט
                 projectRoot = env.ContentRootPath;
                 _pythonScriptPath = Path.Combine(projectRoot, "analytics-python", "scripts", "advertiser_chat_agent.py");
                 _pythonWorkingDirectory = Path.Combine(projectRoot, "analytics-python");
             }
             
-            // לוגים לבדיקה
-            _logger.LogInformation("ContentRootPath: {Path}", env.ContentRootPath);
-            _logger.LogInformation("Project root: {Path}", projectRoot);
             _logger.LogInformation("Python script path: {Path}", _pythonScriptPath);
-            _logger.LogInformation("Python working directory: {Dir}", _pythonWorkingDirectory);
             _logger.LogInformation("Script exists: {Exists}", System.IO.File.Exists(_pythonScriptPath));
-            _logger.LogInformation("Working directory exists: {Exists}", System.IO.Directory.Exists(_pythonWorkingDirectory));
         }
 
         [HttpPost]
@@ -57,75 +48,33 @@ namespace HasderaApi.Controllers
 
             try
             {
-                // בדיקה שהתיקייה קיימת
                 if (!System.IO.Directory.Exists(_pythonWorkingDirectory))
                 {
                     _logger.LogError("Python working directory not found: {Dir}", _pythonWorkingDirectory);
-                    return StatusCode(500, new { error = $"Python working directory not found: {_pythonWorkingDirectory}" });
+                    return StatusCode(500, new { error = $"Python working directory not found" });
                 }
                 
-                // בדיקה שהסקריפט קיים
                 if (!System.IO.File.Exists(_pythonScriptPath))
                 {
                     _logger.LogError("Python script not found at: {Path}", _pythonScriptPath);
-                    return StatusCode(500, new { error = $"Python script not found at: {_pythonScriptPath}" });
+                    return StatusCode(500, new { error = $"Python script not found" });
                 }
 
-                // הפעלת סקריפט Python
-                // ניסיון למצוא את Python - קודם python, אחר כך python3
-                // ב-Windows, בדרך כלל זה "python"
-                string pythonCommand = "python";
+                // מציאת Python
+                string pythonCommand = FindPythonCommand();
                 
-                // בדיקה אם python קיים
-                try
-                {
-                    var testProcess = new ProcessStartInfo
-                    {
-                        FileName = "python",
-                        Arguments = "--version",
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true
-                    };
-                    using (var test = Process.Start(testProcess))
-                    {
-                        if (test == null)
-                        {
-                            pythonCommand = "python3";
-                        }
-                        else
-                        {
-                            test.WaitForExit();
-                            if (test.ExitCode != 0)
-                            {
-                                pythonCommand = "python3";
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                    pythonCommand = "python3";
-                }
-                
-                _logger.LogInformation("Detected Python command: {Command}", pythonCommand);
-
-                // בדיקה אם יש venv - אם כן, נשתמש ב-Python מה-venv
+                // בדיקת venv
                 var venvPythonPath = Path.Combine(_pythonWorkingDirectory, "venv", "Scripts", "python.exe");
                 if (System.IO.File.Exists(venvPythonPath))
                 {
                     pythonCommand = venvPythonPath;
-                    _logger.LogInformation("Using venv Python: {Path}", pythonCommand);
                 }
                 else
                 {
-                    // בדיקה אם יש venv ב-Linux/Mac
                     venvPythonPath = Path.Combine(_pythonWorkingDirectory, "venv", "bin", "python");
                     if (System.IO.File.Exists(venvPythonPath))
                     {
                         pythonCommand = venvPythonPath;
-                        _logger.LogInformation("Using venv Python: {Path}", pythonCommand);
                     }
                 }
 
@@ -142,12 +91,8 @@ namespace HasderaApi.Controllers
                     StandardOutputEncoding = Encoding.UTF8,
                     StandardErrorEncoding = Encoding.UTF8
                 };
-                
-                _logger.LogInformation("Using Python command: {Command}", pythonCommand);
 
-                _logger.LogInformation("Starting Python process with query: {Query}", request.Query);
-                _logger.LogInformation("Python script path: {Path}", _pythonScriptPath);
-                _logger.LogInformation("Working directory: {Dir}", _pythonWorkingDirectory);
+                _logger.LogInformation("Starting Python with query: {Query}", request.Query);
                 
                 using var process = new Process { StartInfo = processInfo };
                 
@@ -158,44 +103,54 @@ namespace HasderaApi.Controllers
                 catch (Exception startEx)
                 {
                     _logger.LogError(startEx, "Failed to start Python process");
-                    return StatusCode(500, new { 
-                        error = $"Failed to start Python process: {startEx.Message}",
-                        pythonCommand = pythonCommand,
-                        scriptPath = _pythonScriptPath,
-                        workingDirectory = _pythonWorkingDirectory
-                    });
+                    return StatusCode(500, new { error = $"Failed to start Python: {startEx.Message}" });
                 }
 
-                // בניית JSON לשליחה ל-Python (עם query ו-user_profile אם יש)
+                // בניית JSON לשליחה ל-Python
                 var pythonInput = new Dictionary<string, object>
                 {
                     ["query"] = request.Query
                 };
                 
+                // הוספת פרופיל משתמש
                 if (request.UserProfile != null)
                 {
                     var profileDict = new Dictionary<string, object>();
                     
                     if (!string.IsNullOrEmpty(request.UserProfile.BusinessType))
-                        profileDict["businessType"] = request.UserProfile.BusinessType;
+                        profileDict["business_type"] = request.UserProfile.BusinessType;
                     if (!string.IsNullOrEmpty(request.UserProfile.BusinessName))
-                        profileDict["businessName"] = request.UserProfile.BusinessName;
+                        profileDict["business_name"] = request.UserProfile.BusinessName;
                     if (request.UserProfile.PreferredSizes != null && request.UserProfile.PreferredSizes.Count > 0)
-                        profileDict["preferredSizes"] = request.UserProfile.PreferredSizes;
+                        profileDict["preferred_sizes"] = request.UserProfile.PreferredSizes;
                     if (!string.IsNullOrEmpty(request.UserProfile.BudgetLevel))
-                        profileDict["budgetLevel"] = request.UserProfile.BudgetLevel;
+                        profileDict["budget"] = request.UserProfile.BudgetLevel;
                     if (request.UserProfile.PastPlacements != null && request.UserProfile.PastPlacements.Count > 0)
-                        profileDict["pastPlacements"] = request.UserProfile.PastPlacements;
+                        profileDict["previous_ads"] = request.UserProfile.PastPlacements;
                     if (!string.IsNullOrEmpty(request.UserProfile.TargetAudience))
-                        profileDict["targetAudience"] = request.UserProfile.TargetAudience;
-                    if (!string.IsNullOrEmpty(request.UserProfile.StylePreference))
-                        profileDict["stylePreference"] = request.UserProfile.StylePreference;
+                        profileDict["target_audience"] = request.UserProfile.TargetAudience;
                     if (!string.IsNullOrEmpty(request.UserProfile.Goals))
                         profileDict["goals"] = request.UserProfile.Goals;
-                    if (!string.IsNullOrEmpty(request.UserProfile.SpecialRequests))
-                        profileDict["specialRequests"] = request.UserProfile.SpecialRequests;
+                    if (!string.IsNullOrEmpty(request.UserProfile.Name))
+                        profileDict["name"] = request.UserProfile.Name;
                     
                     pythonInput["user_profile"] = profileDict;
+                }
+                
+                // 🔥 הוספת היסטוריית שיחה!
+                if (request.History != null && request.History.Count > 0)
+                {
+                    var historyList = new List<Dictionary<string, object>>();
+                    foreach (var msg in request.History)
+                    {
+                        historyList.Add(new Dictionary<string, object>
+                        {
+                            ["text"] = msg.Text ?? "",
+                            ["isUser"] = msg.IsUser
+                        });
+                    }
+                    pythonInput["history"] = historyList;
+                    _logger.LogInformation("Sending {Count} messages in history", request.History.Count);
                 }
                 
                 var pythonInputJson = JsonSerializer.Serialize(pythonInput, new JsonSerializerOptions
@@ -203,54 +158,41 @@ namespace HasderaApi.Controllers
                     Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                 });
                 
-                // שליחת ה-JSON ל-Python
+                _logger.LogDebug("Python input: {Input}", pythonInputJson);
+                
                 await process.StandardInput.WriteLineAsync(pythonInputJson);
                 process.StandardInput.Close();
 
-                // קריאת פלט
                 var output = await process.StandardOutput.ReadToEndAsync();
                 var error = await process.StandardError.ReadToEndAsync();
 
                 await process.WaitForExitAsync();
                 
-                _logger.LogInformation("Python process exited with code: {Code}", process.ExitCode);
-                _logger.LogInformation("Python output length: {Length}", output?.Length ?? 0);
-                _logger.LogInformation("Python error length: {Length}", error?.Length ?? 0);
+                _logger.LogInformation("Python exited with code: {Code}", process.ExitCode);
+                
                 if (!string.IsNullOrWhiteSpace(error))
                 {
                     _logger.LogWarning("Python stderr: {Error}", error);
                 }
 
-                // בדיקת שגיאות
                 if (process.ExitCode != 0)
                 {
-                    // בדיקה אם זו שגיאה אמיתית או רק DEBUG logs
                     bool hasRealError = !string.IsNullOrWhiteSpace(error) && 
                                        (error.Contains("Error") || 
                                         error.Contains("Traceback") || 
-                                        error.Contains("Exception") ||
-                                        (!error.Trim().StartsWith("DEBUG") && error.Length > 10));
+                                        error.Contains("Exception"));
 
                     if (hasRealError)
                     {
-                        _logger.LogError("Python script error (exit code {Code}): {Error}", process.ExitCode, error);
-                        return BadRequest(new { error = $"Python script error: {error.Trim()}" });
-                    }
-                    else if (!string.IsNullOrWhiteSpace(error))
-                    {
-                        _logger.LogWarning("Python script warning (exit code {Code}): {Error}", process.ExitCode, error);
+                        _logger.LogError("Python error: {Error}", error);
+                        return BadRequest(new { error = $"Python error: {error.Trim()}" });
                     }
                 }
 
-                // ניסיון לפרסר JSON
                 if (string.IsNullOrWhiteSpace(output))
                 {
-                    _logger.LogError("No output from Python script. Exit code: {Code}, Error: {Error}", process.ExitCode, error);
-                    if (!string.IsNullOrWhiteSpace(error))
-                    {
-                        return BadRequest(new { error = $"No output from Python script. Error: {error.Trim()}" });
-                    }
-                    return BadRequest(new { error = "No output from Python script. Please check the Python script and ensure it outputs JSON." });
+                    _logger.LogError("No output from Python");
+                    return BadRequest(new { error = "No output from Python script" });
                 }
 
                 try
@@ -265,30 +207,57 @@ namespace HasderaApi.Controllers
                     
                     if (chatResponse == null || string.IsNullOrWhiteSpace(chatResponse.Reply))
                     {
-                        return BadRequest(new { error = "Invalid response from Python script" });
+                        return BadRequest(new { error = "Invalid response from Python" });
                     }
 
                     return Ok(chatResponse);
                 }
                 catch (JsonException ex)
                 {
-                    _logger.LogError(ex, "Failed to parse Python output as JSON");
-                    return BadRequest(new { error = $"Failed to parse response: {output}" });
+                    _logger.LogError(ex, "Failed to parse Python output: {Output}", output);
+                    return BadRequest(new { error = $"Failed to parse response" });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error executing Python script: {Message}\nStackTrace: {StackTrace}", ex.Message, ex.StackTrace);
-                return StatusCode(500, new { 
-                    error = $"Internal server error: {ex.Message}",
-                    details = ex.StackTrace,
-                    pythonScriptPath = _pythonScriptPath,
-                    pythonWorkingDirectory = _pythonWorkingDirectory
-                });
+                _logger.LogError(ex, "Error: {Message}", ex.Message);
+                return StatusCode(500, new { error = $"Internal error: {ex.Message}" });
             }
+        }
+        
+        private string FindPythonCommand()
+        {
+            string pythonCommand = "python";
+            try
+            {
+                var testProcess = new ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = "--version",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+                using (var test = Process.Start(testProcess))
+                {
+                    if (test == null || test.ExitCode != 0)
+                    {
+                        pythonCommand = "python3";
+                    }
+                    test?.WaitForExit();
+                }
+            }
+            catch
+            {
+                pythonCommand = "python3";
+            }
+            return pythonCommand;
         }
     }
 
+    // === Models ===
+    
     public class ChatRequest
     {
         [JsonPropertyName("query")]
@@ -296,6 +265,18 @@ namespace HasderaApi.Controllers
         
         [JsonPropertyName("user_profile")]
         public UserProfile? UserProfile { get; set; }
+        
+        [JsonPropertyName("history")]
+        public List<ChatMessage>? History { get; set; }
+    }
+    
+    public class ChatMessage
+    {
+        [JsonPropertyName("text")]
+        public string? Text { get; set; }
+        
+        [JsonPropertyName("isUser")]
+        public bool IsUser { get; set; }
     }
 
     public class UserProfile
@@ -305,6 +286,9 @@ namespace HasderaApi.Controllers
 
         [JsonPropertyName("businessName")]
         public string? BusinessName { get; set; }
+        
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
 
         [JsonPropertyName("preferredSizes")]
         public List<string>? PreferredSizes { get; set; }
@@ -332,6 +316,17 @@ namespace HasderaApi.Controllers
     {
         [JsonPropertyName("reply")]
         public string Reply { get; set; } = "";
+        
+        [JsonPropertyName("actions")]
+        public List<ChatAction>? Actions { get; set; }
+    }
+    
+    public class ChatAction
+    {
+        [JsonPropertyName("label")]
+        public string? Label { get; set; }
+        
+        [JsonPropertyName("url")]
+        public string? Url { get; set; }
     }
 }
-
