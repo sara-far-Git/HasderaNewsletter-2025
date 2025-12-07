@@ -1,10 +1,10 @@
 import { useLocation, useNavigate, Navigate } from "react-router-dom";
-import FlipCanvasViewer from "../Components/FlipCanvasViewer";
-import FlipIssue from "../Components/FlipIssue";
-import IssuesList from "../Components/IssuesList";
-import ProtectedRoute from "../Components/ProtectedRoute";
-import PublicRoute from "../Components/PublicRoute";
-import LoginPage from "../Components/LoginPage";
+import FlipCanvasViewer from "../components/FlipCanvasViewer";
+import FlipIssue from "../components/FlipIssue";
+import IssuesList from "../components/IssuesList";
+import ProtectedRoute from "../components/ProtectedRoute";
+import PublicRoute from "../components/PublicRoute";
+import LoginPage from "../components/LoginPage";
 import { useAuth } from "../contexts/AuthContext";
 
 // ✨ קומפוננט Wrapper לצפייה בגיליון
