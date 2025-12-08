@@ -5,30 +5,39 @@ import axiosRetry from 'axios-retry';
 // יצירת אינסטנס עם baseURL
 // שימוש ב-VITE_API_URL אם קיים, אחרת localhost לפיתוח
 const getApiBaseUrl = () => {
+  console.log('🔍 getApiBaseUrl called');
+  console.log('🔍 window.location.hostname:', window.location.hostname);
+  console.log('🔍 import.meta.env.VITE_API_URL:', import.meta.env.VITE_API_URL);
+  console.log('🔍 import.meta.env.DEV:', import.meta.env.DEV);
+  console.log('🔍 import.meta.env.MODE:', import.meta.env.MODE);
+  console.log('🔍 import.meta.env.PROD:', import.meta.env.PROD);
+  
   // בדיקה אם אנחנו ב-production (לא localhost)
   const isProduction = window.location.hostname !== 'localhost' && 
                        !window.location.hostname.includes('127.0.0.1') &&
                        !window.location.hostname.includes('192.168.');
+  
+  console.log('🔍 isProduction:', isProduction);
   
   // אם יש VITE_API_URL, נשתמש בו
   if (import.meta.env.VITE_API_URL) {
     const url = import.meta.env.VITE_API_URL;
     // וודא שיש /api בסוף אם לא קיים
     const finalUrl = url.endsWith('/api') ? url : url + '/api';
-    console.log('🌐 Using VITE_API_URL:', finalUrl);
+    console.log('✅ Using VITE_API_URL:', finalUrl);
     return finalUrl;
   }
   
   // אם אנחנו ב-production, נשתמש ב-Render API
   if (isProduction) {
     const productionUrl = "https://hasderanewsletter-2025.onrender.com/api";
-    console.log('🌐 Production mode - using Render API:', productionUrl);
+    console.log('✅ Production mode - using Render API:', productionUrl);
     console.log('⚠️ VITE_API_URL not set! Please set it in Cloudflare Pages Environment Variables');
     return productionUrl;
   }
   
   // בפיתוח מקומי, נשתמש ב-localhost
-  console.log('🌐 Development mode - using localhost:5055');
+  console.log('✅ Development mode - using localhost:5055');
   return "http://localhost:5055/api";
 };
 
