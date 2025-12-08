@@ -313,4 +313,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.Run();
+
+// הגדרת פורט מ-environment variable (ל-Render) או default
+var port = Environment.GetEnvironmentVariable("PORT") ?? "80";
+var url = $"http://0.0.0.0:{port}";
+Console.WriteLine($"🚀 Starting server on {url}");
+app.Run(url);
