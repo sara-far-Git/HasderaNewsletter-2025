@@ -41,8 +41,11 @@ const getApiBaseUrl = () => {
   return "http://localhost:5055/api";
 };
 
+const apiBaseUrl = getApiBaseUrl();
+console.log('🔍 Final API baseURL:', apiBaseUrl);
+
 export const api = axios.create({
-  baseURL: getApiBaseUrl(),
+  baseURL: apiBaseUrl,
   headers: {
     "Content-Type": "application/json"
   },
@@ -52,6 +55,9 @@ export const api = axios.create({
 
 // ——— REQUEST INTERCEPTOR ———
 api.interceptors.request.use((config) => {
+  // לוג כדי לוודא שה-baseURL נכון
+  console.log('🔍 API Request:', config.method?.toUpperCase(), config.baseURL + config.url);
+  
   const token = localStorage.getItem("hasdera_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
