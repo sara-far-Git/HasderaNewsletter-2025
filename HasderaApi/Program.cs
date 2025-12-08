@@ -67,12 +67,24 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
     }
 });
 
-// CORS - עדכון לתמוך ב-HTTPS
+// CORS - עדכון לתמוך ב-HTTPS ו-Cloudflare Pages
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "https://localhost:5173")
+        policy.SetIsOriginAllowed(origin =>
+            {
+                // Allow localhost for development
+                if (origin.StartsWith("http://localhost:") || origin.StartsWith("https://localhost:"))
+                    return true;
+                
+                // Allow Cloudflare Pages domains
+                if (origin.EndsWith(".hasdera-advertiser.pages.dev") || 
+                    origin == "https://hasdera-advertiser.pages.dev")
+                    return true;
+                
+                return false;
+            })
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // נדרש עבור HTTPS
