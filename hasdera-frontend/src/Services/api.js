@@ -3,8 +3,25 @@ import axios from "axios";
 import axiosRetry from 'axios-retry';
 
 // יצירת אינסטנס עם baseURL
+// שימוש ב-VITE_API_URL אם קיים, אחרת localhost לפיתוח
+const getApiBaseUrl = () => {
+  // אם יש VITE_API_URL, נשתמש בו
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // בפיתוח מקומי, נשתמש ב-localhost
+  if (import.meta.env.DEV) {
+    return "http://localhost:5055/api";
+  }
+  
+  // ב-production, נשתמש ב-origin הנוכחי (אם ה-API על אותו דומיין)
+  // או נחזיר ל-localhost כגיבוי (אבל זה לא יעבוד ב-production)
+  return window.location.origin + "/api";
+};
+
 export const api = axios.create({
-  baseURL: "http://localhost:5055/api",
+  baseURL: getApiBaseUrl(),
   headers: {
     "Content-Type": "application/json"
   },
