@@ -7,7 +7,9 @@ import axiosRetry from 'axios-retry';
 const getApiBaseUrl = () => {
   // אם יש VITE_API_URL, נשתמש בו
   if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+    const url = import.meta.env.VITE_API_URL;
+    // וודא שיש /api בסוף אם לא קיים
+    return url.endsWith('/api') ? url : url + '/api';
   }
   
   // בפיתוח מקומי, נשתמש ב-localhost
@@ -15,9 +17,8 @@ const getApiBaseUrl = () => {
     return "http://localhost:5055/api";
   }
   
-  // ב-production, נשתמש ב-origin הנוכחי (אם ה-API על אותו דומיין)
-  // או נחזיר ל-localhost כגיבוי (אבל זה לא יעבוד ב-production)
-  return window.location.origin + "/api";
+  // ב-production, נשתמש ב-Render API (גיבוי אם לא הוגדר VITE_API_URL)
+  return "https://hasderanewsletter-2025.onrender.com/api";
 };
 
 export const api = axios.create({
