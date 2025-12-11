@@ -84,5 +84,85 @@ namespace HasderaApi.Controllers
                 return StatusCode(500, $"Unexpected error: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// מעדכן גיליון קיים
+        /// PUT: api/Issues/{id}
+        /// </summary>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, Issue issue)
+        {
+            if (issue == null)
+            {
+                return BadRequest("Issue data is required");
+            }
+
+            if (id != issue.IssueId)
+            {
+                return BadRequest($"ID mismatch: URL ID ({id}) does not match body ID ({issue.IssueId})");
+            }
+
+            // בדיקה שהגיליון קיים
+            var existingIssue = await _context.Issues.FindAsync(id);
+            if (existingIssue == null)
+            {
+                return NotFound($"Issue with ID {id} not found");
+            }
+
+            // עדכון השדות
+            existingIssue.Title = issue.Title;
+            existingIssue.IssueDate = issue.IssueDate;
+            existingIssue.FileUrl = issue.FileUrl;
+            existingIssue.Summary = issue.Summary;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return NoContent();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return StatusCode(500, "Concurrency error: The issue was modified by another user");
+            }
+            catch (DbUpdateException ex)
+            {
+                return StatusCode(500, $"Database error while updating issue: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Unexpected error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// מוחק גיליון
+        /// DELETE: api/Issues/{id}
+        /// </summary>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var issue = await _context.Issues.FindAsync(id);
+                if (issue == null)
+                {
+                    return NotFound($"Issue with ID {id} not found");
+                }
+
+                _context.Issues.Remove(issue);
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (DbUpdateException ex)
+            {
+                // יכול להיות שיש קשרים לגיליון (מאמרים, מודעות וכו')
+                return StatusCode(500, $"Cannot delete issue: {ex.Message}. It may have related articles or ads.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Unexpected error while deleting issue: {ex.Message}");
+            }
+        }
     }
 }
