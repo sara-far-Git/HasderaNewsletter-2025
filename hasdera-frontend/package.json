@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "start:backend": "cd ../HasderaApi && dotnet run",
     "start:frontend": "vite",
     "start:all": "concurrently \"npm run start:backend\" \"npm run start:frontend\""

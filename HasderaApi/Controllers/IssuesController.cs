@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using HasderaApi.Data;
 using HasderaApi.Models;
 
@@ -21,9 +22,16 @@ namespace HasderaApi.Controllers
         /// GET: api/Issues
         /// </summary>
         [HttpGet]
-        public ActionResult<IEnumerable<Issue>> GetAll()
+        public async Task<ActionResult<IEnumerable<Issue>>> GetAll()
         {
-            return _context.Issues.ToList();
+            try
+            {
+                return await _context.Issues.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Database error: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -31,13 +39,20 @@ namespace HasderaApi.Controllers
         /// GET: api/Issues/{id}
         /// </summary>
         [HttpGet("{id}")]
-        public ActionResult<Issue> GetById(int id)
+        public async Task<ActionResult<Issue>> GetById(int id)
         {
-            var issue = _context.Issues.Find(id);
-            if (issue == null)
-                return NotFound();
+            try
+            {
+                var issue = await _context.Issues.FindAsync(id);
+                if (issue == null)
+                    return NotFound($"Issue with ID {id} not found");
 
-            return issue;
+                return issue;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Database error: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -45,13 +60,29 @@ namespace HasderaApi.Controllers
         /// POST: api/Issues
         /// </summary>
         [HttpPost]
-        public ActionResult<Issue> Create(Issue issue)
+        public async Task<ActionResult<Issue>> Create(Issue issue)
         {
-            _context.Issues.Add(issue);
-            _context.SaveChanges();
+            if (issue == null)
+            {
+                return BadRequest("Issue data is required");
+            }
 
-            // מחזיר 201 Created עם קישור למשאב החדש
-            return CreatedAtAction(nameof(GetById), new { id = issue.IssueId }, issue);
+            try
+            {
+                _context.Issues.Add(issue);
+                await _context.SaveChangesAsync();
+
+                // מחזיר 201 Created עם קישור למשאב החדש
+                return CreatedAtAction(nameof(GetById), new { id = issue.IssueId }, issue);
+            }
+            catch (DbUpdateException ex)
+            {
+                return StatusCode(500, $"Database error while creating issue: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Unexpected error: {ex.Message}");
+            }
         }
     }
 }

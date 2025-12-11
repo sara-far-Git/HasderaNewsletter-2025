@@ -14,6 +14,11 @@
         /// <returns>תובנות בסיסיות מטקסט הנתונים</returns>
         public async Task<string> GetInsightsAsync(string prompt)
         {
+            if (string.IsNullOrEmpty(prompt))
+            {
+                throw new ArgumentException("Prompt cannot be null or empty", nameof(prompt));
+            }
+
             // מחכים מעט כדי לדמות קריאה לשרת חיצוני
             await Task.Delay(200);
 
