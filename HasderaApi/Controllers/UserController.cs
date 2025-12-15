@@ -380,8 +380,8 @@ namespace HasderaApi.Controllers
                     .OrderByDescending(o => o.OrderDate ?? DateOnly.MinValue)
                     .ToListAsync();
 
-                // קבלת AdPlacements (אם יש)
-                var adPlacements = await _context.AdPlacements
+                // קבלת Adplacements (אם יש)
+                var adPlacements = await _context.Adplacements
                     .Include(x => x.Order)
                     .Include(x => x.Slot)
                     .Where(x => x.Order.AdvertiserId == user.AdvertiserId)

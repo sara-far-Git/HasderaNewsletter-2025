@@ -58,6 +58,10 @@ export async function getIssuePdf(id) {
 export async function getIssueById(id) {
   try {
     const res = await api.get(`/issues/${id}`);
+    console.log('📥 getIssueById - Raw response:', res);
+    console.log('📥 getIssueById - Response data:', res.data);
+    console.log('📥 getIssueById - Summary field:', res.data?.Summary || res.data?.summary);
+    console.log('📥 getIssueById - All keys:', Object.keys(res.data || {}));
     return res.data;
   } catch (err) {
     console.error("❌ שגיאה ב-GET Issue by ID:", err);

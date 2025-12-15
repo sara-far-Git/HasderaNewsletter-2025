@@ -22,7 +22,9 @@ var s3Region = builder.Configuration["S3:Region"] ?? "eu-north-1";
 
 builder.Services.ConfigureHttpJsonOptions(o =>
 {
-    o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    // שינוי: נשמור null values כדי שה-Summary יישלח גם כשהוא null
+    // זה חשוב כדי שהפרונט-אנד יוכל לזהות שה-Summary לא נשמר
+    o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never; // Changed from WhenWritingNull to Never
     o.SerializerOptions.PropertyNamingPolicy = null;
     o.SerializerOptions.PropertyNameCaseInsensitive = true; // תמיכה גם ב-lowercase וגם ב-capital
     o.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; // מניעת circular references
@@ -78,10 +80,15 @@ builder.Services.AddCors(options =>
                 if (origin.StartsWith("http://localhost:") || origin.StartsWith("https://localhost:"))
                     return true;
                 
-                // Allow Cloudflare Pages domains
+                // Allow Cloudflare Pages domains (כל תת-דומיינים)
                 if (origin.EndsWith(".hasdera-advertiser.pages.dev") || 
                     origin == "https://hasdera-advertiser.pages.dev")
                     return true;
+                
+                // Allow custom domain (אם יש)
+                // הוסף כאן את הדומיין המותאם אישית שלך, למשל:
+                // if (origin == "https://advertiser.hasdera.com" || origin == "https://app.hasdera.com")
+                //     return true;
                 
                 return false;
             })
@@ -315,7 +322,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 // הגדרת פורט מ-environment variable (ל-Render) או default
-var port = Environment.GetEnvironmentVariable("PORT") ?? "80";
+// בפיתוח מקומי, נשתמש ב-5055 (כמו ב-launchSettings.json)
+var port = Environment.GetEnvironmentVariable("PORT") ?? (app.Environment.IsDevelopment() ? "5055" : "80");
 var url = $"http://0.0.0.0:{port}";
 Console.WriteLine($"🚀 Starting server on {url}");
 app.Run(url);

@@ -185,13 +185,29 @@ namespace HasderaApi.Controllers
         {
             try
             {
-                var issue = await _context.Issues.FindAsync(id);
+                // טעינה מפורשת של ה-Summary מהמסד נתונים
+                // שימוש ב-FirstOrDefault במקום FindAsync כדי לוודא שה-Summary נטען
+                var issue = await _context.Issues
+                    .Where(i => i.IssueId == id)
+                    .Select(i => new Issue
+                    {
+                        IssueId = i.IssueId,
+                        Title = i.Title,
+                        IssueDate = i.IssueDate,
+                        FileUrl = i.FileUrl,
+                        PdfUrl = i.PdfUrl,
+                        Summary = i.Summary // נוודא שה-Summary נטען במפורש
+                    })
+                    .FirstOrDefaultAsync();
 
                 if (issue == null)
                 {
                     Console.WriteLine($"❌ גיליון לא נמצא: ID {id}");
                     return NotFound();
                 }
+                
+                Console.WriteLine($"🔍 GetIssue - Summary is {(string.IsNullOrEmpty(issue.Summary) ? "NULL/EMPTY" : $"PRESENT ({issue.Summary.Length} chars)")}");
+                Console.WriteLine($"🔍 GetIssue - Summary value: {(issue.Summary ?? "NULL")}");
 
                 // יצירת pre-signed URLs עבור PDFs
                 // חשוב: רק עבור קבצים שפורסמו (ב-S3), לא עבור טיוטות
@@ -267,6 +283,31 @@ namespace HasderaApi.Controllers
                 Console.WriteLine($"✅ גיליון נמצא: {issue.Title}, PDF URL: {issue.PdfUrl}");
                 Console.WriteLine($"📄 Summary length: {issue.Summary?.Length ?? 0}");
                 Console.WriteLine($"📄 Summary content: {(string.IsNullOrEmpty(issue.Summary) ? "null/empty" : issue.Summary.Substring(0, Math.Min(100, issue.Summary.Length)))}");
+                
+                // בדיקה נוספת - נוודא שה-Summary נטען נכון מהמסד נתונים
+                if (!string.IsNullOrEmpty(issue.Summary))
+                {
+                    try
+                    {
+                        var testMetadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(issue.Summary);
+                        if (testMetadata != null && testMetadata.ContainsKey("links"))
+                        {
+                            var linksCount = testMetadata["links"] is System.Text.Json.JsonElement jsonElement && jsonElement.ValueKind == System.Text.Json.JsonValueKind.Array
+                                ? jsonElement.GetArrayLength()
+                                : 0;
+                            Console.WriteLine($"🔗 GetIssue - Found {linksCount} links in Summary");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"⚠️ GetIssue - No 'links' key found in metadata");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"❌ GetIssue - Error parsing Summary: {ex.Message}");
+                    }
+                }
+                
                 return issue;
             }
             catch (Exception ex)
@@ -550,23 +591,82 @@ namespace HasderaApi.Controllers
                 if (!string.IsNullOrEmpty(request.Summary))
                 {
                     issue.Summary = request.Summary;
+                    // סימון מפורש של ה-Summary כ-modified כדי לכפות עדכון במסד הנתונים
+                    _context.Entry(issue).Property(x => x.Summary).IsModified = true;
+                    Console.WriteLine($"💾 Saving Summary from request: {issue.Summary?.Substring(0, Math.Min(100, issue.Summary?.Length ?? 0))}");
                 }
-                else if (links != null || animations != null || metadata.Count > 0)
+                else if (links != null)
                 {
-                    // שמירת metadata כ-JSON - נעדכן גם אם יש קישורים או אנימציות (גם אם ריקים)
+                    // אם links נשלח (גם אם ריק), תמיד נעדכן את ה-Summary
+                    // זה מבטיח שמירה גם כשמערך הקישורים ריק (למחיקת קישורים קיימים)
                     issue.Summary = System.Text.Json.JsonSerializer.Serialize(metadata);
-                    Console.WriteLine($"💾 Saving Summary with metadata: {issue.Summary}");
+                    // סימון מפורש של ה-Summary כ-modified כדי לכפות עדכון במסד הנתונים
+                    _context.Entry(issue).Property(x => x.Summary).IsModified = true;
+                    Console.WriteLine($"💾 Saving Summary with links (count: {links.Count}): {issue.Summary?.Substring(0, Math.Min(200, issue.Summary?.Length ?? 0))}");
+                }
+                else if (animations != null || metadata.Count > 0)
+                {
+                    // שמירת metadata כ-JSON אם יש אנימציות או metadata אחר
+                    issue.Summary = System.Text.Json.JsonSerializer.Serialize(metadata);
+                    // סימון מפורש של ה-Summary כ-modified כדי לכפות עדכון במסד הנתונים
+                    _context.Entry(issue).Property(x => x.Summary).IsModified = true;
+                    Console.WriteLine($"💾 Saving Summary with metadata: {issue.Summary?.Substring(0, Math.Min(200, issue.Summary?.Length ?? 0))}");
                 }
                 else
                 {
-                    Console.WriteLine($"⚠️ No links, animations, or metadata to save");
+                    Console.WriteLine($"⚠️ No links, animations, or metadata to save - Summary will remain: {(string.IsNullOrEmpty(issue.Summary) ? "NULL" : "EXISTING")}");
                 }
 
+                // בדיקה לפני שמירה - נוודא שה-Summary מסומן כ-modified
+                var summaryEntry = _context.Entry(issue).Property(x => x.Summary);
+                Console.WriteLine($"🔍 Summary IsModified before SaveChanges: {summaryEntry.IsModified}");
+                Console.WriteLine($"🔍 Summary CurrentValue length: {(summaryEntry.CurrentValue as string)?.Length ?? 0}");
+                
                 await _context.SaveChangesAsync();
                 
                 Console.WriteLine($"✅ Issue {id} updated successfully");
-                Console.WriteLine($"✅ Summary length: {issue.Summary?.Length ?? 0}");
-                Console.WriteLine($"✅ Summary content: {(string.IsNullOrEmpty(issue.Summary) ? "null/empty" : issue.Summary.Substring(0, Math.Min(200, issue.Summary.Length)))}");
+                Console.WriteLine($"✅ Summary length after save (before reload): {issue.Summary?.Length ?? 0}");
+                Console.WriteLine($"✅ Summary content after save (before reload): {(string.IsNullOrEmpty(issue.Summary) ? "null/empty" : issue.Summary.Substring(0, Math.Min(200, issue.Summary.Length)))}");
+                
+                // טעינה מחדש מהמסד נתונים כדי לוודא שה-Summary נשמר
+                await _context.Entry(issue).ReloadAsync();
+                
+                Console.WriteLine($"✅ Summary length after reload: {issue.Summary?.Length ?? 0}");
+                Console.WriteLine($"✅ Summary content after reload: {(string.IsNullOrEmpty(issue.Summary) ? "null/empty" : issue.Summary.Substring(0, Math.Min(200, issue.Summary.Length)))}");
+                
+                // בדיקה נוספת - נטען ישירות מהמסד נתונים עם Select מפורש (כמו ב-GetIssue)
+                var savedIssue = await _context.Issues
+                    .Where(i => i.IssueId == id)
+                    .Select(i => new { i.IssueId, i.Summary })
+                    .FirstOrDefaultAsync();
+                
+                if (savedIssue != null)
+                {
+                    Console.WriteLine($"🔍 Direct DB check - Summary length: {savedIssue.Summary?.Length ?? 0}");
+                    Console.WriteLine($"🔍 Direct DB check - Summary value: {(savedIssue.Summary ?? "NULL")}");
+                    if (!string.IsNullOrEmpty(savedIssue.Summary))
+                    {
+                        try
+                        {
+                            var testMetadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(savedIssue.Summary);
+                            if (testMetadata != null && testMetadata.ContainsKey("links"))
+                            {
+                                var linksCount = testMetadata["links"] is System.Text.Json.JsonElement jsonElement && jsonElement.ValueKind == System.Text.Json.JsonValueKind.Array
+                                    ? jsonElement.GetArrayLength()
+                                    : 0;
+                                Console.WriteLine($"🔗 Direct DB check - Found {linksCount} links in Summary");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"❌ Direct DB check - Error parsing Summary: {ex.Message}");
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"❌ Direct DB check - Issue not found after save!");
+                }
 
                 return Ok(new
                 {
@@ -653,7 +753,46 @@ namespace HasderaApi.Controllers
                 // עדכון תאריך פרסום להיום
                 issue.IssueDate = DateTime.UtcNow;
 
+                // 🚩 ניקוי כל ה-Adplacements של הגיליון הזה (לפני שמירה)
+                // מוצאים את כל המודעות (Ads) של הגיליון
+                var adsForIssue = await _context.Ads.Where(ad => ad.IssueId == id).ToListAsync();
+                foreach (var ad in adsForIssue)
+                {
+                    // מוצאים את כל ההזמנות (AdOrders) של המפרסם
+                    var adOrders = await _context.AdOrders.Where(order => order.AdvertiserId == ad.AdvertiserId).ToListAsync();
+                    foreach (var order in adOrders)
+                    {
+                        // מוצאים את כל ה-Adplacements של ההזמנה
+                        var adplacements = await _context.Adplacements.Where(ap => ap.OrderId == order.OrderId).ToListAsync();
+                        _context.Adplacements.RemoveRange(adplacements);
+                    }
+                }
+
                 await _context.SaveChangesAsync();
+
+                // יצירת גיליון ריק חדש לשבוע הבא (אם עדיין לא קיים)
+                var nextWeekDate = DateTime.UtcNow.AddDays(7);
+                var existingNextIssue = await _context.Issues
+                    .Where(i => i.IssueDate >= nextWeekDate.AddDays(-3) && 
+                               i.IssueDate <= nextWeekDate.AddDays(3) &&
+                               (i.PdfUrl == null || i.PdfUrl.StartsWith("pending-upload-")))
+                    .FirstOrDefaultAsync();
+
+                if (existingNextIssue == null)
+                {
+                    // יצירת גיליון ריק חדש לשבוע הבא
+                    var nextIssue = new Issue
+                    {
+                        Title = $"גיליון {nextWeekDate:yyyy-MM-dd}",
+                        IssueDate = nextWeekDate,
+                        PdfUrl = null, // גיליון ריק - ללא PDF
+                        FileUrl = null
+                    };
+                    _context.Issues.Add(nextIssue);
+                    await _context.SaveChangesAsync();
+                    
+                    Console.WriteLine($"✅ Created empty issue for next week: IssueId={nextIssue.IssueId}, Date={nextWeekDate:yyyy-MM-dd}");
+                }
 
                 // יצירת קישור לפרסום
                 var publishUrl = $"{_cfg["FrontendUrl"] ?? "http://localhost:5173"}/viewer?issueId={issue.IssueId}";

@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   Menu,
   X,
+  Tag,
 } from 'lucide-react';
 
 // 🎨 גופנים - נטען דרך index.html
@@ -290,6 +291,12 @@ const modules = [
     title: 'ניהול מקומות פרסום',
     icon: Layout,
     path: '/admin/ad-slots',
+  },
+  {
+    id: 'placement-book',
+    title: 'בחירת מיקום פרסום',
+    icon: Tag,
+    path: '/admin/placement-book',
   },
   {
     id: 'advertisers',
