@@ -38,3 +38,13 @@ export async function deleteAdvertiser(id) {
     handleError("DELETE Advertiser", err);
   }
 }
+
+export async function getAdvertiserPayments(advertiserId) {
+  console.log(`📡 GET /Advertisers/${advertiserId}/payments`);
+  try {
+    const res = await api.get(`/Advertisers/${advertiserId}/payments`);
+    return res.data;
+  } catch (err) {
+    handleError("GET Advertiser Payments", err);
+  }
+}

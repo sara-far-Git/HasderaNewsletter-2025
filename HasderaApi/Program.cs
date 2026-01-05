@@ -14,8 +14,21 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// אם `dotnet run --urls ...` או `ASPNETCORE_URLS` הוגדרו – לא נדרוס.
+// אחרת, נריץ לפי PORT/HOST (Render) או ברירת מחדל מקומית.
+var aspnetcoreUrls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+if (string.IsNullOrWhiteSpace(aspnetcoreUrls))
+{
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "5055";
+    var host = Environment.GetEnvironmentVariable("HOST")
+        ?? (builder.Environment.IsProduction() ? "0.0.0.0" : "localhost");
+    builder.WebHost.UseUrls($"http://{host}:{port}");
+}
+
 // ===== הגדרות =====
-var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
+// אפשרות להשתמש ב-connection string חלופי לפיתוח דרך environment variable
+var connStr = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING") 
+    ?? builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 var s3Region = builder.Configuration["S3:Region"] ?? "eu-north-1";
@@ -128,15 +141,66 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
+// ✅ Seed default ad slots (once) so admin can sell placements
+// רץ ברקע כדי לא לחסום את עליית השרת, ולא נכשל אם ה-DB לא זמין
+_ = Task.Run(async () =>
+{
+    await Task.Delay(3000);
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        // אם הטבלה ריקה – ניצור סט בסיסי של מקומות פרסום
+        if (!await db.Slots.AnyAsync())
+        {
+            db.Slots.AddRange(new[]
+            {
+                new HasderaApi.Models.Slot { Code = "SLOT-01", Name = "מקום פרסום 1", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-02", Name = "מקום פרסום 2", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-03", Name = "מקום פרסום 3", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-04", Name = "מקום פרסום 4", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-05", Name = "מקום פרסום 5", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-06", Name = "מקום פרסום 6", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-07", Name = "מקום פרסום 7", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-08", Name = "מקום פרסום 8", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-09", Name = "מקום פרסום 9", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-10", Name = "מקום פרסום 10", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-11", Name = "מקום פרסום 11", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-12", Name = "מקום פרסום 12", BasePrice = null, IsExclusive = null },
+                new HasderaApi.Models.Slot { Code = "SLOT-BACK", Name = "גב עיתון", BasePrice = null, IsExclusive = null },
+            });
+
+            await db.SaveChangesAsync();
+            Console.WriteLine("✅ Seeded default Slots (13, incl. back cover)");
+        }
+        else
+        {
+            // אם כבר יש Slots אבל חסר "גב עיתון" – נוסיף אותו בלבד
+            var hasBackCover = await db.Slots.AnyAsync(s => s.Code == "SLOT-BACK");
+            if (!hasBackCover)
+            {
+                db.Slots.Add(new HasderaApi.Models.Slot { Code = "SLOT-BACK", Name = "גב עיתון", BasePrice = null, IsExclusive = null });
+                await db.SaveChangesAsync();
+                Console.WriteLine("✅ Added back cover Slot (SLOT-BACK)");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Slot seeding skipped: {ex.Message}");
+    }
+});
+
 // יצירת טבלאות אם לא קיימות (רק בפיתוח)
 // הערה: הקוד הזה רץ ברקע ולא חוסם את השרת
 if (!app.Environment.IsProduction())
 {
     _ = Task.Run(async () =>
     {
-        await Task.Delay(2000); // מחכה 2 שניות כדי שהשרת יתחיל
+        await Task.Delay(5000); // מחכה 5 שניות כדי שהשרת יתחיל ומסד הנתונים יהיה מוכן
         int retryCount = 0;
-        const int maxRetries = 3;
+        const int maxRetries = 5; // הגדלנו את מספר הניסיונות
         
         while (retryCount < maxRetries)
         {
@@ -294,14 +358,20 @@ if (!app.Environment.IsProduction())
                 
                 if (retryCount < maxRetries)
                 {
-                    int delay = retryCount * 2000; // 2, 4, 6 שניות
-                    Console.WriteLine($"   Retrying in {delay}ms...");
+                    int delay = retryCount * 3000; // 3, 6, 9, 12, 15 שניות
+                    Console.WriteLine($"   Retrying in {delay / 1000} seconds...");
                     await Task.Delay(delay);
                 }
                 else
                 {
                     Console.WriteLine("❌ Failed to create database tables after all retries");
-                    Console.WriteLine("Please run the SQL script manually: HasderaApi/Scripts/CreateUsersTable.sql");
+                    Console.WriteLine("⚠️  The server will continue running, but database operations may fail.");
+                    Console.WriteLine("Please check:");
+                    Console.WriteLine("   1. Database server is running and accessible");
+                    Console.WriteLine("   2. Connection string in appsettings.json is correct");
+                    Console.WriteLine("   3. Network connectivity to AWS RDS");
+                    Console.WriteLine("   4. Security groups allow connections from your IP");
+                    Console.WriteLine("You can run the SQL script manually: HasderaApi/Scripts/CreateUsersTable.sql");
                 }
             }
         }
@@ -316,14 +386,31 @@ if (!app.Environment.IsProduction())
 
 // Enable CORS
 app.UseCors("AllowReactApp");
+
+// הוספת headers ל-Google OAuth
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+    context.Response.Headers.Append("Cross-Origin-Embedder-Policy", "unsafe-none");
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-// הגדרת פורט מ-environment variable (ל-Render) או default
-// בפיתוח מקומי, נשתמש ב-5055 (כמו ב-launchSettings.json)
-var port = Environment.GetEnvironmentVariable("PORT") ?? (app.Environment.IsDevelopment() ? "5055" : "80");
-var url = $"http://0.0.0.0:{port}";
-Console.WriteLine($"🚀 Starting server on {url}");
-app.Run(url);
+// הגדרת פורט מ-environment variable (ל-Render) או שימוש בברירת מחדל
+var envPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(envPort))
+{
+    var url = $"http://0.0.0.0:{envPort}";
+    Console.WriteLine($"🚀 Starting server on {url}");
+    app.Run(url);
+}
+else
+{
+    var urlsText = app.Urls != null && app.Urls.Count > 0 ? string.Join(", ", app.Urls) : "(default)";
+    Console.WriteLine($"🚀 Starting server on {urlsText}");
+    app.Run();
+}

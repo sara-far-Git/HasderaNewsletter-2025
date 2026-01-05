@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import FlipCanvasViewer from "../components/FlipCanvasViewer";
 import FlipIssue from "../components/FlipIssue";
@@ -6,11 +7,13 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
 import { useAuth } from "../contexts/AuthContext";
+import { getIssueById } from "../Services/issuesService";
 
 // ✨ קומפוננט Wrapper לצפייה בגיליון
 function IssueViewer() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const [summary, setSummary] = useState(state?.Summary || state?.summary || null);
   
   console.log("📖 IssueViewer - received state:", state);
   
@@ -23,13 +26,28 @@ function IssueViewer() {
     handleClose();
     return null;
   }
+
+  // טוען Summary מלא מהשרת כדי לאפשר קישורים על גבי העיתון
+  useEffect(() => {
+    if (!summary && state.issue_id) {
+      (async () => {
+        try {
+          const fullIssue = await getIssueById(state.issue_id);
+          setSummary(fullIssue.Summary || fullIssue.summary || null);
+        } catch (e) {
+          console.error("❌ Error loading full issue for links:", e);
+        }
+      })();
+    }
+  }, [summary, state?.issue_id]);
   
   // יצירת אובייקט issue בפורמט שהקומפוננטה מצפה לו
   const issue = {
     pdf_url: state.pdf_url || state.fileUrl,
     title: state.title,
     issue_id: state.issue_id,
-    issueDate: state.issueDate
+    issueDate: state.issueDate,
+    Summary: summary
   };
   
   return <FlipCanvasViewer issue={issue} onClose={handleClose} />;

@@ -829,10 +829,10 @@ InnerPage.displayName = 'InnerPage';
 
 // --- Main Component ---
 
-export default function PlacementBook() {
+export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const initialIssue = location.state || {
+  const initialIssue = propIssue || location.state || {
     title: "בחירת מיקום פרסומי",
     issue_number: "גיליון חדש",
   };

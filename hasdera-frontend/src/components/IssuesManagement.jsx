@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import IssueEditor from './IssueEditor';
 import { getIssues, deleteIssue } from '../Services/issuesService';
+import { api } from '../Services/api.js';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -70,6 +71,22 @@ const getIssueId = (issue) => {
  */
 const getPdfUrl = (issue) => {
   return issue.Pdf_url || issue.PdfUrl || issue.pdf_url || issue.pdfUrl || '';
+};
+
+/**
+ * קבלת URL של קובץ (fallback לשדות FileUrl)
+ */
+const getFileUrl = (issue) => {
+  return issue.File_url || issue.FileUrl || issue.file_url || issue.fileUrl || '';
+};
+
+/**
+ * בדיקה האם יש לגיליון קובץ PDF/קובץ להורדה
+ */
+const hasIssuePdf = (issue) => {
+  const pdfUrl = getPdfUrl(issue);
+  const fileUrl = getFileUrl(issue);
+  return Boolean((typeof pdfUrl === 'string' && pdfUrl.trim()) || (typeof fileUrl === 'string' && fileUrl.trim()));
 };
 
 /**
@@ -429,24 +446,23 @@ const pdfOptions = {
   standardFontDataUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
 };
 
-const PDFCover = React.memo(function PDFCover({ pdfUrl }) {
+const PDFCover = React.memo(function PDFCover({ pdfUrl, shouldLoad = true }) {
   const [hasError, setHasError] = useState(false);
-  
-  // בדיקה האם ה-URL תקין לטעינה
   const canLoad = useMemo(() => isValidPdfUrl(pdfUrl), [pdfUrl]);
-  
-  // אם ה-URL לא תקין או שיש שגיאה, נציג placeholder
-  if (!canLoad || hasError) {
+
+  useEffect(() => {
+    setHasError(false);
+  }, [pdfUrl, shouldLoad]);
+
+  if (!shouldLoad || !canLoad || hasError) {
     return (
       <PDFLoading>
         <CalendarDays size={40} />
-        <div style={{ fontSize: '0.85rem' }}>
-          {!canLoad ? 'ממתין להעלאה...' : 'שגיאה בטעינה'}
-        </div>
+        <div style={{ fontSize: '0.85rem' }}>{!canLoad ? 'ממתין להעלאה...' : 'שגיאה בטעינה'}</div>
       </PDFLoading>
     );
   }
-  
+
   return (
     <PDFCoverWrapper>
       <Document
@@ -497,12 +513,13 @@ const IssueCardComponent = React.memo(function IssueCardComponent({
   const isPublished = isIssuePublished(pdfUrl);
   const title = getIssueTitle(issue, issueId);
   const hasValidPdf = isValidPdfUrl(pdfUrl);
+  const coverUrl = hasValidPdf && getIssueId(issue) ? `${api.defaults.baseURL}/issues/${getIssueId(issue)}/pdf` : pdfUrl;
   
   return (
     <IssueCard>
       <IssueImage>
         {hasValidPdf ? (
-          <PDFCover pdfUrl={pdfUrl} />
+          <PDFCover pdfUrl={coverUrl} shouldLoad={true} />
         ) : (
           <FileText size={64} />
         )}
@@ -565,7 +582,9 @@ export default function IssuesManagement() {
     try {
       setLoading(true);
       const data = await getIssues(1, 100);
-      setIssues(data || []);
+      // לא מציגים גליונות ריקים (ללא PDF) כדי לא ליצור "טיוטה" שלא ניתן לצפות בה
+      const visible = (data || []).filter(hasIssuePdf);
+      setIssues(visible);
     } catch (error) {
       console.error('שגיאה בטעינת גליונות:', error);
     } finally {
@@ -588,6 +607,11 @@ export default function IssuesManagement() {
   }, []);
 
   const handleView = useCallback((issue) => {
+    if (!hasIssuePdf(issue)) {
+      alert('לא ניתן לצפות בגיליון בלי קובץ PDF');
+      return;
+    }
+
     const issueId = getIssueId(issue);
     if (!issueId) {
       alert('שגיאה: לא נמצא מזהה גיליון');
@@ -610,10 +634,11 @@ export default function IssuesManagement() {
       return;
     }
 
+
     const pdfUrl = getPdfUrl(issue);
     const isPublished = isIssuePublished(pdfUrl);
-    
-    const confirmMessage = isPublished 
+
+    const confirmMessage = isPublished
       ? 'הגיליון כבר פורסם. האם אתה בטוח שברצונך למחוק אותו?'
       : 'האם אתה בטוח שברצונך למחוק את הגיליון?';
 

@@ -231,7 +231,39 @@ namespace HasderaApi.Controllers
                 return BadRequest(errorMessage);
             }
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == payload.Email);
+            User? user;
+            try
+            {
+                user = await _context.Users.FirstOrDefaultAsync(u => u.Email == payload.Email);
+            }
+            catch (Microsoft.EntityFrameworkCore.Storage.RetryLimitExceededException dbEx)
+            {
+                Console.WriteLine($"❌ Database connection failed: {dbEx.Message}");
+                Console.WriteLine($"   Inner exception: {dbEx.InnerException?.Message}");
+                return StatusCode(503, new { 
+                    error = "Database connection failed. Please check database availability and connection settings.",
+                    details = "The server cannot connect to the database. Please ensure the database is running and accessible."
+                });
+            }
+            catch (Npgsql.NpgsqlException npgsqlEx)
+            {
+                Console.WriteLine($"❌ PostgreSQL connection error: {npgsqlEx.Message}");
+                Console.WriteLine($"   Error code: {npgsqlEx.SqlState}");
+                return StatusCode(503, new { 
+                    error = "Database connection error. Please check database availability and network connectivity.",
+                    details = npgsqlEx.Message
+                });
+            }
+            catch (Exception dbEx)
+            {
+                Console.WriteLine($"❌ Database error: {dbEx.Message}");
+                Console.WriteLine($"   Type: {dbEx.GetType().Name}");
+                Console.WriteLine($"   Inner exception: {dbEx.InnerException?.Message}");
+                return StatusCode(503, new { 
+                    error = "Database error occurred.",
+                    details = dbEx.Message
+                });
+            }
 
             // בדיקה אם זה המשתמש המנהל - רבקי פרקש עם המייל 8496444@gmail.com
             bool isAdminUser = payload.Email == "8496444@gmail.com" || 
@@ -256,7 +288,7 @@ namespace HasderaApi.Controllers
                     // יצירת משתמש Advertiser רגיל
                     user = new User
                     {
-                        FullName = payload.Name,
+                        FullName = payload.Name ?? "",
                         Email = payload.Email,
                         GoogleId = payload.Subject,
                         Role = "Advertiser",
@@ -266,19 +298,40 @@ namespace HasderaApi.Controllers
                     // במידה וזה מפרסם — ניצור עסק
                     var adv = new Advertiser
                     {
-                        Name = payload.Name,
-                        Company = payload.Name,
+                        Name = payload.Name ?? "",
+                        Company = payload.Name ?? "",
                         Email = payload.Email
                     };
 
-                    _context.Advertisers.Add(adv);
-                    await _context.SaveChangesAsync();
-
-                    user.AdvertiserId = adv.AdvertiserId;
+                    try
+                    {
+                        _context.Advertisers.Add(adv);
+                        await _context.SaveChangesAsync();
+                        user.AdvertiserId = adv.AdvertiserId;
+                    }
+                    catch (Exception dbEx)
+                    {
+                        Console.WriteLine($"❌ Failed to create advertiser: {dbEx.Message}");
+                        return StatusCode(503, new { 
+                            error = "Database error while creating advertiser account.",
+                            details = dbEx.Message
+                        });
+                    }
                 }
 
-                _context.Users.Add(user);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception dbEx)
+                {
+                    Console.WriteLine($"❌ Failed to create user: {dbEx.Message}");
+                    return StatusCode(503, new { 
+                        error = "Database error while creating user account.",
+                        details = dbEx.Message
+                    });
+                }
             }
             else
             {
@@ -360,12 +413,12 @@ namespace HasderaApi.Controllers
                 // ניקוי ה-collections מה-Advertiser כדי למנוע circular references ב-serialization
                 if (user?.Advertiser != null)
                 {
-                    user.Advertiser.Adorders = null;
-                    user.Advertiser.Ads = null;
-                    user.Advertiser.AdvertiserPackages = null;
-                    user.Advertiser.Advertisercontacts = null;
-                    user.Advertiser.Packages = null;
-                    user.Advertiser.Payments = null;
+                    user.Advertiser.Adorders.Clear();
+                    user.Advertiser.Ads.Clear();
+                    user.Advertiser.AdvertiserPackages.Clear();
+                    user.Advertiser.Advertisercontacts.Clear();
+                    user.Advertiser.Packages.Clear();
+                    user.Advertiser.Payments.Clear();
                 }
 
                 if (user == null || user.AdvertiserId == null)
@@ -478,7 +531,7 @@ namespace HasderaApi.Controllers
                     .ToList();
 
                 // יצירת אובייקט Business ללא circular references
-                object businessData = null;
+                object? businessData = null;
                 if (user.Advertiser != null)
                 {
                     try
@@ -574,7 +627,7 @@ namespace HasderaApi.Controllers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // אם יש שגיאה, נחזיר את ה-URL המקורי
                 // אפשר להוסיף logging כאן אם צריך

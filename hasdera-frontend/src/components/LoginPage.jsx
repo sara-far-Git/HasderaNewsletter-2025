@@ -457,7 +457,21 @@ export default function LoginPage() {
         redirectByRole(user.role);
       }, 2000);
     } catch (err) {
-      setMsg(err.response?.data || "שגיאה בהתחברות");
+      let errorMsg = "שגיאה בהתחברות";
+      
+      if (err.response?.data) {
+        const responseData = err.response.data;
+        if (typeof responseData === 'object' && responseData.error) {
+          errorMsg = responseData.error;
+          if (responseData.details && responseData.details !== responseData.error) {
+            errorMsg += `: ${responseData.details}`;
+          }
+        } else if (typeof responseData === 'string') {
+          errorMsg = responseData;
+        }
+      }
+      
+      setMsg(errorMsg);
       setMsgType("error");
       setIsLoading(false);
     }
@@ -485,7 +499,21 @@ export default function LoginPage() {
         redirectByRole(user.role);
       }, 2000);
     } catch (err) {
-      setMsg(err.response?.data || "שגיאה בהרשמה");
+      let errorMsg = "שגיאה בהרשמה";
+      
+      if (err.response?.data) {
+        const responseData = err.response.data;
+        if (typeof responseData === 'object' && responseData.error) {
+          errorMsg = responseData.error;
+          if (responseData.details && responseData.details !== responseData.error) {
+            errorMsg += `: ${responseData.details}`;
+          }
+        } else if (typeof responseData === 'string') {
+          errorMsg = responseData;
+        }
+      }
+      
+      setMsg(errorMsg);
       setMsgType("error");
       setIsLoading(false);
     }
@@ -531,7 +559,25 @@ export default function LoginPage() {
       
       if (err.response) {
         // שגיאה מהשרת
-        errorMsg = err.response.data || err.response.statusText || `שגיאת שרת: ${err.response.status}`;
+        const responseData = err.response.data;
+        
+        // אם זה אובייקט עם error ו-details, נציג את שניהם
+        if (responseData && typeof responseData === 'object') {
+          if (responseData.error) {
+            errorMsg = responseData.error;
+            if (responseData.details && responseData.details !== responseData.error) {
+              errorMsg += `: ${responseData.details}`;
+            }
+          } else {
+            // אם זה אובייקט אחר, נמיר אותו למחרוזת
+            errorMsg = JSON.stringify(responseData);
+          }
+        } else if (typeof responseData === 'string') {
+          errorMsg = responseData;
+        } else {
+          errorMsg = err.response.statusText || `שגיאת שרת: ${err.response.status}`;
+        }
+        
         console.error("Server error:", err.response.status, err.response.data);
       } else if (err.message) {
         // שגיאה מקומית

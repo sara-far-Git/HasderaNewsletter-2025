@@ -134,4 +134,26 @@ export async function getIssueSlots(issueId) {
     throw err;
   }
 }
+
+// הזמנה טלפונית (מנהל) למקום פרסום בגיליון
+export async function bookIssueSlot(issueId, slotId, payload) {
+  try {
+    const res = await api.post(`/Issues/${issueId}/slots/${slotId}/book`, payload);
+    return res.data;
+  } catch (err) {
+    console.error("❌ שגיאה ב-POST Issue Slot booking:", err);
+    throw err;
+  }
+}
+
+// עריכת הזמנה קיימת (מנהל): שינוי מקום / סטטוס תשלום
+export async function updateIssueSlotBooking(issueId, slotId, payload) {
+  try {
+    const res = await api.put(`/Issues/${issueId}/slots/${slotId}/booking`, payload);
+    return res.data;
+  } catch (err) {
+    console.error("❌ שגיאה ב-PUT Issue Slot booking edit:", err);
+    throw err;
+  }
+}
   

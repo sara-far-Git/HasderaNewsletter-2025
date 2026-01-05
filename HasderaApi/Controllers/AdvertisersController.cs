@@ -2,6 +2,7 @@
 using HasderaApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HasderaApi.Controllers
 {
@@ -37,10 +38,40 @@ namespace HasderaApi.Controllers
         [HttpPost]
         public async Task<ActionResult<Advertiser>> CreateAdvertiser(Advertiser advertiser)
         {
+            // אם לא נשלח JoinDate – נגדיר היום
+            advertiser.JoinDate ??= DateOnly.FromDateTime(DateTime.UtcNow);
             _context.Advertisers.Add(advertiser);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetAdvertiser), new { id = advertiser.AdvertiserId }, advertiser);
+        }
+
+        // GET /api/advertisers/{id}/payments - רשימת תשלומים למפרסם
+        [Authorize]
+        [HttpGet("{id}/payments")]
+        public async Task<IActionResult> GetAdvertiserPayments(int id)
+        {
+            var advertiserExists = await _context.Advertisers.AnyAsync(a => a.AdvertiserId == id);
+            if (!advertiserExists)
+                return NotFound("מפרסם לא נמצא");
+
+            var payments = await _context.Payments
+                .AsNoTracking()
+                .Where(p => p.AdvertiserId == id)
+                .OrderByDescending(p => p.Date ?? DateOnly.MinValue)
+                .ThenByDescending(p => p.PaymentId)
+                .Select(p => new
+                {
+                    paymentId = p.PaymentId,
+                    advertiserId = p.AdvertiserId,
+                    amount = p.Amount,
+                    method = p.Method,
+                    status = p.Status,
+                    date = p.Date
+                })
+                .ToListAsync();
+
+            return Ok(payments);
         }
 
         [HttpPut("{id}")]

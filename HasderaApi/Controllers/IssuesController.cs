@@ -7,6 +7,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon;
 using Npgsql;
+using System.Net;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using System.IO;
@@ -59,6 +60,25 @@ namespace HasderaApi.Controllers
             public string? Pdf_url { get; set; }
         }
 
+            public class AdminBookSlotRequest
+            {
+                public int? AdvertiserId { get; set; }
+                public string? Name { get; set; }
+                public string? Company { get; set; }
+                public string? Email { get; set; }
+                public string? Phone { get; set; }
+
+                public decimal? Amount { get; set; }
+                public string? Method { get; set; }
+                public string? PaymentStatus { get; set; }
+            }
+
+            public class UpdateSlotBookingRequest
+            {
+                public int? TargetSlotId { get; set; }
+                public string? PaymentStatus { get; set; }
+            }
+
         // GET /api/issues?q=...&page=1&pageSize=20&publishedOnly=true
         [HttpGet]
         public async Task<ActionResult<PagedResult<IssueDto>>> Get(
@@ -77,19 +97,19 @@ namespace HasderaApi.Controllers
                 var query = _context.Issues.AsNoTracking()  // משפר ביצועים
                     .Where(i => string.IsNullOrEmpty(q) || EF.Functions.ILike(i.Title, $"%{q}%"));
                 
-                // אם publishedOnly=true, נסנן רק גליונות שפורסמו (לא pending-upload ולא /uploads/ ולא draft-file)
-                // גיליון נחשב פורסם רק אם הוא ב-S3 (בתיקיית issues/ או pdfs/)
-                // חשוב: נבדוק את ה-URL המקורי לפני כל עיבוד
-                // גיליון פורסם = לא pending-upload ולא /uploads/ ולא draft-file ו-URL מכיל amazonaws.com
+                // אם publishedOnly=true, נסנן רק גליונות שפורסמו
+                // טיוטות מזוהות ע"י: pending-upload-, /uploads/, draft:, /api/issues/draft-file/
+                // גיליון פורסם = URL שמכיל amazonaws.com (לא טיוטה)
                 if (publishedOnly)
                 {
                     query = query.Where(i => 
                         i.PdfUrl != null 
-                        // 🔧 שלב 1: שלילת טיוטות - גליונות שלא פורסמו
+                        // 🔧 שלילת כל סוגי הטיוטות
                         && !i.PdfUrl.StartsWith("pending-upload-")
                         && !i.PdfUrl.StartsWith("/uploads/")
                         && !i.PdfUrl.StartsWith("/api/issues/draft-file/")
-                        // 🔧 שלב 2: וידוא שזה ב-S3 (בתיקיית issues/ או pdfs/)
+                        && !i.PdfUrl.StartsWith("draft:") // פורמט חדש של טיוטות ב-S3
+                        // 🔧 וידוא שזה ב-S3 (URL תקין של amazonaws)
                         && (i.PdfUrl.Contains("s3.eu-north-1.amazonaws.com") 
                             || i.PdfUrl.Contains("s3.amazonaws.com")
                             || i.PdfUrl.Contains("amazonaws.com")
@@ -348,7 +368,42 @@ namespace HasderaApi.Controllers
             return NoContent();
         }
 
-        // POST /api/issues/upload-pdf - העלאת PDF (שמירה זמנית בשרת עד לפרסום)
+        // POST /api/issues/{id}/fix-pdf-url - תיקון URL של PDF במסד הנתונים
+        // Endpoint זמני לתיקון בעיות encoding או שמות קבצים
+        [HttpPost("{id}/fix-pdf-url")]
+        public async Task<IActionResult> FixPdfUrl(int id, [FromBody] FixPdfUrlRequest request)
+        {
+            try
+            {
+                var issue = await _context.Issues.FindAsync(id);
+                if (issue == null)
+                {
+                    return NotFound("גיליון לא נמצא");
+                }
+
+                var oldUrl = issue.PdfUrl;
+                issue.PdfUrl = request.NewPdfUrl;
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine($"✅ Fixed PDF URL for issue {id}:");
+                Console.WriteLine($"   Old: {oldUrl}");
+                Console.WriteLine($"   New: {request.NewPdfUrl}");
+
+                return Ok(new { message = "URL תוקן בהצלחה", oldUrl, newUrl = request.NewPdfUrl });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error fixing PDF URL: {ex.Message}");
+                return StatusCode(500, "שגיאה בתיקון URL");
+            }
+        }
+
+        public class FixPdfUrlRequest
+        {
+            public string NewPdfUrl { get; set; } = string.Empty;
+        }
+
+        // POST /api/issues/upload-pdf - העלאת PDF (ישירות ל-S3 כטיוטה)
         [Authorize]
         [HttpPost("upload-pdf")]
         public async Task<IActionResult> UploadPdf(IFormFile file, [FromForm] string? title = null, [FromForm] string? issueNumber = null, [FromForm] DateTime? issueDate = null)
@@ -366,73 +421,54 @@ namespace HasderaApi.Controllers
                     return BadRequest("רק קבצי PDF נתמכים");
                 }
 
-                // שמירה זמנית בשרת - לא ב-S3 עד לפרסום
-                var tempFileName = $"pending-upload-{Guid.NewGuid()}.pdf";
-                var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "issues");
+                // בדיקה שהקובץ הוא PDF תקין (בודק את ה-magic bytes)
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
+                var fileBytes = memoryStream.ToArray();
                 
-                // יצירת תיקייה אם לא קיימת
-                Directory.CreateDirectory(uploadsPath);
-                
-                var filePath = Path.Combine(uploadsPath, tempFileName);
-                
-                // שמירת הקובץ בשרת
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                if (fileBytes.Length < 4 || 
+                    fileBytes[0] != 0x25 || // %
+                    fileBytes[1] != 0x50 || // P
+                    fileBytes[2] != 0x44 || // D
+                    fileBytes[3] != 0x46)   // F
                 {
-                    await file.CopyToAsync(fileStream);
+                    Console.WriteLine($"❌ הקובץ שהועלה לא נראה כמו PDF תקין");
+                    return BadRequest("הקובץ שהועלה אינו בפורמט PDF תקין");
                 }
 
-                // בדיקה שהקובץ נשמר כראוי ושהוא PDF תקין
-                var savedFileInfo = new FileInfo(filePath);
-                if (!savedFileInfo.Exists || savedFileInfo.Length == 0)
+                // העלאה ישירות ל-S3 לתיקיית drafts (טיוטות)
+                var bucketName = _cfg["S3:Bucket"] ?? "hasdera-issues";
+                var draftPrefix = "drafts/"; // תיקיית טיוטות ב-S3
+                var draftFileName = $"draft-{Guid.NewGuid()}.pdf";
+                var s3Key = $"{draftPrefix}{draftFileName}";
+
+                Console.WriteLine($"📤 Uploading draft PDF to S3: {s3Key}");
+
+                memoryStream.Position = 0; // חזרה לתחילת הסטרים
+                var putRequest = new PutObjectRequest
                 {
-                    Console.WriteLine($"❌ הקובץ לא נשמר כראוי: {filePath}");
-                    return StatusCode(500, "שגיאה בשמירת הקובץ");
-                }
+                    BucketName = bucketName,
+                    Key = s3Key,
+                    InputStream = memoryStream,
+                    ContentType = "application/pdf",
+                    ServerSideEncryptionMethod = ServerSideEncryptionMethod.AES256
+                };
 
-                // בדיקה שה-bytes הראשונים הם %PDF
-                var savedFileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
-                if (savedFileBytes.Length < 4 || 
-                    savedFileBytes[0] != 0x25 || // %
-                    savedFileBytes[1] != 0x50 || // P
-                    savedFileBytes[2] != 0x44 || // D
-                    savedFileBytes[3] != 0x46)   // F
-                {
-                    // נבדוק אם יש BOM או תווים נוספים בהתחלה
-                    bool isValidPdf = false;
-                    for (int i = 0; i < Math.Min(10, savedFileBytes.Length - 4); i++)
-                    {
-                        if (savedFileBytes[i] == 0x25 && 
-                            savedFileBytes[i + 1] == 0x50 && 
-                            savedFileBytes[i + 2] == 0x44 && 
-                            savedFileBytes[i + 3] == 0x46)
-                        {
-                            isValidPdf = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!isValidPdf)
-                    {
-                        Console.WriteLine($"❌ הקובץ שנשמר לא נראה כמו PDF תקין: {filePath}");
-                        Console.WriteLine($"ראשית הקובץ (hex): {BitConverter.ToString(savedFileBytes.Take(20).ToArray())}");
-                        // נמחק את הקובץ הפגום
-                        try { System.IO.File.Delete(filePath); } catch { }
-                        return StatusCode(500, "הקובץ שהועלה אינו בפורמט PDF תקין");
-                    }
-                }
+                await _s3.PutObjectAsync(putRequest);
 
-                Console.WriteLine($"✅ קובץ PDF נשמר בהצלחה: {tempFileName}, גודל: {savedFileInfo.Length} bytes");
-
-                // יצירת URL זמני לשרת
-                var fileUrl = $"pending-upload-{tempFileName}";
+                // יצירת URL לקובץ הטיוטה ב-S3
+                var draftS3Url = $"https://{bucketName}.s3.eu-north-1.amazonaws.com/{s3Key}";
+                
+                Console.WriteLine($"✅ Draft PDF uploaded to S3: {draftS3Url}");
 
                 // יצירת Issue במסד הנתונים עם סטטוס draft
+                // נשמור את ה-S3 key במקום URL מלא כדי לדעת שזה draft
                 var issue = new Issue
                 {
                     Title = title ?? $"גיליון {DateTime.UtcNow:yyyy-MM-dd}",
                     IssueDate = issueDate ?? DateTime.UtcNow,
-                    PdfUrl = fileUrl, // URL זמני - לא ב-S3
-                    FileUrl = fileUrl
+                    PdfUrl = $"draft:{s3Key}", // מסמן שזו טיוטה ב-S3 עם המפתח
+                    FileUrl = draftS3Url // URL לצפייה
                 };
 
                 try
@@ -455,7 +491,7 @@ namespace HasderaApi.Controllers
                 {
                     issueId = issue.IssueId,
                     title = issue.Title,
-                    pdfUrl = issue.PdfUrl, // URL זמני
+                    pdfUrl = GetFileUrl(issue.PdfUrl), // URL לצפייה בטיוטה (חתום)
                     issueDate = issue.IssueDate,
                     isDraft = true // סימון שזה טיוטה
                 });
@@ -494,6 +530,7 @@ namespace HasderaApi.Controllers
         [HttpPut("{id}/update")]
         public async Task<IActionResult> UpdateIssueWithMetadata(int id, [FromBody] UpdateIssueRequest request)
         {
+            Console.WriteLine($"🚨🚨🚨 UpdateIssueWithMetadata ENTRY POINT - id: {id}");
             try
             {
                 // לוגים לבדיקה
@@ -506,6 +543,7 @@ namespace HasderaApi.Controllers
                 }
                 
                 Console.WriteLine($"📝 Request Title: {request.Title}");
+                Console.WriteLine($"📝 Request Summary: {request.Summary?.Substring(0, Math.Min(200, request.Summary?.Length ?? 0)) ?? "null"}");
                 Console.WriteLine($"📝 Request Links count: {request.Links?.Count ?? 0}");
                 Console.WriteLine($"📝 Request Animations count: {request.Animations?.Count ?? 0}");
                 
@@ -617,6 +655,10 @@ namespace HasderaApi.Controllers
                     Console.WriteLine($"⚠️ No links, animations, or metadata to save - Summary will remain: {(string.IsNullOrEmpty(issue.Summary) ? "NULL" : "EXISTING")}");
                 }
 
+                // חשוב! EF Core לפעמים לא מזהה שינויים ב-nullable strings
+                // סימון מפורש שהשדה השתנה כדי להבטיח שמירה לדאטאבייס
+                _context.Entry(issue).Property(x => x.Summary).IsModified = true;
+
                 // בדיקה לפני שמירה - נוודא שה-Summary מסומן כ-modified
                 var summaryEntry = _context.Entry(issue).Property(x => x.Summary);
                 Console.WriteLine($"🔍 Summary IsModified before SaveChanges: {summaryEntry.IsModified}");
@@ -700,17 +742,66 @@ namespace HasderaApi.Controllers
                     return NotFound();
                 }
 
-                // אם הקובץ עדיין לא ב-S3 (טיוטה), נעלה אותו עכשיו
-                if (issue.PdfUrl != null && issue.PdfUrl.StartsWith("pending-upload-"))
+                var bucketName = _cfg["S3:Bucket"] ?? "hasdera-issues";
+                
+                // טיפול בטיוטות מ-S3 (פורמט חדש: "draft:drafts/draft-xxx.pdf")
+                if (issue.PdfUrl != null && issue.PdfUrl.StartsWith("draft:"))
                 {
-                    var bucketName = _cfg["S3:Bucket"] ?? "hasdera-issues";
+                    var draftS3Key = issue.PdfUrl.Substring(6); // מסיר את "draft:"
+                    var publishPrefix = "issues/";
+                    var newFileName = $"{issue.IssueId}_{Guid.NewGuid()}.pdf";
+                    var newS3Key = $"{publishPrefix}{newFileName}";
+
+                    Console.WriteLine($"📤 Moving draft from {draftS3Key} to {newS3Key}");
+
+                    // העתקת הקובץ מתיקיית drafts לתיקיית issues
+                    var copyRequest = new CopyObjectRequest
+                    {
+                        SourceBucket = bucketName,
+                        SourceKey = draftS3Key,
+                        DestinationBucket = bucketName,
+                        DestinationKey = newS3Key,
+                        ServerSideEncryptionMethod = ServerSideEncryptionMethod.AES256
+                    };
+
+                    await _s3.CopyObjectAsync(copyRequest);
+
+                    // מחיקת הטיוטה הישנה
+                    await _s3.DeleteObjectAsync(bucketName, draftS3Key);
+
+                    // עדכון ה-URL ל-S3 הסופי
+                    var generatePreSignedUrls = _cfg.GetValue<bool>("GeneratePreSignedUrls", true);
+                    if (generatePreSignedUrls)
+                    {
+                        var request = new GetPreSignedUrlRequest
+                        {
+                            BucketName = bucketName,
+                            Key = newS3Key,
+                            Verb = HttpVerb.GET,
+                            Expires = DateTime.UtcNow.AddDays(7)
+                        };
+                        issue.PdfUrl = _s3.GetPreSignedURL(request);
+                    }
+                    else
+                    {
+                        issue.PdfUrl = $"https://{bucketName}.s3.eu-north-1.amazonaws.com/{newS3Key}";
+                    }
+                    issue.FileUrl = issue.PdfUrl;
+
+                    Console.WriteLine($"✅ Draft moved and published: {issue.PdfUrl}");
+                }
+                // טיפול בטיוטות ישנות מהשרת (פורמט ישן: "pending-upload-xxx.pdf")
+                else if (issue.PdfUrl != null && issue.PdfUrl.StartsWith("pending-upload-"))
+                {
                     var prefix = "issues/";
                     var fileName = $"{issue.IssueId}_{Guid.NewGuid()}.pdf";
                     var s3Key = $"{prefix}{fileName}";
 
                     // נתיב לקובץ הזמני בשרת
-                    var tempFileName = issue.PdfUrl.Replace("pending-upload-", "");
+                    var tempFileName = issue.PdfUrl;
                     var localFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "issues", tempFileName);
+                    
+                    Console.WriteLine($"📁 Looking for file at: {localFilePath}");
                     
                     if (System.IO.File.Exists(localFilePath))
                     {
@@ -748,27 +839,64 @@ namespace HasderaApi.Controllers
                         // מחיקת הקובץ הזמני מהשרת
                         System.IO.File.Delete(localFilePath);
                     }
+                    else
+                    {
+                        // הקובץ הזמני לא נמצא - לא ניתן לפרסם!
+                        Console.WriteLine($"❌ Temporary file not found: {localFilePath}");
+                        return BadRequest(new { 
+                            error = "לא ניתן לפרסם - קובץ ה-PDF לא נמצא בשרת", 
+                            details = "הקובץ הזמני פג תוקף או נמחק. יש להעלות את ה-PDF מחדש.",
+                            suggestion = "נסה לערוך את הגיליון ולהעלות PDF חדש"
+                        });
+                    }
                 }
 
                 // עדכון תאריך פרסום להיום
                 issue.IssueDate = DateTime.UtcNow;
 
-                // 🚩 ניקוי כל ה-Adplacements של הגיליון הזה (לפני שמירה)
-                // מוצאים את כל המודעות (Ads) של הגיליון
-                var adsForIssue = await _context.Ads.Where(ad => ad.IssueId == id).ToListAsync();
-                foreach (var ad in adsForIssue)
-                {
-                    // מוצאים את כל ההזמנות (AdOrders) של המפרסם
-                    var adOrders = await _context.AdOrders.Where(order => order.AdvertiserId == ad.AdvertiserId).ToListAsync();
-                    foreach (var order in adOrders)
-                    {
-                        // מוצאים את כל ה-Adplacements של ההזמנה
-                        var adplacements = await _context.Adplacements.Where(ap => ap.OrderId == order.OrderId).ToListAsync();
-                        _context.Adplacements.RemoveRange(adplacements);
-                    }
-                }
+                // וידוא שה-entity tracked ושהשינויים יישמרו
+                _context.Entry(issue).State = EntityState.Modified;
+                Console.WriteLine($"💾 Saving issue {issue.IssueId} with PdfUrl: {issue.PdfUrl?.Substring(0, Math.Min(50, issue.PdfUrl?.Length ?? 0))}...");
 
                 await _context.SaveChangesAsync();
+                Console.WriteLine($"✅ Issue {issue.IssueId} saved successfully");
+
+                // ✅ יצירת גיליון ריק חדש (טיוטה) לשבוע הבא לצורך מכירת מקומות פרסום
+                // מונע כפילויות לפי תאריך (טווח של יום שלם)
+                try
+                {
+                    var nextIssueDate = issue.IssueDate.Date.AddDays(7);
+                    var start = nextIssueDate;
+                    var end = nextIssueDate.AddDays(1);
+
+                    var existsForDate = await _context.Issues.AsNoTracking()
+                        .AnyAsync(i => i.IssueDate >= start && i.IssueDate < end);
+
+                    if (!existsForDate)
+                    {
+                        var nextIssue = new Issue
+                        {
+                            Title = $"גיליון חדש (מקומות פרסום) - {nextIssueDate:yyyy-MM-dd}",
+                            IssueDate = nextIssueDate,
+                            PdfUrl = null,
+                            FileUrl = null,
+                            Summary = null
+                        };
+
+                        _context.Issues.Add(nextIssue);
+                        await _context.SaveChangesAsync();
+                        Console.WriteLine($"✅ Created next empty issue for ad slots: {nextIssue.IssueId} ({nextIssue.IssueDate:yyyy-MM-dd})");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"ℹ️ Next issue placeholder already exists for date: {nextIssueDate:yyyy-MM-dd}");
+                    }
+                }
+                catch (Exception exCreateNext)
+                {
+                    // לא נכשיל פרסום בגלל כשל ביצירת גיליון הבא
+                    Console.WriteLine($"⚠️ Failed creating next empty issue: {exCreateNext.Message}");
+                }
 
                 // יצירת גיליון ריק חדש לשבוע הבא (אם עדיין לא קיים)
                 var nextWeekDate = DateTime.UtcNow.AddDays(7);
@@ -1043,12 +1171,16 @@ namespace HasderaApi.Controllers
                 Response.Headers["Pragma"] = "no-cache";
                 Response.Headers["Expires"] = "0";
                 
+                // הוספת Content-Disposition כדי למנוע בעיות עם תווים מיוחדים בשם הקובץ
+                var safeFileName = fileName.Replace("pending-upload-", ""); // הסרת הקידומת מה-Content-Disposition
+                Response.Headers["Content-Disposition"] = $"inline; filename=\"{safeFileName}\"";
+                
                 Console.WriteLine($"📤 Sending PDF file: {fileName}, Size: {fileInfo.Length} bytes, Content-Type: application/pdf");
                 
                 // שימוש ב-PhysicalFile עם streaming - הוא מטפל אוטומטית ב-Range requests
                 // enableRangeProcessing: true מאפשר תמיכה ב-Range requests עבור PDF streaming
                 // PhysicalFile יוסיף אוטומטית את Content-Type, Content-Length, Accept-Ranges ו-Content-Range לפי הצורך
-                return PhysicalFile(localFilePath, "application/pdf", fileName, enableRangeProcessing: true);
+                return PhysicalFile(localFilePath, "application/pdf", safeFileName, enableRangeProcessing: true);
             }
             catch (Exception ex)
             {
@@ -1165,38 +1297,169 @@ namespace HasderaApi.Controllers
                     return NotFound("PDF לא נמצא");
                 }
 
-                // אם זה טיוטה (pending-upload), נטען מהשרת המקומי
+                // אם זה טיוטה ב-S3 (פורמט חדש: "draft:drafts/draft-xxx.pdf")
+                if (issue.PdfUrl.StartsWith("draft:"))
+                {
+                    var draftS3Key = issue.PdfUrl.Substring(6); // מסיר את "draft:"
+                    var bucketName = _cfg["S3:Bucket"] ?? "hasdera-issues";
+                    
+                    Console.WriteLine($"🔍 טוען טיוטה מ-S3: {draftS3Key}");
+                    
+                    try
+                    {
+                        var getRequest = new GetObjectRequest
+                        {
+                            BucketName = bucketName,
+                            Key = draftS3Key
+                        };
+
+                        using var response = await _s3.GetObjectAsync(getRequest);
+                        using var memoryStream = new MemoryStream();
+                        await response.ResponseStream.CopyToAsync(memoryStream);
+                        var pdfBytes = memoryStream.ToArray();
+                        
+                        Console.WriteLine($"✅ טיוטה נטענה מ-S3, גודל: {pdfBytes.Length} bytes");
+                        return File(pdfBytes, "application/pdf", $"{issue.Title}.pdf");
+                    }
+                    catch (AmazonS3Exception s3Ex)
+                    {
+                        Console.WriteLine($"❌ S3 Error: {s3Ex.Message}");
+                        if (s3Ex.StatusCode == HttpStatusCode.NotFound)
+                        {
+                            return NotFound($"טיוטה לא נמצאה ב-S3: {s3Ex.Message}");
+                        }
+
+                        return StatusCode(502, $"שגיאה בגישה ל-S3: {s3Ex.Message}");
+                    }
+                }
+
+                // אם זה טיוטה ישנה (pending-upload), נטען מהשרת המקומי
                 if (issue.PdfUrl.StartsWith("pending-upload-"))
                 {
-                    var tempFileName = issue.PdfUrl.Replace("pending-upload-", "");
-                    var localFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "issues", tempFileName);
+                    // הקובץ נשמר עם הקידומת pending-upload- - לא להסיר אותה!
+                    var draftFileName = issue.PdfUrl; // issue.PdfUrl כבר מכיל את שם הקובץ המלא
+                    var localFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "issues", draftFileName);
+                    
+                    Console.WriteLine($"🔍 מחפש קובץ טיוטה: {localFilePath}");
                     
                     if (System.IO.File.Exists(localFilePath))
                     {
+                        Console.WriteLine($"✅ נמצא קובץ טיוטה: {localFilePath}");
                         var fileBytes = await System.IO.File.ReadAllBytesAsync(localFilePath);
                         return File(fileBytes, "application/pdf", $"{issue.Title}.pdf");
                     }
                     else
                     {
+                        // ננסה גם בלי הקידומת למקרה שהקובץ נשמר אחרת
+                        var tempFileName = issue.PdfUrl.Replace("pending-upload-", "");
+                        var alternativePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "issues", tempFileName);
+                        
+                        Console.WriteLine($"🔍 מחפש בנתיב חלופי: {alternativePath}");
+                        
+                        if (System.IO.File.Exists(alternativePath))
+                        {
+                            Console.WriteLine($"✅ נמצא בנתיב חלופי: {alternativePath}");
+                            var fileBytes = await System.IO.File.ReadAllBytesAsync(alternativePath);
+                            return File(fileBytes, "application/pdf", $"{issue.Title}.pdf");
+                        }
+                        
+                        Console.WriteLine($"❌ קובץ טיוטה לא נמצא בשום נתיב");
                         return NotFound("קובץ טיוטה לא נמצא בשרת");
                     }
                 }
 
-                // אם זה קובץ שפורסם, נטען מ-S3
-                var pdfUrl = GetFileUrl(issue.PdfUrl);
-
-                // טעינת ה-PDF מ-S3
-                using var httpClient = new HttpClient();
-                var response = await httpClient.GetAsync(pdfUrl);
-                
-                if (!response.IsSuccessStatusCode)
+                // אם זה URL יחסי (uploads / draft-file) – לא משתמשים ב-HttpClient עם URI יחסי
+                if (issue.PdfUrl.StartsWith("/api/issues/draft-file/"))
                 {
-                    return StatusCode(500, "שגיאה בטעינת PDF מ-S3");
+                    var fileName = issue.PdfUrl.Replace("/api/issues/draft-file/", "").TrimStart('/');
+                    return await GetDraftFile(fileName);
                 }
 
-                var pdfBytes = await response.Content.ReadAsByteArrayAsync();
-                
-                return File(pdfBytes, "application/pdf", $"{issue.Title}.pdf");
+                if (issue.PdfUrl.StartsWith("/uploads/"))
+                {
+                    var relative = issue.PdfUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                    var localPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relative);
+                    if (!System.IO.File.Exists(localPath))
+                        return NotFound("PDF לא נמצא");
+
+                    var bytes = await System.IO.File.ReadAllBytesAsync(localPath);
+                    return File(bytes, "application/pdf", $"{issue.Title}.pdf");
+                }
+
+                // אם זה קובץ שפורסם ב-S3 – נטען דרך ה-S3 SDK (כמו טיוטה), עם ניסיון תיקון prefix/key
+                if (issue.PdfUrl.Contains("amazonaws.com", StringComparison.OrdinalIgnoreCase))
+                {
+                    var bucketName = _cfg["S3:Bucket"] ?? "hasdera-issues";
+                    var basePrefix = _cfg["S3:BasePrefix"] ?? "";
+
+                    var resolvedKey = await ResolveS3KeyFromUrlAsync(issue.PdfUrl, bucketName, basePrefix);
+                    Console.WriteLine($"🔗 Original PdfUrl from DB: {issue.PdfUrl}");
+                    Console.WriteLine($"🔑 Resolved S3 Key: {resolvedKey}");
+
+                    try
+                    {
+                        using var response = await _s3.GetObjectAsync(new GetObjectRequest
+                        {
+                            BucketName = bucketName,
+                            Key = resolvedKey
+                        });
+
+                        using var memoryStream = new MemoryStream();
+                        await response.ResponseStream.CopyToAsync(memoryStream);
+                        var pdfBytes = memoryStream.ToArray();
+
+                        Console.WriteLine($"✅ PDF loaded from S3, size: {pdfBytes.Length} bytes");
+                        return File(pdfBytes, "application/pdf", $"{issue.Title}.pdf");
+                    }
+                    catch (AmazonS3Exception s3Ex)
+                    {
+                        Console.WriteLine($"❌ S3 Error: {s3Ex.Message}");
+                        if (s3Ex.StatusCode == HttpStatusCode.NotFound)
+                            return NotFound("PDF לא נמצא ב-S3");
+
+                        return StatusCode(502, $"שגיאה בגישה ל-S3: {s3Ex.Message}");
+                    }
+                }
+
+                // כל URL אחר (http/https) – fallback ב-HttpClient
+                var pdfUrl = GetFileUrl(issue.PdfUrl);
+                Console.WriteLine($"🔗 Original PdfUrl from DB: {issue.PdfUrl}");
+                Console.WriteLine($"🔗 Generated URL: {pdfUrl}");
+
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.Timeout = TimeSpan.FromMinutes(5);
+
+                    try
+                    {
+                        var response = await httpClient.GetAsync(pdfUrl);
+                        Console.WriteLine($"📥 Response Status: {response.StatusCode}");
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            var errorContent = await response.Content.ReadAsStringAsync();
+                            Console.WriteLine($"❌ Error Response: {errorContent}");
+
+                            if (response.StatusCode == HttpStatusCode.NotFound)
+                                return NotFound("PDF לא נמצא");
+
+                            return StatusCode(502, $"שגיאה בטעינת PDF: {response.StatusCode}");
+                        }
+
+                        var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+                        return File(pdfBytes, "application/pdf", $"{issue.Title}.pdf");
+                    }
+                    catch (HttpRequestException httpEx)
+                    {
+                        Console.WriteLine($"❌ HTTP Error fetching PDF: {httpEx.Message}");
+                        return StatusCode(502, $"שגיאה בחיבור: {httpEx.Message}");
+                    }
+                    catch (TaskCanceledException tcEx)
+                    {
+                        Console.WriteLine($"❌ Timeout fetching PDF: {tcEx.Message}");
+                        return StatusCode(504, "Timeout בטעינת PDF");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -1205,10 +1468,101 @@ namespace HasderaApi.Controllers
             }
         }
 
+        private async Task<string> ResolveS3KeyFromUrlAsync(string fileUrl, string bucketName, string basePrefix)
+        {
+            // Extract key from URL path and try a few common variants (decode + folder swaps + BasePrefix).
+            var urlWithoutQuery = fileUrl.Split('?')[0];
+            var uri = new Uri(urlWithoutQuery);
+            var rawKey = uri.AbsolutePath
+                .Replace($"/{bucketName}/", "")
+                .TrimStart('/');
+
+            var candidates = new List<string>();
+            void AddCandidate(string? candidate)
+            {
+                if (string.IsNullOrWhiteSpace(candidate)) return;
+                candidate = candidate.TrimStart('/');
+                if (!candidates.Contains(candidate)) candidates.Add(candidate);
+            }
+
+            AddCandidate(rawKey);
+
+            // Decode once/twice (to avoid double-encoding in DB)
+            try { AddCandidate(Uri.UnescapeDataString(rawKey)); } catch { }
+            try { AddCandidate(Uri.UnescapeDataString(Uri.UnescapeDataString(rawKey))); } catch { }
+
+            // Swap common prefixes
+            if (rawKey.StartsWith("issues/", StringComparison.OrdinalIgnoreCase))
+                AddCandidate("pdfs/" + rawKey.Substring("issues/".Length));
+            if (rawKey.StartsWith("pdfs/", StringComparison.OrdinalIgnoreCase))
+                AddCandidate("issues/" + rawKey.Substring("pdfs/".Length));
+
+            // Apply BasePrefix if provided
+            if (!string.IsNullOrWhiteSpace(basePrefix))
+            {
+                basePrefix = basePrefix.TrimStart('/');
+                foreach (var existing in candidates.ToArray())
+                {
+                    var fileNameOnly = existing.Contains('/') ? existing.Substring(existing.LastIndexOf('/') + 1) : existing;
+                    AddCandidate(basePrefix.TrimEnd('/') + "/" + fileNameOnly);
+                }
+            }
+
+            foreach (var key in candidates)
+            {
+                try
+                {
+                    await _s3.GetObjectMetadataAsync(new GetObjectMetadataRequest
+                    {
+                        BucketName = bucketName,
+                        Key = key
+                    });
+                    return key;
+                }
+                catch (AmazonS3Exception s3Ex) when (s3Ex.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // try next
+                }
+                catch
+                {
+                    // If metadata check fails for other reasons, keep going.
+                }
+            }
+
+            // fallback to raw
+            return rawKey;
+        }
+
         private string GetFileUrl(string? fileUrl)
         {
     if (string.IsNullOrWhiteSpace(fileUrl))
                 return fileUrl ?? string.Empty;
+
+            // 0) טיוטה ב-S3 - draft:drafts/xxx.pdf
+            if (fileUrl.StartsWith("draft:"))
+            {
+                try
+                {
+                    var draftBucketName = _cfg["S3:Bucket"] ?? "hasdera-issues";
+                    var key = fileUrl.Substring(6);
+                    if (string.IsNullOrWhiteSpace(key))
+                        return fileUrl;
+
+                    var expiryMinutes = _cfg.GetValue<int>("PreSignedExpiryMinutes", 60);
+                    var request = new GetPreSignedUrlRequest
+                    {
+                        BucketName = draftBucketName,
+                        Key = key,
+                        Verb = HttpVerb.GET,
+                        Expires = DateTime.UtcNow.AddMinutes(Math.Max(5, expiryMinutes))
+                    };
+                    return _s3.GetPreSignedURL(request);
+                }
+                catch
+                {
+                    return fileUrl;
+                }
+            }
 
     // 1) טיוטה - pending-upload-xxxx.pdf
             if (fileUrl.StartsWith("pending-upload-"))
@@ -1219,6 +1573,10 @@ namespace HasderaApi.Controllers
 
     // 2) קובץ שמור בשרת
             if (fileUrl.StartsWith("/uploads/"))
+                return fileUrl;
+
+            // 2.1) טיוטה דרך endpoint
+            if (fileUrl.StartsWith("/api/issues/draft-file/"))
                 return fileUrl;
 
     // 3) קובץ ב-S3 (פורסם)
@@ -1390,26 +1748,19 @@ namespace HasderaApi.Controllers
                 return NotFound("גיליון לא נמצא");
             }
 
+            var issueDate = DateOnly.FromDateTime(issue.IssueDate);
+
             // קבלת כל ה-Slots הקיימים
             var allSlots = await _context.Slots.ToListAsync();
 
-            // קבלת כל ה-AdPlacements הקשורים לגיליון הזה דרך Ads
-            // Ad -> IssueId, Ad -> AdvertiserId -> Adorder -> Adplacement -> SlotId
-            var occupiedSlots = await _context.Ads
-                .Where(ad => ad.IssueId == id)
-                .SelectMany(ad => _context.AdOrders
-                    .Where(order => order.AdvertiserId == ad.AdvertiserId)
-                    .SelectMany(order => order.Adplacements)
-                    .Select(ap => new
-                    {
-                        SlotId = ap.SlotId,
-                        Slot = ap.Slot,
-                        AdvertiserId = ad.AdvertiserId,
-                        Advertiser = ad.Advertiser,
-                        AdplacementId = ap.AdplacementId,
-                        StartDate = ap.StartDate,
-                        EndDate = ap.EndDate
-                    }))
+            // קבלת כל ה-AdPlacements שתופסים מקום בתאריך של הגיליון
+            // הגדרה: תפוס אם issueDate בתוך הטווח StartDate..EndDate (כולל), עם null כ"פתוח".
+            var occupiedPlacements = await _context.Adplacements
+                .Include(ap => ap.Order)
+                    .ThenInclude(o => o.Advertiser)
+                .Where(ap =>
+                    (ap.StartDate == null || ap.StartDate <= issueDate)
+                    && (ap.EndDate == null || issueDate <= ap.EndDate))
                 .ToListAsync();
 
             // יצירת רשימת מקומות עם סטטוס
@@ -1420,19 +1771,29 @@ namespace HasderaApi.Controllers
                 Name = slot.Name,
                 BasePrice = slot.BasePrice,
                 IsExclusive = slot.IsExclusive,
-                IsOccupied = occupiedSlots.Any(os => os.SlotId == slot.SlotId),
-                OccupiedBy = occupiedSlots
-                    .Where(os => os.SlotId == slot.SlotId)
-                    .Select(os => new
+                IsOccupied = occupiedPlacements.Any(op => op.SlotId == slot.SlotId),
+                OccupiedBy = occupiedPlacements
+                    .Where(op => op.SlotId == slot.SlotId)
+                    .OrderBy(op => op.StartDate ?? DateOnly.MinValue)
+                    .Select(op => new
                     {
-                        AdvertiserId = os.AdvertiserId,
-                        AdvertiserName = os.Advertiser != null ? os.Advertiser.Company ?? os.Advertiser.Name ?? os.Advertiser.Email ?? "לא ידוע" : "לא ידוע",
-                        AdplacementId = os.AdplacementId,
-                        StartDate = os.StartDate,
-                        EndDate = os.EndDate
+                        AdvertiserId = op.Order != null ? op.Order.AdvertiserId : 0,
+                        AdvertiserName = op.Order != null && op.Order.Advertiser != null
+                            ? op.Order.Advertiser.Company ?? op.Order.Advertiser.Name ?? op.Order.Advertiser.Email ?? "לא ידוע"
+                            : "לא ידוע",
+                        Company = op.Order != null && op.Order.Advertiser != null ? op.Order.Advertiser.Company : null,
+                        Email = op.Order != null && op.Order.Advertiser != null ? op.Order.Advertiser.Email : null,
+                        Phone = op.Order != null && op.Order.Advertiser != null ? op.Order.Advertiser.Phone : null,
+                        OrderId = op.OrderId,
+                        AdplacementId = op.AdplacementId,
+                        OrderStatus = op.Order != null ? op.Order.Status : null,
+                        StartDate = op.StartDate,
+                        EndDate = op.EndDate
                     })
                     .FirstOrDefault()
             }).ToList();
+
+            var occupiedDistinctSlots = occupiedPlacements.Select(op => op.SlotId).Distinct().Count();
 
             return Ok(new
             {
@@ -1440,8 +1801,8 @@ namespace HasderaApi.Controllers
                 IssueTitle = issue.Title,
                 Slots = slotsWithStatus,
                 TotalSlots = allSlots.Count,
-                OccupiedSlots = occupiedSlots.Count,
-                AvailableSlots = allSlots.Count - occupiedSlots.Select(os => os.SlotId).Distinct().Count()
+                OccupiedSlots = occupiedDistinctSlots,
+                AvailableSlots = allSlots.Count - occupiedDistinctSlots
             });
             }
             catch (Exception ex)
@@ -1451,6 +1812,233 @@ namespace HasderaApi.Controllers
             return StatusCode(500, new { error = "שגיאה פנימית בשרת", details = ex.Message });
         }
             }
+
+        // POST /api/issues/{id}/slots/{slotId}/book - הזמנה טלפונית (מנהל)
+        [Authorize]
+        [HttpPost("{id}/slots/{slotId}/book")]
+        public async Task<IActionResult> BookSlotForIssue(int id, int slotId, [FromBody] AdminBookSlotRequest request)
+        {
+            try
+            {
+                var issue = await _context.Issues.FindAsync(id);
+                if (issue == null)
+                {
+                    return NotFound("גיליון לא נמצא");
+                }
+
+                var slot = await _context.Slots.FindAsync(slotId);
+                if (slot == null)
+                {
+                    return NotFound("מקום פרסום לא נמצא");
+                }
+
+                var issueDate = DateOnly.FromDateTime(issue.IssueDate);
+
+                var isOccupied = await _context.Adplacements.AnyAsync(ap =>
+                    ap.SlotId == slotId
+                    && (ap.StartDate == null || ap.StartDate <= issueDate)
+                    && (ap.EndDate == null || issueDate <= ap.EndDate));
+
+                if (isOccupied)
+                {
+                    return BadRequest("המקום כבר תפוס בתאריך הגיליון");
+                }
+
+                Advertiser advertiser;
+                if (request.AdvertiserId.HasValue && request.AdvertiserId.Value > 0)
+                {
+                    var foundAdvertiser = await _context.Advertisers
+                        .FirstOrDefaultAsync(a => a.AdvertiserId == request.AdvertiserId.Value);
+                    if (foundAdvertiser == null)
+                    {
+                        return NotFound("מפרסם לא נמצא");
+                    }
+
+                    advertiser = foundAdvertiser;
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(request.Name))
+                    {
+                        return BadRequest("שם מפרסם חובה");
+                    }
+
+                    advertiser = new Advertiser
+                    {
+                        Name = request.Name.Trim(),
+                        Company = request.Company,
+                        Email = request.Email,
+                        Phone = request.Phone,
+                        JoinDate = DateOnly.FromDateTime(DateTime.UtcNow)
+                    };
+
+                    _context.Advertisers.Add(advertiser);
+                    await _context.SaveChangesAsync();
+                }
+
+                // package קיים או יצירה
+                var existingPackage = await _context.Packages
+                    .FirstOrDefaultAsync(p => p.AdvertiserId == advertiser.AdvertiserId);
+
+                int packageId;
+                if (existingPackage != null)
+                {
+                    packageId = existingPackage.PackageId;
+                }
+                else
+                {
+                    var newPackage = new Package
+                    {
+                        AdvertiserId = advertiser.AdvertiserId,
+                        Name = "חבילה בסיסית",
+                        Price = request.Amount ?? 0,
+                        StartDate = issueDate,
+                        EndDate = issueDate
+                    };
+                    _context.Packages.Add(newPackage);
+                    await _context.SaveChangesAsync();
+                    packageId = newPackage.PackageId;
+                }
+
+                // יצירת order
+                var order = new Adorder
+                {
+                    AdvertiserId = advertiser.AdvertiserId,
+                    PackageId = packageId,
+                    OrderDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    Status = (request.PaymentStatus ?? "pending").ToLowerInvariant()
+                };
+                _context.AdOrders.Add(order);
+                await _context.SaveChangesAsync();
+
+                // יצירת placement לתאריך הגיליון
+                var placement = new Adplacement
+                {
+                    OrderId = order.OrderId,
+                    SlotId = slotId,
+                    StartDate = issueDate,
+                    EndDate = issueDate
+                };
+                _context.Adplacements.Add(placement);
+
+                // תשלום (אופציונלי)
+                if (request.Amount.HasValue || !string.IsNullOrWhiteSpace(request.Method) || !string.IsNullOrWhiteSpace(request.PaymentStatus))
+                {
+                    var payment = new Payment
+                    {
+                        AdvertiserId = advertiser.AdvertiserId,
+                        Amount = request.Amount,
+                        Method = request.Method,
+                        Status = request.PaymentStatus,
+                        Date = DateOnly.FromDateTime(DateTime.UtcNow)
+                    };
+                    _context.Payments.Add(payment);
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    issueId = id,
+                    slotId = slotId,
+                    advertiserId = advertiser.AdvertiserId,
+                    orderId = order.OrderId,
+                    adplacementId = placement.AdplacementId
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ שגיאה בהזמנה טלפונית: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { error = "שגיאה פנימית בשרת", details = ex.Message });
+            }
+        }
+
+        // PUT /api/issues/{id}/slots/{slotId}/booking - עריכת הזמנה קיימת (מנהל)
+        // מאפשר:
+        // 1) שינוי מקום (Slot) בתוך אותו גיליון
+        // 2) שינוי סטטוס תשלום (order.Status)
+        [Authorize]
+        [HttpPut("{id}/slots/{slotId}/booking")]
+        public async Task<IActionResult> UpdateSlotBookingForIssue(int id, int slotId, [FromBody] UpdateSlotBookingRequest request)
+        {
+            try
+            {
+                var issue = await _context.Issues.FindAsync(id);
+                if (issue == null)
+                {
+                    return NotFound("גיליון לא נמצא");
+                }
+
+                var issueDate = DateOnly.FromDateTime(issue.IssueDate);
+
+                // למצוא את ה-placement שתופס את ה-slot בתאריך של הגיליון
+                var placement = await _context.Adplacements
+                    .Include(ap => ap.Order)
+                    .FirstOrDefaultAsync(ap =>
+                        ap.SlotId == slotId
+                        && (ap.StartDate == null || ap.StartDate <= issueDate)
+                        && (ap.EndDate == null || issueDate <= ap.EndDate));
+
+                if (placement == null)
+                {
+                    return NotFound("לא נמצאה הזמנה למקום הזה בתאריך הגיליון");
+                }
+
+                // עריכה מותרת רק להזמנה חד-שבועית/חד-תאריך כדי שלא נזיז טווחים בטעות
+                if (placement.StartDate != issueDate || placement.EndDate != issueDate)
+                {
+                    return BadRequest("לא ניתן לערוך הזמנה רב-שבועית דרך מסך זה");
+                }
+
+                // שינוי מקום
+                if (request.TargetSlotId.HasValue && request.TargetSlotId.Value > 0 && request.TargetSlotId.Value != slotId)
+                {
+                    var targetSlot = await _context.Slots.FindAsync(request.TargetSlotId.Value);
+                    if (targetSlot == null)
+                    {
+                        return NotFound("מקום פרסום יעד לא נמצא");
+                    }
+
+                    var targetOccupied = await _context.Adplacements.AnyAsync(ap =>
+                        ap.AdplacementId != placement.AdplacementId
+                        && ap.SlotId == request.TargetSlotId.Value
+                        && (ap.StartDate == null || ap.StartDate <= issueDate)
+                        && (ap.EndDate == null || issueDate <= ap.EndDate));
+
+                    if (targetOccupied)
+                    {
+                        return BadRequest("מקום היעד כבר תפוס בתאריך הגיליון");
+                    }
+
+                    placement.SlotId = request.TargetSlotId.Value;
+                }
+
+                // שינוי סטטוס תשלום
+                if (!string.IsNullOrWhiteSpace(request.PaymentStatus) && placement.Order != null)
+                {
+                    placement.Order.Status = request.PaymentStatus.Trim().ToLowerInvariant();
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    issueId = id,
+                    fromSlotId = slotId,
+                    toSlotId = placement.SlotId,
+                    orderId = placement.OrderId,
+                    adplacementId = placement.AdplacementId,
+                    paymentStatus = placement.Order != null ? placement.Order.Status : null
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ שגיאה בעריכת הזמנה: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { error = "שגיאה פנימית בשרת", details = ex.Message });
+            }
+        }
 
         }
     }

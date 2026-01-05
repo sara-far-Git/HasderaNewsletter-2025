@@ -30,6 +30,20 @@
   "ClientId": "YOUR_GOOGLE_CLIENT_ID"
 },
 
+  "Integrations": {
+    "Monday": {
+      "ApiToken": "YOUR_MONDAY_API_TOKEN",
+      "BoardId": 0,
+      "PaymentStatusColumnId": ""
+    }
+  },
+
+  "Payments": {
+    "Provider": "", 
+    "WebhookSecret": "",
+    "InvoiceProvider": ""
+  },
+
     "AllowedHosts": "*"
   }
 

@@ -30,6 +30,9 @@ appsettings.*.json
 !appsettings.json.example
 !appsettings.Development.json.example
 
+# Local upload/temp files (should not be committed)
+wwwroot/uploads/
+
 # Secrets and credentials
 *.key
 *.pem
