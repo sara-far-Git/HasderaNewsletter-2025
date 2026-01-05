@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import styled, { createGlobalStyle, keyframes } from "styled-components";
+import styled, { createGlobalStyle, keyframes, css } from "styled-components";
 import { Mail, Lock, User, Eye, EyeOff, BookOpen } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
 import { login, register, loginWithGoogle } from "../Services/Login";
@@ -255,6 +255,10 @@ const Select = styled.select`
   cursor: pointer;
   transition: ${hasederaTheme.transitions.base};
 
+  ${props => props.$delay != null && css`
+    animation: ${slideInRight} 0.5s ease-out ${props.$delay}s both;
+  `}
+
   &:focus {
     outline: none;
     border-color: ${hasederaTheme.colors.primary.main};
@@ -305,12 +309,20 @@ const Divider = styled.div`
     height: 1px;
     background: rgba(0, 0, 0, 0.1);
   }
+
+  ${props => props.$delay != null && css`
+    animation: ${fadeIn} 0.5s ease-out ${props.$delay}s both;
+  `}
 `;
 
 const GoogleButton = styled.div`
   display: flex;
   justify-content: center;
   margin-top: 1rem;
+
+  ${props => props.$delay != null && css`
+    animation: ${fadeInUp} 0.5s ease-out ${props.$delay}s both;
+  `}
 `;
 
 const Message = styled.div`
@@ -754,7 +766,7 @@ export default function LoginPage() {
                 />
               </InputWrapper>
 
-              <Select value={role} onChange={(e) => setRole(e.target.value)} style={{ animation: `${slideInRight} 0.5s ease-out 1s both` }}>
+              <Select value={role} onChange={(e) => setRole(e.target.value)} $delay={1}>
                 <option value="Advertiser">מפרסמת</option>
               </Select>
 
@@ -766,9 +778,9 @@ export default function LoginPage() {
 
           {!showSuccess && (
             <>
-              <Divider style={{ animation: `${fadeIn} 0.5s ease-out 1.1s both` }}>או</Divider>
+              <Divider $delay={1.1}>או</Divider>
 
-              <GoogleButton style={{ animation: `${fadeInUp} 0.5s ease-out 1.2s both` }}>
+              <GoogleButton $delay={1.2}>
                 <GoogleLogin
                   onSuccess={handleGoogleLogin}
                   onError={() => {
