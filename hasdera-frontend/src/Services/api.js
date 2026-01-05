@@ -2,6 +2,9 @@
 import axios from "axios";
 import axiosRetry from 'axios-retry';
 
+const DEFAULT_PROD_API_BASEURL = "https://hasderanewsletter-2025.onrender.com/api";
+const DEFAULT_DEV_API_BASEURL = "http://localhost:5055/api";
+
 // יצירת אינסטנס עם baseURL
 // שימוש ב-VITE_API_URL אם קיים, אחרת localhost לפיתוח
 const getApiBaseUrl = () => {
@@ -26,7 +29,7 @@ const getApiBaseUrl = () => {
     // אם המשתנה קיים אבל ריק/רווחים, נחשב אותו כלא מוגדר
     if (!url) {
       console.error('❌ VITE_API_URL is set but empty. Falling back to default API URL.');
-      const productionUrl = "https://hasderanewsletter-2025.onrender.com/api";
+      const productionUrl = DEFAULT_PROD_API_BASEURL;
       console.log('✅ Falling back to Render API:', productionUrl);
       return productionUrl;
     }
@@ -36,7 +39,7 @@ const getApiBaseUrl = () => {
       console.error('❌ VITE_API_URL is relative! It should be a full URL like https://hasderanewsletter-2025.onrender.com');
       console.error('❌ Current VITE_API_URL:', url);
       // נשתמש ב-production URL במקום
-      const productionUrl = "https://hasderanewsletter-2025.onrender.com/api";
+      const productionUrl = DEFAULT_PROD_API_BASEURL;
       console.log('✅ Falling back to Render API:', productionUrl);
       return productionUrl;
     }
@@ -45,7 +48,7 @@ const getApiBaseUrl = () => {
     if (!/^https?:\/\//i.test(url)) {
       console.error('❌ VITE_API_URL is missing http/https scheme! It should be a full URL like https://hasderanewsletter-2025.onrender.com');
       console.error('❌ Current VITE_API_URL:', url);
-      const productionUrl = "https://hasderanewsletter-2025.onrender.com/api";
+      const productionUrl = DEFAULT_PROD_API_BASEURL;
       console.log('✅ Falling back to Render API:', productionUrl);
       return productionUrl;
     }
@@ -59,7 +62,7 @@ const getApiBaseUrl = () => {
   
   // אם אנחנו ב-production, נשתמש ב-Render API
   if (isProduction) {
-    const productionUrl = "https://hasderanewsletter-2025.onrender.com/api";
+    const productionUrl = DEFAULT_PROD_API_BASEURL;
     console.log('✅ Production mode - using Render API:', productionUrl);
     console.log('⚠️ VITE_API_URL not set! Please set it in Cloudflare Pages Environment Variables');
     return productionUrl;
@@ -67,14 +70,14 @@ const getApiBaseUrl = () => {
   
   // בפיתוח מקומי, נשתמש ב-localhost
   console.log('✅ Development mode - using localhost:5055');
-  return "http://localhost:5055/api";
+  return DEFAULT_DEV_API_BASEURL;
 };
 
 const apiBaseUrl = getApiBaseUrl();
 console.log('🔍 Final API baseURL:', apiBaseUrl);
 
 export const api = axios.create({
-  baseURL: apiBaseUrl,
+  baseURL: apiBaseUrl || (import.meta.env.PROD ? DEFAULT_PROD_API_BASEURL : DEFAULT_DEV_API_BASEURL),
   headers: {
     "Content-Type": "application/json"
   },
@@ -84,6 +87,15 @@ export const api = axios.create({
 
 // ——— REQUEST INTERCEPTOR ———
 api.interceptors.request.use((config) => {
+  // Failsafe: אם baseURL ריק/חסר, נכפה אותו כדי שלא נשלח ל-pages.dev
+  const effectiveDefaultBaseUrl = import.meta.env.PROD ? DEFAULT_PROD_API_BASEURL : DEFAULT_DEV_API_BASEURL;
+  if (!api.defaults.baseURL) {
+    api.defaults.baseURL = effectiveDefaultBaseUrl;
+  }
+  if (!config.baseURL) {
+    config.baseURL = api.defaults.baseURL || effectiveDefaultBaseUrl;
+  }
+
   // לוג כדי לוודא שה-baseURL נכון
   console.log('🔍 API Request:', config.method?.toUpperCase(), config.baseURL + config.url);
   
