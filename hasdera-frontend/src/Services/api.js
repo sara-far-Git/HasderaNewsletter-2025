@@ -22,6 +22,14 @@ const getApiBaseUrl = () => {
   // אם יש VITE_API_URL, נשתמש בו
   if (import.meta.env.VITE_API_URL) {
     let url = import.meta.env.VITE_API_URL.trim();
+
+    // אם המשתנה קיים אבל ריק/רווחים, נחשב אותו כלא מוגדר
+    if (!url) {
+      console.error('❌ VITE_API_URL is set but empty. Falling back to default API URL.');
+      const productionUrl = "https://hasderanewsletter-2025.onrender.com/api";
+      console.log('✅ Falling back to Render API:', productionUrl);
+      return productionUrl;
+    }
     
     // בדיקה שה-URL לא יחסי (לא מתחיל ב-/)
     if (url.startsWith('/')) {
@@ -32,8 +40,18 @@ const getApiBaseUrl = () => {
       console.log('✅ Falling back to Render API:', productionUrl);
       return productionUrl;
     }
+
+    // בדיקה שה-URL מוחלט וכולל scheme (http/https)
+    if (!/^https?:\/\//i.test(url)) {
+      console.error('❌ VITE_API_URL is missing http/https scheme! It should be a full URL like https://hasderanewsletter-2025.onrender.com');
+      console.error('❌ Current VITE_API_URL:', url);
+      const productionUrl = "https://hasderanewsletter-2025.onrender.com/api";
+      console.log('✅ Falling back to Render API:', productionUrl);
+      return productionUrl;
+    }
     
     // וודא שיש /api בסוף אם לא קיים
+    url = url.replace(/\/+$/, ''); // הסרת / בסוף כדי לא לקבל //api
     const finalUrl = url.endsWith('/api') ? url : url + '/api';
     console.log('✅ Using VITE_API_URL:', finalUrl);
     return finalUrl;
