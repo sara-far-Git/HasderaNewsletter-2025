@@ -20,7 +20,7 @@ public partial class AppDbContext : DbContext
     
     // תיקון שמות המודלים - שימוש בשמות הנכונים מהקבצים
     public virtual DbSet<Adorder> AdOrders { get; set; }
-    public virtual DbSet<Adplacement> AdPlacements { get; set; }
+    public virtual DbSet<Adplacement> Adplacements { get; set; }
     public virtual DbSet<Creative> Creatives { get; set; }
     public virtual DbSet<Slot> Slots { get; set; }
     public virtual DbSet<Advertisercontact> AdvertiserContacts { get; set; }
@@ -464,7 +464,9 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("pdf_url");
             
             entity.Property(e => e.IssueDate).HasColumnName("issue_date");
-            entity.Property(e => e.Summary).HasColumnName("summary");
+            entity.Property(e => e.Summary)
+                .HasColumnName("summary")
+                .HasColumnType("text"); // מפורש - text type ב-PostgreSQL
             entity.Property(e => e.Title)
                 .HasMaxLength(200)
                 .HasColumnName("title");

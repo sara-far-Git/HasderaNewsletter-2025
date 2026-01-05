@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import styled from "styled-components";
 import { Check, X } from "lucide-react";
 import { Card, CardTitle, PrimaryButton, SecondaryButton, Flex } from "../styles";
@@ -82,6 +82,17 @@ const PageContainer = styled.div`
   overflow: hidden;
   transition: ${hasederaTheme.transitions.base};
   max-height: 500px;
+`;
+
+const PreviewLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.28;
+  pointer-events: none;
+  z-index: 0;
 `;
 
 const PageGrid = styled.div`
@@ -351,10 +362,77 @@ const ConfirmButton = styled.button`
 `;
 
 // 🎯 Main Component
-export default function AdPlacementSelector({ onSelect, onCancel }) {
+export default function AdPlacementSelector({ onSelect, onCancel, previewFile = null }) {
   const [selectedSize, setSelectedSize] = useState(null); // 'full', 'half', 'quarter'
   const [hoveredQuarter, setHoveredQuarter] = useState(null); // מספר הרבע (1-4)
   const [selectedQuarters, setSelectedQuarters] = useState([]); // מערך של רבעים שנבחרו
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrlToRevoke = null;
+
+    const clear = () => {
+      if (objectUrlToRevoke) URL.revokeObjectURL(objectUrlToRevoke);
+      objectUrlToRevoke = null;
+      if (!cancelled) setPreviewUrl(null);
+    };
+
+    const run = async () => {
+      if (!previewFile) {
+        clear();
+        return;
+      }
+
+      // ✅ תמונות: URL מקומי
+      if (previewFile.type?.startsWith('image/')) {
+        const url = URL.createObjectURL(previewFile);
+        objectUrlToRevoke = url;
+        if (!cancelled) setPreviewUrl(url);
+        return;
+      }
+
+      // ✅ PDF: רנדר של עמוד ראשון ל-dataURL
+      const isPdf = previewFile.type === 'application/pdf' || previewFile.name?.toLowerCase().endsWith('.pdf');
+      if (!isPdf) {
+        clear();
+        return;
+      }
+
+      try {
+        const pdfjs = await import('pdfjs-dist/build/pdf');
+        // שימוש ב-worker מקומי שכבר קיים ב-public (וגם ב-dist)
+        if (pdfjs.GlobalWorkerOptions && !pdfjs.GlobalWorkerOptions.workerSrc) {
+          pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+        }
+
+        const data = await previewFile.arrayBuffer();
+        const doc = await pdfjs.getDocument({ data }).promise;
+        const page = await doc.getPage(1);
+
+        const viewport = page.getViewport({ scale: 1.2 });
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('No canvas context');
+
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const dataUrl = canvas.toDataURL('image/png');
+        if (!cancelled) setPreviewUrl(dataUrl);
+      } catch {
+        clear();
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+      if (objectUrlToRevoke) URL.revokeObjectURL(objectUrlToRevoke);
+    };
+  }, [previewFile]);
 
   // פונקציה לקביעת אילו רבעים להדגיש בהתאם לגודל
   const getHighlightedQuarters = useCallback((quarterIndex, size) => {
@@ -426,6 +504,41 @@ export default function AdPlacementSelector({ onSelect, onCancel }) {
     ? getHighlightedQuarters(hoveredQuarter, selectedSize)
     : [];
 
+  const getPreviewFor = useCallback((mode, index) => {
+    if (!previewUrl) return null;
+
+    if (mode === 'full') {
+      return { backgroundImage: `url(${previewUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+    }
+
+    if (mode === 'half') {
+      // חצי שמאלי / ימני
+      const isLeft = index === 1;
+      return {
+        backgroundImage: `url(${previewUrl})`,
+        backgroundSize: '200% 100%',
+        backgroundPosition: isLeft ? '0% 50%' : '100% 50%'
+      };
+    }
+
+    if (mode === 'quarter') {
+      const positions = {
+        1: '0% 0%',
+        2: '100% 0%',
+        3: '0% 100%',
+        4: '100% 100%'
+      };
+
+      return {
+        backgroundImage: `url(${previewUrl})`,
+        backgroundSize: '200% 200%',
+        backgroundPosition: positions[index] || '50% 50%'
+      };
+    }
+
+    return null;
+  }, [previewUrl]);
+
   return (
     <SelectorContainer>
       <Header>
@@ -463,6 +576,9 @@ export default function AdPlacementSelector({ onSelect, onCancel }) {
             }}
             style={{ cursor: 'default' }}
           >
+            {previewUrl && (
+              <PreviewLayer style={{ backgroundImage: `url(${previewUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+            )}
             <QuarterLabel style={{ color: '#9ca3af', fontSize: '1rem' }}>
               בחר גודל מודעה כדי לראות את החלוקה
             </QuarterLabel>
@@ -475,6 +591,7 @@ export default function AdPlacementSelector({ onSelect, onCancel }) {
             onMouseEnter={() => handleQuarterHover(1)}
             onMouseLeave={() => setHoveredQuarter(null)}
           >
+            {previewUrl && <PreviewLayer style={getPreviewFor('full', 1)} />}
             <QuarterLabel $selected={selectedQuarters.length > 0}>
               עמוד מלא
             </QuarterLabel>
@@ -498,6 +615,7 @@ export default function AdPlacementSelector({ onSelect, onCancel }) {
                   onMouseLeave={() => setHoveredQuarter(null)}
                   onClick={() => handleQuarterClick(index === 1 ? 1 : 2)}
                 >
+                  {previewUrl && <PreviewLayer style={getPreviewFor('half', index)} />}
                   <QuarterLabel $isHovered={isHovered} $selected={isSelected}>
                     {label}
                   </QuarterLabel>
@@ -522,6 +640,7 @@ export default function AdPlacementSelector({ onSelect, onCancel }) {
                   onMouseLeave={() => setHoveredQuarter(null)}
                   onClick={() => handleQuarterClick(quarterIndex)}
                 >
+                  {previewUrl && <PreviewLayer style={getPreviewFor('quarter', quarterIndex)} />}
                   <QuarterLabel $isHovered={isHovered} $selected={isSelected}>
                     {quarterIndex === 1 && 'רבע עליון שמאלי'}
                     {quarterIndex === 2 && 'רבע עליון ימני'}

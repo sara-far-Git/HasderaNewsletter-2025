@@ -4,11 +4,12 @@
  * כולל אפשרות להוספת קישורים ואנימציות
  */
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import styled, { keyframes, createGlobalStyle } from "styled-components";
 import { useNavigate } from "react-router-dom";
 import { Link, X, Save, Send, Edit2, Plus, Trash2, Zap, Mail, ExternalLink, Phone, MapPin, Calendar, Clock, Star, Heart, ShoppingCart, User, Home } from "lucide-react";
 import { getIssueById, updateIssueMetadata, publishIssue } from "../Services/issuesService";
+import { LinksContainer, availableIcons, availableAnimations } from "./LinkOverlayComponent";
 
 // 🎬 אנימציות
 const fadeIn = keyframes`
@@ -284,10 +285,23 @@ const HeaderTitle = styled.h2`
   color: white;
   letter-spacing: 1px;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   
   @media (max-width: 768px) {
     font-size: 1.2rem;
   }
+`;
+
+const PublishStatusBadge = styled.span`
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: ${props => props.$isPublished ? '#10b981' : '#f59e0b'};
+  color: white;
+  font-family: sans-serif;
 `;
 
 const HeaderActions = styled.div`
@@ -581,6 +595,42 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
+// 🎯 Link Action Buttons - כפתורי עריכה/מחיקה שמופיעים ב-hover
+const LinkActions = styled.div`
+  position: absolute;
+  top: -35px;
+  right: 50%;
+  transform: translateX(50%);
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 1002;
+  background: white;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+`;
+
+const LinkActionButton = styled.button`
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  background: ${props => props.$danger ? '#fee2e2' : '#e0f2fe'};
+  color: ${props => props.$danger ? '#dc2626' : '#0284c7'};
+  
+  &:hover {
+    background: ${props => props.$danger ? '#fecaca' : '#bae6fd'};
+    transform: scale(1.1);
+  }
+`;
+
 // 🎯 Link Overlay Component
 const LinkOverlay = styled.div.withConfig({
   shouldForwardProp: (prop) => prop !== 'isEditing',
@@ -592,12 +642,12 @@ const LinkOverlay = styled.div.withConfig({
   height: ${props => props.height}px;
   border: 2px dashed ${props => props.$isEditing ? '#14b8a6' : 'rgba(20, 184, 166, 0.5)'};
   background: ${props => props.$isEditing ? 'rgba(20, 184, 166, 0.1)' : 'rgba(20, 184, 166, 0.05)'};
-  cursor: grab;
+  cursor: pointer;
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: opacity 0.15s ease-out, background 0.2s, border-color 0.2s;
   user-select: none;
   
   &:hover {
@@ -605,8 +655,8 @@ const LinkOverlay = styled.div.withConfig({
     border-color: #14b8a6;
   }
   
-  &:active {
-    cursor: grabbing;
+  &:hover ${LinkActions} {
+    opacity: 1;
   }
 `;
 
@@ -752,6 +802,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
   const flipbookInstanceRef = useRef(null);
   const [issue, setIssue] = useState(propIssue || null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [visiblePages, setVisiblePages] = useState([1]); // עמודים שמוצגים כרגע (spread view יכול להציג 2)
   const [totalPages, setTotalPages] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -768,6 +819,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     url: '', 
     email: '', // for mailto links
     icon: 'Link', // default icon name
+    animation: 'pulse', // default animation
     page: 1, 
     x: 0, 
     y: 0, 
@@ -781,6 +833,12 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isPlacingLink, setIsPlacingLink] = useState(false);
   const flipbookWrapperRef = useRef(null);
+  
+  // 🔗 Memoized filtered links - רק קישורים שמתאימים לעמודים המוצגים
+  const filteredLinks = useMemo(() => {
+    if (isLoading || error) return [];
+    return (links || []).filter(link => visiblePages.includes(Number(link.page)));
+  }, [links, visiblePages, isLoading, error]);
   
   // 💾 Save States
   const [isSaving, setIsSaving] = useState(false);
@@ -800,6 +858,26 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         console.log('✅ AdminFlipbookViewer: Issue loaded:', data);
         console.log('✅ Setting issue state - IssueId:', data.issueId, 'PdfUrl:', data.PdfUrl);
         setIssue(data);
+        
+        // 🔧 עדכון סטטוס פרסום מהנתונים שנטענו
+        // חישוב אם פורסם - לפי PdfUrl
+        // גיליון פורסם רק אם הקובץ ב-S3 (amazonaws.com) ולא מכיל draft-file או pending-upload
+        const pdfUrl = data.PdfUrl || data.pdfUrl || data.Pdf_url || data.pdf_url || '';
+        
+        // בדיקה אם זו טיוטה (לא פורסם)
+        const isDraft = !pdfUrl || 
+          pdfUrl.includes('pending-upload') || 
+          pdfUrl.includes('draft-file') || 
+          pdfUrl.includes('/uploads/');
+        
+        // פורסם רק אם לא טיוטה ויש URL של S3
+        const isPublishedByUrl = !isDraft && 
+          (pdfUrl.includes('amazonaws.com') || pdfUrl.includes('.s3.'));
+        
+        const published = data.IsPublished || data.isPublished || data.is_published || isPublishedByUrl || false;
+        setIsPublished(published);
+        console.log('📢 Issue published status:', published, '(pdfUrl:', pdfUrl, ')');
+        
         console.log('✅ Issue state set, useEffect should trigger with new issue data');
         
         // טעינת קישורים ואנימציות אם יש
@@ -942,25 +1020,25 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         backgroundColor: '#1a1a1a',
         backgroundTransparent: false,
         pdfAutoLinks: true,
-        pdfTextLayer: true,
-        htmlLayer: true,
-        pdfAnnotationLayer: true,
-        sound: true,
-        flipSound: true,
+        pdfTextLayer: false, // כבוי לביצועים
+        htmlLayer: false, // כבוי לביצועים
+        pdfAnnotationLayer: false, // כבוי לביצועים
+        sound: false, // כבוי לביצועים
+        flipSound: false, // כבוי לביצועים
         loadAllPages: false,
-        loadPagesF: 3,
-        loadPagesB: 2,
+        loadPagesF: 2,
+        loadPagesB: 1,
         viewMode: 'webgl',
-        pageFlipDuration: 1,
-        lights: true,
-        lightIntensity: 0.6,
-        shadows: true,
-        shadowOpacity: 0.35,
-        pageRoughness: 0.9,
-        pageHardness: 1.2,
-        coverHardness: 2.5,
-        pageSegmentsW: 20,
-        pageMiddleShadowSize: 5,
+        pageFlipDuration: 0.5, // מהיר יותר
+        lights: false, // כבוי לביצועים
+        lightIntensity: 0,
+        shadows: false, // כבוי לביצועים
+        shadowOpacity: 0,
+        pageRoughness: 0,
+        pageHardness: 1,
+        coverHardness: 1.5,
+        pageSegmentsW: 10, // פחות segments = מהיר יותר
+        pageMiddleShadowSize: 0,
         zoomMin: 0.85,
         responsiveView: true,
         bookMargin: 20,
@@ -1020,11 +1098,49 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         flipbookInstanceRef.current = flipbook;
         console.log('📖 Flipbook instance saved to ref');
 
+        // 🔧 פונקציה פנימית לקבלת העמוד הנוכחי
+        const getCurrentPage = () => {
+          if (flipbook.Book?.getCurrentPageNumber) {
+            return flipbook.Book.getCurrentPageNumber();
+          }
+          if (flipbook.cPage && flipbook.cPage.length > 0) {
+            return Math.max(...flipbook.cPage) + 1;
+          }
+          if (flipbook.Book?.rightIndex !== undefined) {
+            return flipbook.Book.rightIndex;
+          }
+          return null;
+        };
+
+        // 🔧 פונקציה לעדכון visiblePages - בלי לוגים לביצועים טובים יותר
+        const updatePages = (page) => {
+          if (!page) return;
+          setCurrentPage(page);
+          
+          let visible = [page];
+          if (page === 1) {
+            visible = [1];
+          } else if (page % 2 === 0) {
+            visible = [page, page + 1];
+          } else {
+            visible = [page - 1, page];
+          }
+          setVisiblePages(visible);
+        };
+
         if (flipbook.on) {
-          flipbook.on('pagechange', () => {
-            const page = flipbook.getCurrentPageNumber?.();
-            if (page) setCurrentPage(page);
-          });
+          // 🔧 Polling לזיהוי שינויי עמוד - פשוט ויעיל
+          let lastPolledPage = 1;
+          const pollInterval = setInterval(() => {
+            const page = getCurrentPage();
+            if (page && page !== lastPolledPage) {
+              lastPolledPage = page;
+              updatePages(page);
+            }
+          }, 100); // בדיקה כל 100ms
+
+          // שמירת ה-interval לניקוי
+          flipbook._pagePollingInterval = pollInterval;
 
           // הוספת timeout לטעינת ה-PDF
           const timeoutId = setTimeout(() => {
@@ -1046,7 +1162,9 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
             isInitializingRef.current = false; // שחרור ההגנה
             const pages = flipbook.options?.numPages || flipbook.options?.pages?.length || 0;
             setTotalPages(pages);
-            console.log(`📄 Total pages: ${pages}`);
+            // 🔧 אתחול visiblePages בטעינה - עמוד 1 מוצג לבד
+            setVisiblePages([1]);
+            console.log(`📄 Total pages: ${pages}, visiblePages: [1]`);
           });
 
           flipbook.on('pdfinit', () => {
@@ -1056,7 +1174,9 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
             isInitializingRef.current = false; // שחרור ההגנה
             const pages = flipbook.options?.numPages || 0;
             setTotalPages(pages);
-            console.log(`📄 Total pages after pdfinit: ${pages}`);
+            // 🔧 אתחול visiblePages בטעינה - עמוד 1 מוצג לבד
+            setVisiblePages([1]);
+            console.log(`📄 Total pages after pdfinit: ${pages}, visiblePages: [1]`);
           });
 
           flipbook.on('error', (err) => {
@@ -1134,7 +1254,21 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       return;
     }
     
-    let pdfUrl = issue.PdfUrl || issue.FileUrl || issue.pdf_url || issue.Pdf_url || issue.pdfUrl || issue.fileUrl || issue.FileUrl || issue.File_url;
+    // שליפת URL ל-PDF - נעדיף fileUrl על pdfUrl אם pdfUrl הוא סימון פנימי (draft:)
+    let pdfUrl = issue.PdfUrl || issue.pdfUrl || issue.pdf_url || issue.Pdf_url;
+    let fileUrl = issue.FileUrl || issue.fileUrl || issue.File_url;
+    
+    // אם pdfUrl מתחיל ב-"draft:" זה סימון פנימי - נשתמש ב-fileUrl במקום
+    if (pdfUrl && pdfUrl.startsWith('draft:')) {
+      console.log('🔄 pdfUrl is internal draft marker, using fileUrl instead');
+      pdfUrl = fileUrl || pdfUrl;
+    }
+    
+    // fallback נוסף
+    if (!pdfUrl) {
+      pdfUrl = fileUrl;
+    }
+    
     console.log('📄 PDF URL from issue:', pdfUrl);
     if (!pdfUrl) {
       console.log('⚠️ No PDF URL, returning');
@@ -1240,12 +1374,35 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       
       console.log('🌐 API Base URL:', apiBaseUrl);
       
+      // קבלת ה-ID של הגיליון
+      const currentIssueId = issue.IssueId || issue.issueId || issue.issue_id;
+      
+      // *** חשוב: נתב קבצי S3 דרך ה-API כדי לעקוף בעיות CSP ***
+      // אם זה סימון פנימי של טיוטה (draft:), נשתמש ב-fileUrl או ב-API proxy
+      if (pdfUrl.startsWith('draft:')) {
+        // נשתמש ב-fileUrl אם קיים, אחרת ננתב דרך ה-API
+        const fileUrl = issue.FileUrl || issue.fileUrl || issue.File_url;
+        if (fileUrl && (fileUrl.includes('amazonaws.com') || fileUrl.includes('.s3.'))) {
+          pdfUrl = `${apiBaseUrl}/api/issues/${currentIssueId}/pdf`;
+          console.log('🔧 Draft marker detected, routed through API proxy:', pdfUrl);
+        } else if (fileUrl) {
+          pdfUrl = fileUrl;
+          console.log('🔧 Draft marker detected, using fileUrl:', pdfUrl);
+        } else {
+          pdfUrl = `${apiBaseUrl}/api/issues/${currentIssueId}/pdf`;
+          console.log('🔧 Draft marker detected, using API proxy:', pdfUrl);
+        }
+      }
+      // אם זה URL של S3 (amazonaws.com), נשתמש ב-API proxy
+      else if (pdfUrl.includes('amazonaws.com') || pdfUrl.includes('.s3.')) {
+        pdfUrl = `${apiBaseUrl}/api/issues/${currentIssueId}/pdf`;
+        console.log('🔧 Routed S3 URL through API proxy:', pdfUrl);
+      }
       // אם זה קובץ טיוטה (pending-upload או draft-file), נמיר ל-URL מלא
       // אבל רק אם זה לא URL מלא כבר
-      if (pdfUrl.startsWith('pending-upload-')) {
-        const tempFileName = pdfUrl.replace('pending-upload-', '');
-        pdfUrl = `${apiBaseUrl}/api/issues/draft-file/${tempFileName}`;
-        console.log('🔧 Converted pending-upload to full URL:', pdfUrl);
+      else if (pdfUrl.startsWith('pending-upload-')) {
+        pdfUrl = `${apiBaseUrl}/api/issues/${currentIssueId}/pdf`;
+        console.log('🔧 Converted pending-upload to API URL:', pdfUrl);
       } else if (pdfUrl.startsWith('/api/issues/draft-file/')) {
         // אם זה URL יחסי, נמיר אותו ל-URL מלא
         pdfUrl = `${apiBaseUrl}${pdfUrl}`;
@@ -1273,12 +1430,13 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       // ננסה לבדוק שהקובץ נגיש ושהוא PDF תקין
       // נשתמש ב-Promise כדי לוודא שהבדיקה מסתיימת לפני טעינת ה-FlipBook
       // עבור קבצים גדולים, נטען רק את ה-bytes הראשונים לבדיקה
-      // הוספת Authorization header עבור קבצי טיוטה שדורשים אימות
+      // הוספת Authorization header עבור קריאות API שדורשות אימות
       const token = localStorage.getItem('hasdera_token');
       const headers = {
         'Range': 'bytes=0-1023' // נטען רק את ה-1024 bytes הראשונים לבדיקה
       };
-      if (token && (pdfUrl.includes('/api/issues/draft-file/') || pdfUrl.includes('/uploads/'))) {
+      // נוסיף את ה-token לכל קריאות ה-API (כולל /api/issues/{id}/pdf)
+      if (token && pdfUrl.includes('/api/issues/')) {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
@@ -1556,20 +1714,78 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     return () => {
       if (flipbookInstanceRef.current) {
         try {
+          // ניקוי ה-polling interval
+          if (flipbookInstanceRef.current._pagePollingInterval) {
+            clearInterval(flipbookInstanceRef.current._pagePollingInterval);
+          }
           flipbookInstanceRef.current.destroy?.() || flipbookInstanceRef.current.dispose?.();
         } catch (e) {}
       }
     };
   }, []);
 
-  // 🔧 פונקציות ניווט
-  const goToPrevPage = useCallback(() => {
-    flipbookInstanceRef.current?.prevPage?.();
+  // 🔧 פונקציה לעדכון visiblePages לפי העמוד הנוכחי
+  const updateVisiblePages = useCallback((page) => {
+    let visible = [page];
+    if (page === 1) {
+      visible = [1];
+    } else if (page % 2 === 0) {
+      visible = [page, page + 1];
+    } else {
+      visible = [page - 1, page];
+    }
+    setVisiblePages(visible);
+    setCurrentPage(page);
+    console.log('📄 Manual page update:', page, 'visiblePages:', visible);
   }, []);
 
-  const goToNextPage = useCallback(() => {
-    flipbookInstanceRef.current?.nextPage?.();
+  // 🔧 פונקציה לקבלת העמוד הנוכחי מה-flipbook
+  const getFlipbookCurrentPage = useCallback(() => {
+    const flipbook = flipbookInstanceRef.current;
+    if (!flipbook) return null;
+    
+    // נסה דרכים שונות לקבל את העמוד הנוכחי
+    if (flipbook.Book?.getCurrentPageNumber) {
+      return flipbook.Book.getCurrentPageNumber();
+    }
+    if (flipbook.cPage && flipbook.cPage.length > 0) {
+      // cPage מחזיר מערך של אינדקסים (0-based), נחזיר את הגדול + 1
+      return Math.max(...flipbook.cPage) + 1;
+    }
+    if (flipbook.Book?.rightIndex !== undefined) {
+      return flipbook.Book.rightIndex;
+    }
+    return null;
   }, []);
+
+  // 🔧 פונקציות ניווט - עדכון ידני של visiblePages כי ה-pagechange event לא תמיד עובד
+  const goToPrevPage = useCallback(() => {
+    const flipbook = flipbookInstanceRef.current;
+    if (flipbook) {
+      console.log('⬅️ goToPrevPage called');
+      flipbook.nextPage?.(); // RTL: nextPage = שמאלה = "קודם" בעברית
+      // עדכון ידני אחרי קצת זמן
+      setTimeout(() => {
+        const page = getFlipbookCurrentPage();
+        console.log('⬅️ After nextPage, current page:', page);
+        if (page) updateVisiblePages(page);
+      }, 150);
+    }
+  }, [updateVisiblePages, getFlipbookCurrentPage]);
+
+  const goToNextPage = useCallback(() => {
+    const flipbook = flipbookInstanceRef.current;
+    if (flipbook) {
+      console.log('➡️ goToNextPage called');
+      flipbook.prevPage?.(); // RTL: prevPage = ימינה = "הבא" בעברית
+      // עדכון ידני אחרי קצת זמן
+      setTimeout(() => {
+        const page = getFlipbookCurrentPage();
+        console.log('➡️ After prevPage, current page:', page);
+        if (page) updateVisiblePages(page);
+      }, 150);
+    }
+  }, [updateVisiblePages, getFlipbookCurrentPage]);
 
   // קיצורי מקלדת
   useEffect(() => {
@@ -1654,9 +1870,9 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     // אם זה mailto link, נחלץ את המייל מה-URL
     if (link.url && link.url.startsWith('mailto:')) {
       const email = link.url.replace('mailto:', '').split('?')[0];
-      setLinkForm({ ...link, type: 'mailto', email: email, url: '', icon: link.icon || 'Link' });
+      setLinkForm({ ...link, type: 'mailto', email: email, url: '', icon: link.icon || 'Link', animation: link.animation || 'pulse' });
     } else {
-      setLinkForm({ ...link, type: 'url', email: '', icon: link.icon || 'Link' });
+      setLinkForm({ ...link, type: 'url', email: '', icon: link.icon || 'Link', animation: link.animation || 'pulse' });
     }
     setShowLinkModal(true);
   };
@@ -1685,6 +1901,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     const linkToSave = {
       ...linkForm,
       url: finalUrl,
+      animation: linkForm.animation || 'pulse',
       id: editingLink ? editingLink.id : Date.now()
     };
     
@@ -1703,6 +1920,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       url: '', 
       email: '',
       icon: 'Link',
+      animation: 'pulse',
       page: 1, 
       x: 0, 
       y: 0, 
@@ -1932,7 +2150,12 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       
       {/* Header */}
       <Header>
-        <HeaderTitle>{issue?.Title || issue?.title || 'גיליון'}</HeaderTitle>
+        <HeaderTitle>
+          {issue?.Title || issue?.title || 'גיליון'}
+          <PublishStatusBadge $isPublished={isPublished}>
+            {isPublished ? 'פורסם' : 'טיוטה'}
+          </PublishStatusBadge>
+        </HeaderTitle>
         
         <HeaderActions>
           <ActionButton onClick={handleAddLink} $variant="primary">
@@ -1941,7 +2164,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
           </ActionButton>
           <ActionButton onClick={handleSaveDraft} disabled={isSaving} $variant="primary">
             <Save size={18} />
-            {isSaving ? 'שומר...' : 'שמור טיוטה'}
+            {isSaving ? 'שמור טיוטה' : 'שמור טיוטה'}
           </ActionButton>
           <ActionButton onClick={handlePublish} disabled={isPublishing} $variant="success">
             <Send size={18} />
@@ -2030,56 +2253,17 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         >
           <FlipbookContainer ref={flipbookContainerRef} />
           
-          {/* Link Overlays - רק עבור העמוד הנוכחי, רק אחרי שהעיתון נטען */}
-          {(() => {
-            if (!isLoading && !error && totalPages && links && links.length > 0) {
-              const filteredLinks = links.filter(link => Number(link.page) === Number(currentPage));
-              console.log('🔗 Rendering links - total:', links.length, 'currentPage:', currentPage, 'filtered:', filteredLinks.length);
-              return filteredLinks.map(link => {
-              const IconComponent = availableIcons.find(icon => icon.name === (link.icon || 'Link'))?.component || Link;
-              return (
-                <LinkOverlay
-                  key={link.id}
-                  x={link.x}
-                  y={link.y}
-                  width={link.width}
-                  height={link.height}
-                  $isEditing={editingLink?.id === link.id}
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    handleLinkMouseDown(e, link.id);
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isDraggingLink) {
-                      // לחיצה כפולה פותחת את הקישור
-                      if (e.detail === 2) {
-                        handleLinkClick(link);
-                      } else {
-                        // לחיצה אחת פותחת את מודל העריכה
-                      handleEditLink(link);
-                      }
-                    }
-                  }}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    if (!isDraggingLink) {
-                      handleLinkClick(link);
-                    }
-                  }}
-                  style={{ cursor: isDraggingLink && draggingLinkId === link.id ? 'grabbing' : 'pointer' }}
-                >
-                  <LinkBadge $isBlinking={isPublished}>
-                    <LinkIconWrapper>
-                      <IconComponent size={18} />
-                    </LinkIconWrapper>
-                  </LinkBadge>
-                </LinkOverlay>
-              );
-            });
-            }
-            return null;
-          })()}
+          {/* Link Overlays - שימוש בקומפוננטה החדשה */}
+          {!isLoading && !error && totalPages && (
+            <LinksContainer
+              links={filteredLinks}
+              isPublished={isPublished}
+              editingLinkId={editingLink?.id}
+              onEditLink={handleEditLink}
+              onDeleteLink={handleDeleteLink}
+              onClickLink={handleLinkClick}
+            />
+          )}
           
           {/* הודעת מיקום קישור */}
           {isPlacingLink && (
@@ -2208,6 +2392,23 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
                     </IconOption>
                   );
                 })}
+              </IconGrid>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>בחר אנימציה (לאחר פרסום)</Label>
+              <IconGrid>
+                {availableAnimations.map(anim => (
+                  <IconOption
+                    key={anim.name}
+                    $selected={linkForm.animation === anim.name}
+                    onClick={() => setLinkForm({ ...linkForm, animation: anim.name })}
+                    type="button"
+                    style={{ fontSize: '12px', padding: '8px' }}
+                  >
+                    {anim.label}
+                  </IconOption>
+                ))}
               </IconGrid>
             </FormGroup>
             

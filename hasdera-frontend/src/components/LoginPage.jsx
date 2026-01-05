@@ -25,6 +25,37 @@ const fadeInUp = keyframes`
   }
 `;
 
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+`;
+
+const scaleIn = keyframes`
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+`;
+
+const slideInRight = keyframes`
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+`;
+
 // 🎨 גופנים גלובליים - נטען דרך index.html
 const GlobalFonts = createGlobalStyle`
   /* Fonts are loaded via <link> tag in index.html */
@@ -67,6 +98,7 @@ const Card = styled.div`
   position: relative;
   z-index: 1;
   direction: rtl;
+  animation: ${scaleIn} 0.6s ease-out;
 
   @media (max-width: ${hasederaTheme.breakpoints.md}) {
     padding: 2rem 1.5rem;
@@ -76,6 +108,7 @@ const Card = styled.div`
 const Logo = styled.div`
   text-align: center;
   margin-bottom: 2rem;
+  animation: ${fadeInUp} 0.8s ease-out;
 `;
 
 const LogoIcon = styled.div`
@@ -85,6 +118,7 @@ const LogoIcon = styled.div`
   border-radius: ${hasederaTheme.borderRadius.full};
   margin-bottom: 1rem;
   box-shadow: ${hasederaTheme.shadows.green};
+  animation: ${scaleIn} 0.6s ease-out 0.2s both;
 `;
 
 const LogoText = styled.h1`
@@ -94,6 +128,7 @@ const LogoText = styled.h1`
   color: ${hasederaTheme.colors.text.primary};
   letter-spacing: 3px;
   margin: 0;
+  animation: ${fadeInUp} 0.6s ease-out 0.4s both;
 `;
 
 const Tabs = styled.div`
@@ -101,6 +136,7 @@ const Tabs = styled.div`
   gap: 0.5rem;
   margin-bottom: 2rem;
   border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+  animation: ${fadeInUp} 0.6s ease-out 0.5s both;
 `;
 
 const Tab = styled.button`
@@ -137,10 +173,14 @@ const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  animation: ${fadeInUp} 0.6s ease-out 0.6s both;
 `;
 
-const InputWrapper = styled.div`
+const InputWrapper = styled.div.withConfig({
+  shouldForwardProp: (prop) => prop !== '$delay',
+})`
   position: relative;
+  animation: ${slideInRight} 0.5s ease-out ${props => props.$delay || 0}s both;
 `;
 
 const InputIcon = styled.div`
@@ -222,7 +262,9 @@ const Select = styled.select`
   }
 `;
 
-const SubmitButton = styled.button`
+const SubmitButton = styled.button.withConfig({
+  shouldForwardProp: (prop) => prop !== '$delay',
+})`
   width: 100%;
   padding: 1rem;
   background: ${hasederaTheme.colors.gradient.primary};
@@ -235,6 +277,7 @@ const SubmitButton = styled.button`
   transition: ${hasederaTheme.transitions.base};
   font-family: inherit;
   box-shadow: ${hasederaTheme.shadows.green};
+  animation: ${fadeInUp} 0.5s ease-out ${props => props.$delay || 0.9}s both;
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
@@ -414,7 +457,21 @@ export default function LoginPage() {
         redirectByRole(user.role);
       }, 2000);
     } catch (err) {
-      setMsg(err.response?.data || "שגיאה בהתחברות");
+      let errorMsg = "שגיאה בהתחברות";
+      
+      if (err.response?.data) {
+        const responseData = err.response.data;
+        if (typeof responseData === 'object' && responseData.error) {
+          errorMsg = responseData.error;
+          if (responseData.details && responseData.details !== responseData.error) {
+            errorMsg += `: ${responseData.details}`;
+          }
+        } else if (typeof responseData === 'string') {
+          errorMsg = responseData;
+        }
+      }
+      
+      setMsg(errorMsg);
       setMsgType("error");
       setIsLoading(false);
     }
@@ -442,7 +499,21 @@ export default function LoginPage() {
         redirectByRole(user.role);
       }, 2000);
     } catch (err) {
-      setMsg(err.response?.data || "שגיאה בהרשמה");
+      let errorMsg = "שגיאה בהרשמה";
+      
+      if (err.response?.data) {
+        const responseData = err.response.data;
+        if (typeof responseData === 'object' && responseData.error) {
+          errorMsg = responseData.error;
+          if (responseData.details && responseData.details !== responseData.error) {
+            errorMsg += `: ${responseData.details}`;
+          }
+        } else if (typeof responseData === 'string') {
+          errorMsg = responseData;
+        }
+      }
+      
+      setMsg(errorMsg);
       setMsgType("error");
       setIsLoading(false);
     }
@@ -488,7 +559,25 @@ export default function LoginPage() {
       
       if (err.response) {
         // שגיאה מהשרת
-        errorMsg = err.response.data || err.response.statusText || `שגיאת שרת: ${err.response.status}`;
+        const responseData = err.response.data;
+        
+        // אם זה אובייקט עם error ו-details, נציג את שניהם
+        if (responseData && typeof responseData === 'object') {
+          if (responseData.error) {
+            errorMsg = responseData.error;
+            if (responseData.details && responseData.details !== responseData.error) {
+              errorMsg += `: ${responseData.details}`;
+            }
+          } else {
+            // אם זה אובייקט אחר, נמיר אותו למחרוזת
+            errorMsg = JSON.stringify(responseData);
+          }
+        } else if (typeof responseData === 'string') {
+          errorMsg = responseData;
+        } else {
+          errorMsg = err.response.statusText || `שגיאת שרת: ${err.response.status}`;
+        }
+        
         console.error("Server error:", err.response.status, err.response.data);
       } else if (err.message) {
         // שגיאה מקומית
@@ -575,7 +664,7 @@ export default function LoginPage() {
 
           {mode === "login" && !showSuccess && (
             <Form onSubmit={handleLogin}>
-              <InputWrapper>
+              <InputWrapper $delay={0.7}>
                 <InputIcon>
                   <Mail size={20} />
                 </InputIcon>
@@ -589,7 +678,7 @@ export default function LoginPage() {
                 />
               </InputWrapper>
 
-              <InputWrapper>
+              <InputWrapper $delay={0.8}>
                 <InputIcon>
                   <Lock size={20} />
                 </InputIcon>
@@ -609,7 +698,7 @@ export default function LoginPage() {
                 />
               </InputWrapper>
 
-              <SubmitButton type="submit" disabled={isLoading}>
+              <SubmitButton type="submit" disabled={isLoading} $delay={0.9}>
                 {isLoading ? "מתחברת..." : "התחברות"}
               </SubmitButton>
             </Form>
@@ -617,7 +706,7 @@ export default function LoginPage() {
 
           {mode === "register" && !showSuccess && (
             <Form onSubmit={handleRegister}>
-              <InputWrapper>
+              <InputWrapper $delay={0.7}>
                 <InputIcon>
                   <User size={20} />
                 </InputIcon>
@@ -631,7 +720,7 @@ export default function LoginPage() {
                 />
               </InputWrapper>
 
-              <InputWrapper>
+              <InputWrapper $delay={0.8}>
                 <InputIcon>
                   <Mail size={20} />
                 </InputIcon>
@@ -645,7 +734,7 @@ export default function LoginPage() {
                 />
               </InputWrapper>
 
-              <InputWrapper>
+              <InputWrapper $delay={0.9}>
                 <InputIcon>
                   <Lock size={20} />
                 </InputIcon>
@@ -665,11 +754,11 @@ export default function LoginPage() {
                 />
               </InputWrapper>
 
-              <Select value={role} onChange={(e) => setRole(e.target.value)}>
+              <Select value={role} onChange={(e) => setRole(e.target.value)} style={{ animation: `${slideInRight} 0.5s ease-out 1s both` }}>
                 <option value="Advertiser">מפרסמת</option>
               </Select>
 
-              <SubmitButton type="submit" disabled={isLoading}>
+              <SubmitButton type="submit" disabled={isLoading} $delay={1.1}>
                 {isLoading ? "נרשמת..." : "הרשמה"}
               </SubmitButton>
             </Form>
@@ -677,9 +766,9 @@ export default function LoginPage() {
 
           {!showSuccess && (
             <>
-              <Divider>או</Divider>
+              <Divider style={{ animation: `${fadeIn} 0.5s ease-out 1.1s both` }}>או</Divider>
 
-              <GoogleButton>
+              <GoogleButton style={{ animation: `${fadeInUp} 0.5s ease-out 1.2s both` }}>
                 <GoogleLogin
                   onSuccess={handleGoogleLogin}
                   onError={() => {

@@ -1,26 +1,116 @@
 /**
  * IssuesManagement.jsx
- * ניהול גליונות - רשימת גליונות עם אפשרות לעריכה/יצירה
- * מעוצב כמו אזור המפרסמים
+ * ניהול גליונות - גרסה מתוקנת
+ * תיקון: טיפול נכון ב-PDF URLs שעדיין בהעלאה
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Upload, Edit, Eye, Download, Plus, FileText, Calendar, Hash, X, CalendarDays, Trash2 } from 'lucide-react';
+import { Upload, Edit, Eye, Download, FileText, Calendar, Hash, X, CalendarDays, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import IssueEditor from './IssueEditor';
 import { getIssues, deleteIssue } from '../Services/issuesService';
+import { api } from '../Services/api.js';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// 🎯 PDF Worker
+// PDF Worker
 if (typeof window !== 'undefined') {
   pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-// 🎬 אנימציות
+// ============================================
+// Helper Functions
+// ============================================
+
+/**
+ * בדיקה האם URL של PDF הוא תקין וניתן לטעינה
+ */
+const isValidPdfUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  
+  const trimmed = url.trim();
+  
+  // URLs לא תקינים
+  if (trimmed === '' || 
+      trimmed === 'null' || 
+      trimmed === 'undefined' ||
+      trimmed.startsWith('pending-upload-') ||
+      trimmed.startsWith('/uploads/') ||
+      trimmed.startsWith('/api/issues/draft-file/')) {
+    return false;
+  }
+  
+  // URL תקין צריך להתחיל ב-http/https
+  return trimmed.startsWith('http://') || trimmed.startsWith('https://');
+};
+
+/**
+ * בדיקה האם הגיליון פורסם (הקובץ ב-S3)
+ */
+const isIssuePublished = (pdfUrl) => {
+  if (!isValidPdfUrl(pdfUrl)) return false;
+  
+  return pdfUrl.includes('s3.eu-north-1.amazonaws.com') || 
+         pdfUrl.includes('s3.amazonaws.com') ||
+         pdfUrl.includes('amazonaws.com') ||
+         pdfUrl.includes('.s3.');
+};
+
+/**
+ * קבלת ID של גיליון
+ */
+const getIssueId = (issue) => {
+  return issue.Issue_id || issue.IssueId || issue.issue_id || issue.issueId || issue.id;
+};
+
+/**
+ * קבלת URL של PDF
+ */
+const getPdfUrl = (issue) => {
+  return issue.Pdf_url || issue.PdfUrl || issue.pdf_url || issue.pdfUrl || '';
+};
+
+/**
+ * קבלת URL של קובץ (fallback לשדות FileUrl)
+ */
+const getFileUrl = (issue) => {
+  return issue.File_url || issue.FileUrl || issue.file_url || issue.fileUrl || '';
+};
+
+/**
+ * בדיקה האם יש לגיליון קובץ PDF/קובץ להורדה
+ */
+const hasIssuePdf = (issue) => {
+  const pdfUrl = getPdfUrl(issue);
+  const fileUrl = getFileUrl(issue);
+  return Boolean((typeof pdfUrl === 'string' && pdfUrl.trim()) || (typeof fileUrl === 'string' && fileUrl.trim()));
+};
+
+/**
+ * קבלת כותרת גיליון
+ */
+const getIssueTitle = (issue, fallbackId) => {
+  return issue.Title || issue.title || `גיליון ${fallbackId}`;
+};
+
+/**
+ * פורמט תאריך
+ */
+const formatDate = (date) => {
+  if (!date) return '-';
+  try {
+    return new Date(date).toLocaleDateString('he-IL');
+  } catch {
+    return '-';
+  }
+};
+
+// ============================================
+// Animations
+// ============================================
 const fadeInUp = keyframes`
   from {
     opacity: 0;
@@ -37,14 +127,19 @@ const fadeIn = keyframes`
   to { opacity: 1; }
 `;
 
-// 🎨 Container
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+// ============================================
+// Styled Components
+// ============================================
 const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   animation: ${fadeIn} 0.8s ease-out;
 `;
 
-// 🎨 Actions Bar
 const ActionsBar = styled.div`
   display: flex;
   gap: 1rem;
@@ -82,7 +177,6 @@ const ActionButton = styled.button`
   }
 `;
 
-// 🎨 Issues Grid
 const IssuesGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -163,10 +257,6 @@ const PDFLoading = styled.div`
   }
 `;
 
-const spin = keyframes`
-  to { transform: rotate(360deg); }
-`;
-
 const Spinner = styled.div`
   width: 24px;
   height: 24px;
@@ -195,23 +285,11 @@ const IssueTitle = styled.h3`
 const StatusBadge = styled.span`
   display: inline-block;
   padding: 0.375rem 0.75rem;
-  background: ${props => {
-    if (props.$status === 'published') return 'rgba(16, 185, 129, 0.2)';
-    if (props.$status === 'draft') return 'rgba(245, 158, 11, 0.2)';
-    return 'rgba(255, 255, 255, 0.1)';
-  }};
-  border: 1px solid ${props => {
-    if (props.$status === 'published') return 'rgba(16, 185, 129, 0.3)';
-    if (props.$status === 'draft') return 'rgba(245, 158, 11, 0.3)';
-    return 'rgba(255, 255, 255, 0.1)';
-  }};
+  background: ${props => props.$published ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'};
+  border: 1px solid ${props => props.$published ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'};
   border-radius: 20px;
   font-size: 0.75rem;
-  color: ${props => {
-    if (props.$status === 'published') return '#10b981';
-    if (props.$status === 'draft') return '#f59e0b';
-    return 'rgba(255, 255, 255, 0.7)';
-  }};
+  color: ${props => props.$published ? '#10b981' : '#f59e0b'};
 `;
 
 const IssueInfo = styled.div`
@@ -233,31 +311,6 @@ const InfoRow = styled.div`
     height: 16px;
     display: block;
   }
-`;
-
-const StatsRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const StatItem = styled.div`
-  text-align: center;
-  flex: 1;
-`;
-
-const StatValue = styled.div`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: white;
-  margin-bottom: 0.25rem;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
 `;
 
 const CardActions = styled.div`
@@ -292,6 +345,11 @@ const CardButton = styled.button`
     color: #10b981;
   }
   
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
   svg {
     width: 16px;
     height: 16px;
@@ -306,7 +364,18 @@ const CardButton = styled.button`
   }
 `;
 
-// 🎨 Editor Modal
+const DeleteButton = styled(CardButton)`
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  
+  &:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #ef4444;
+  }
+`;
+
 const EditorModal = styled.div`
   position: fixed;
   top: 0;
@@ -358,22 +427,38 @@ const CloseButton = styled.button`
   }
 `;
 
-// PDF Options
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 4rem;
+  color: rgba(255, 255, 255, 0.7);
+  
+  svg {
+    margin: 0 auto 1rem;
+    opacity: 0.5;
+  }
+`;
+
+// ============================================
+// PDF Cover Component
+// ============================================
 const pdfOptions = {
   cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
   standardFontDataUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
 };
 
-// PDF Cover Component
-function PDFCover({ pdfUrl, shouldLoad }) {
-  const memoizedOptions = useMemo(() => pdfOptions, []);
-  const [retryCount, setRetryCount] = useState(0);
+const PDFCover = React.memo(function PDFCover({ pdfUrl, shouldLoad = true }) {
+  const [hasError, setHasError] = useState(false);
+  const canLoad = useMemo(() => isValidPdfUrl(pdfUrl), [pdfUrl]);
 
-  if (!shouldLoad || !pdfUrl) {
+  useEffect(() => {
+    setHasError(false);
+  }, [pdfUrl, shouldLoad]);
+
+  if (!shouldLoad || !canLoad || hasError) {
     return (
       <PDFLoading>
-        <CalendarDays size={40} opacity={0.2} />
-        <div style={{ fontSize: '0.85rem' }}>ממתין...</div>
+        <CalendarDays size={40} />
+        <div style={{ fontSize: '0.85rem' }}>{!canLoad ? 'ממתין להעלאה...' : 'שגיאה בטעינה'}</div>
       </PDFLoading>
     );
   }
@@ -390,15 +475,15 @@ function PDFCover({ pdfUrl, shouldLoad }) {
         }
         error={
           <PDFLoading>
-            <CalendarDays size={40} opacity={0.4} />
-            <div>שגיאה בטעינת שער</div>
+            <CalendarDays size={40} />
+            <div>שגיאה בטעינה</div>
           </PDFLoading>
         }
-        options={memoizedOptions}
+        options={pdfOptions}
         onLoadError={(error) => {
-          console.error('PDF load error:', error);
+          console.error('PDF cover load error:', error);
+          setHasError(true);
         }}
-        key={retryCount}
       >
         <Page
           pageNumber={1}
@@ -410,8 +495,82 @@ function PDFCover({ pdfUrl, shouldLoad }) {
       </Document>
     </PDFCoverWrapper>
   );
-}
+});
 
+// ============================================
+// Issue Card Component
+// ============================================
+const IssueCardComponent = React.memo(function IssueCardComponent({ 
+  issue, 
+  index,
+  onEdit, 
+  onView, 
+  onDownload, 
+  onDelete 
+}) {
+  const issueId = getIssueId(issue) || `issue-${index}`;
+  const pdfUrl = getPdfUrl(issue);
+  const isPublished = isIssuePublished(pdfUrl);
+  const title = getIssueTitle(issue, issueId);
+  const hasValidPdf = isValidPdfUrl(pdfUrl);
+  const coverUrl = hasValidPdf && getIssueId(issue) ? `${api.defaults.baseURL}/issues/${getIssueId(issue)}/pdf` : pdfUrl;
+  
+  return (
+    <IssueCard>
+      <IssueImage>
+        {hasValidPdf ? (
+          <PDFCover pdfUrl={coverUrl} shouldLoad={true} />
+        ) : (
+          <FileText size={64} />
+        )}
+      </IssueImage>
+      
+      <IssueHeader>
+        <IssueTitle>{title}</IssueTitle>
+        <StatusBadge $published={isPublished}>
+          {isPublished ? 'פורסם' : 'טיוטה'}
+        </StatusBadge>
+      </IssueHeader>
+      
+      <IssueInfo>
+        <InfoRow>
+          <Calendar size={16} />
+          תאריך: {formatDate(issue.Issue_date || issue.IssueDate)}
+        </InfoRow>
+        <InfoRow>
+          <Hash size={16} />
+          מספר גיליון: {issueId}
+        </InfoRow>
+      </IssueInfo>
+      
+      <CardActions>
+        <CardButton onClick={() => onEdit(issue)}>
+          <Edit size={16} />
+          עריכה
+        </CardButton>
+        <CardButton onClick={() => onView(issue)}>
+          <Eye size={16} />
+          צפייה
+        </CardButton>
+        <CardButton 
+          onClick={() => onDownload(issue)}
+          disabled={!hasValidPdf}
+        >
+          <Download size={16} />
+          הורדה
+        </CardButton>
+        <DeleteButton onClick={() => onDelete(issue)}>
+          <Trash2 size={16} />
+          מחיקה
+        </DeleteButton>
+      </CardActions>
+    </IssueCard>
+  );
+});
+
+// ============================================
+// Main Component
+// ============================================
 export default function IssuesManagement() {
   const navigate = useNavigate();
   const [issues, setIssues] = useState([]);
@@ -419,88 +578,71 @@ export default function IssuesManagement() {
   const [editingIssue, setEditingIssue] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
 
-  useEffect(() => {
-    loadIssues();
-  }, []);
-
-  const loadIssues = async () => {
+  const loadIssues = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('🔍 Loading issues...');
-      const data = await getIssues(1, 100); // נטען עד 100 פריטים
-      console.log(`✅ Loaded ${data?.length || 0} issues`);
-      setIssues(data || []);
+      const data = await getIssues(1, 100);
+      // לא מציגים גליונות ריקים (ללא PDF) כדי לא ליצור "טיוטה" שלא ניתן לצפות בה
+      const visible = (data || []).filter(hasIssuePdf);
+      setIssues(visible);
     } catch (error) {
       console.error('שגיאה בטעינת גליונות:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleCreateNew = () => {
+  useEffect(() => {
+    loadIssues();
+  }, [loadIssues]);
+
+  const handleCreateNew = useCallback(() => {
     setEditingIssue(null);
     setShowEditor(true);
-  };
+  }, []);
 
-  const handleEdit = (issue) => {
+  const handleEdit = useCallback((issue) => {
     setEditingIssue(issue);
     setShowEditor(true);
-  };
+  }, []);
 
-  const handleView = (issue) => {
-    // נבדוק את כל האפשרויות לשדה ID
-    const issueId = issue.Issue_id || issue.IssueId || issue.issue_id || issue.issueId || issue.id;
-    console.log('🔍 handleView - issue:', issue);
-    console.log('🔍 handleView - issueId:', issueId);
-    console.log('🔍 handleView - issue.Issue_id:', issue.Issue_id);
-    console.log('🔍 handleView - issue.IssueId:', issue.IssueId);
-    console.log('🔍 handleView - issue.issue_id:', issue.issue_id);
+  const handleView = useCallback((issue) => {
+    if (!hasIssuePdf(issue)) {
+      alert('לא ניתן לצפות בגיליון בלי קובץ PDF');
+      return;
+    }
+
+    const issueId = getIssueId(issue);
     if (!issueId) {
-      console.error('❌ handleView: No issueId found!', issue);
       alert('שגיאה: לא נמצא מזהה גיליון');
       return;
     }
     navigate(`/admin/flipbook/${issueId}`);
-  };
+  }, [navigate]);
 
-  const handleDownload = async (issue) => {
-    try {
-      const pdfUrl = issue.Pdf_url || issue.PdfUrl;
-      if (pdfUrl) {
-        window.open(pdfUrl, '_blank');
-      }
-    } catch (error) {
-      console.error('שגיאה בהורדת PDF:', error);
+  const handleDownload = useCallback((issue) => {
+    const pdfUrl = getPdfUrl(issue);
+    if (isValidPdfUrl(pdfUrl)) {
+      window.open(pdfUrl, '_blank');
     }
-  };
+  }, []);
 
-  const handleDelete = async (issue) => {
-    const issueId = issue.Issue_id || issue.IssueId || issue.issue_id || issue.issueId || issue.id;
+  const handleDelete = useCallback(async (issue) => {
+    const issueId = getIssueId(issue);
     if (!issueId) {
       alert('שגיאה: לא נמצא מזהה גיליון');
       return;
     }
 
-    // בדיקה אם הגיליון פורסם
-    const pdfUrl = issue.Pdf_url || issue.PdfUrl || issue.pdf_url || issue.pdfUrl || '';
-    const isPublished = pdfUrl && 
-      !pdfUrl.startsWith('pending-upload-') && 
-      !pdfUrl.startsWith('/uploads/') &&
-      !pdfUrl.startsWith('/api/issues/draft-file/') &&
-      (pdfUrl.includes('s3.eu-north-1.amazonaws.com') || 
-       pdfUrl.includes('s3.amazonaws.com') ||
-       pdfUrl.includes('amazonaws.com') ||
-       (pdfUrl.startsWith('https://') && (pdfUrl.includes('amazonaws.com') || pdfUrl.includes('.s3.'))));
 
-    if (isPublished) {
-      if (!confirm('הגיליון כבר פורסם. האם אתה בטוח שברצונך למחוק אותו?')) {
-        return;
-      }
-    } else {
-      if (!confirm('האם אתה בטוח שברצונך למחוק את הגיליון?')) {
-        return;
-      }
-    }
+    const pdfUrl = getPdfUrl(issue);
+    const isPublished = isIssuePublished(pdfUrl);
+
+    const confirmMessage = isPublished
+      ? 'הגיליון כבר פורסם. האם אתה בטוח שברצונך למחוק אותו?'
+      : 'האם אתה בטוח שברצונך למחוק את הגיליון?';
+
+    if (!confirm(confirmMessage)) return;
 
     try {
       await deleteIssue(issueId);
@@ -508,40 +650,37 @@ export default function IssuesManagement() {
       await loadIssues();
     } catch (error) {
       console.error('שגיאה במחיקת גיליון:', error);
-      const errorMessage = error.response?.data?.error || 'שגיאה במחיקת הגיליון';
-      alert(errorMessage);
+      alert(error.response?.data?.error || 'שגיאה במחיקת הגיליון');
     }
-  };
+  }, [loadIssues]);
 
-  const handleSave = async (issueData) => {
-    try {
-      // TODO: שמירה/עדכון דרך ה-API
-      console.log('שמירת גיליון:', issueData);
-      setShowEditor(false);
-      await loadIssues();
-    } catch (error) {
-      console.error('שגיאה בשמירת גיליון:', error);
+  const handleSave = useCallback(async () => {
+    setShowEditor(false);
+    await loadIssues();
+  }, [loadIssues]);
+
+  const closeEditor = useCallback(() => {
+    setShowEditor(false);
+  }, []);
+
+  const handleModalBackdropClick = useCallback((e) => {
+    if (e.target === e.currentTarget) {
+      closeEditor();
     }
-  };
-
-  const formatDate = (date) => {
-    if (!date) return '-';
-    const d = new Date(date);
-    return d.toLocaleDateString('he-IL');
-  };
+  }, [closeEditor]);
 
   return (
     <AdminLayout title="ניהול גליונות">
       <Container>
         {showEditor ? (
-          <EditorModal onClick={(e) => e.target === e.currentTarget && setShowEditor(false)}>
+          <EditorModal onClick={handleModalBackdropClick}>
             <EditorContent onClick={(e) => e.stopPropagation()}>
-              <CloseButton onClick={() => setShowEditor(false)}>
+              <CloseButton onClick={closeEditor}>
                 <X size={24} />
               </CloseButton>
               <IssueEditor
-                issueId={editingIssue?.Issue_id || editingIssue?.IssueId}
-                onClose={() => setShowEditor(false)}
+                issueId={getIssueId(editingIssue)}
+                onClose={closeEditor}
                 onSave={handleSave}
               />
             </EditorContent>
@@ -556,85 +695,28 @@ export default function IssuesManagement() {
             </ActionsBar>
 
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '4rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-                <FileText size={64} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+              <EmptyState>
+                <FileText size={64} />
                 <p>טוען גליונות...</p>
-              </div>
+              </EmptyState>
             ) : issues.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '4rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-                <FileText size={64} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+              <EmptyState>
+                <FileText size={64} />
                 <p>אין גליונות עדיין. לחץ על "העלאת גיליון חדש" כדי להתחיל</p>
-              </div>
+              </EmptyState>
             ) : (
               <IssuesGrid>
-                {issues.map((issue, index) => {
-                  const issueId = issue.Issue_id || issue.IssueId || issue.issue_id || issue.issueId || issue.id || `issue-${index}`;
-                  // בדיקה אם הגיליון פורסם - אם הקובץ ב-S3 (לא pending-upload ולא /uploads/ ולא draft-file), הוא פורסם
-                  const pdfUrl = issue.Pdf_url || issue.PdfUrl || issue.pdf_url || issue.pdfUrl || '';
-                  const isPublished = pdfUrl && 
-                    !pdfUrl.startsWith('pending-upload-') && 
-                    !pdfUrl.startsWith('/uploads/') &&
-                    !pdfUrl.startsWith('/api/issues/draft-file/') &&
-                    (pdfUrl.includes('s3.eu-north-1.amazonaws.com') || 
-                     pdfUrl.includes('s3.amazonaws.com') ||
-                     pdfUrl.includes('amazonaws.com') ||
-                     (pdfUrl.startsWith('https://') && (pdfUrl.includes('amazonaws.com') || pdfUrl.includes('.s3.'))));
-                  const status = isPublished ? 'published' : 'draft';
-                  const title = issue.Title || issue.title || `גיליון ${issueId}`;
-                  
-                  return (
-                    <IssueCard key={issueId}>
-                      <IssueImage>
-                        {pdfUrl ? (
-                          <PDFCover pdfUrl={pdfUrl} shouldLoad={true} />
-                        ) : (
-                          <FileText size={64} />
-                        )}
-                      </IssueImage>
-                      <IssueHeader>
-                        <IssueTitle>{title}</IssueTitle>
-                        <StatusBadge $status={status}>
-                          {status === 'published' ? 'פורסם' : 'טיוטה'}
-                        </StatusBadge>
-                      </IssueHeader>
-                      <IssueInfo>
-                        <InfoRow>
-                          <Calendar size={16} />
-                          תאריך: {formatDate(issue.Issue_date || issue.IssueDate)}
-                        </InfoRow>
-                        <InfoRow>
-                          <Hash size={16} />
-                          מספר גיליון: {issueId}
-                        </InfoRow>
-                      </IssueInfo>
-                      <CardActions>
-                        <CardButton onClick={() => handleEdit(issue)}>
-                          <Edit size={16} />
-                          עריכה
-                        </CardButton>
-                        <CardButton onClick={() => handleView(issue)}>
-                          <Eye size={16} />
-                          צפייה
-                        </CardButton>
-                        <CardButton onClick={() => handleDownload(issue)}>
-                          <Download size={16} />
-                          הורדה
-                        </CardButton>
-                        <CardButton 
-                          onClick={() => handleDelete(issue)}
-                          style={{
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            borderColor: 'rgba(239, 68, 68, 0.3)',
-                            color: '#ef4444'
-                          }}
-                        >
-                          <Trash2 size={16} />
-                          מחיקה
-                        </CardButton>
-                      </CardActions>
-                    </IssueCard>
-                  );
-                })}
+                {issues.map((issue, index) => (
+                  <IssueCardComponent
+                    key={getIssueId(issue) || `issue-${index}`}
+                    issue={issue}
+                    index={index}
+                    onEdit={handleEdit}
+                    onView={handleView}
+                    onDownload={handleDownload}
+                    onDelete={handleDelete}
+                  />
+                ))}
               </IssuesGrid>
             )}
           </>

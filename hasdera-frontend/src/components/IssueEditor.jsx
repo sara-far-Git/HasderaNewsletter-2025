@@ -4,9 +4,9 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { Upload, X, FileText, Eye, Save, Send, ChevronLeft, Loader } from 'lucide-react';
-import FlipCanvasViewer from './FlipCanvasViewer';
 import { uploadIssuePdf, updateIssueMetadata, publishIssue, getIssueById } from '../Services/issuesService';
 
 // 🎬 אנימציות
@@ -372,9 +372,18 @@ const LoadingOverlay = styled.div`
 `;
 
 export default function IssueEditor({ issueId, onClose, onSave }) {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfUrl, setPdfUrl] = useState(null);
+
+  // פונקציה שמוודאת שהכתובת היא absolute
+  function toAbsoluteUrl(url) {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    // אם זה נתיב יחסי, נוסיף origin
+    return window.location.origin + (url.startsWith('/') ? url : '/' + url);
+  }
   const [isDragging, setIsDragging] = useState(false);
   const [issueData, setIssueData] = useState({
     title: '',
@@ -408,7 +417,7 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
         status: issue.status || 'draft',
       });
       if (issue.PdfUrl || issue.pdfUrl) {
-        setPdfUrl(issue.PdfUrl || issue.pdfUrl);
+        setPdfUrl(toAbsoluteUrl(issue.PdfUrl || issue.pdfUrl));
       }
     } catch (err) {
       console.error('שגיאה בטעינת גיליון:', err);
@@ -426,7 +435,7 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
     if (file && file.type === 'application/pdf') {
       setPdfFile(file);
       const url = URL.createObjectURL(file);
-      setPdfUrl(url);
+      setPdfUrl(url); // תצוגה מיידית מקומית
       
       // העלאת PDF לשרת
       setUploading(true);
@@ -440,7 +449,7 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
         );
         
         setCurrentIssueId(result.issueId);
-        setPdfUrl(result.pdfUrl);
+        setPdfUrl(toAbsoluteUrl(result.pdfUrl));
         setIssueData(prev => ({
           ...prev,
           title: result.title || prev.title,
@@ -550,6 +559,19 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
       console.error('שגיאה בפרסום:', err);
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const handleOpenLinkEditor = () => {
+    if (!currentIssueId) {
+      setError('יש להעלות PDF קודם');
+      return;
+    }
+    try {
+      navigate(`/admin/flipbook/${currentIssueId}`);
+    } catch (e) {
+      console.error('שגיאה בפתיחת עורך הקישורים:', e);
+      setError('שגיאה בפתיחת עורך הקישורים');
     }
   };
 
@@ -680,16 +702,58 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
         )}
 
         {/* שלב 3: תצוגה מקדימה */}
-        {currentStep === 3 && pdfUrl && (
+        {currentStep === 3 && (
           <PreviewContainer>
-            <FlipCanvasViewer
-              issue={{ 
-                pdf_url: pdfUrl,
-                IssueId: currentIssueId,
-                Title: issueData.title || 'תצוגה מקדימה'
-              }}
-              onClose={() => setCurrentStep(2)}
-            />
+            <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '2rem', color: 'white', marginBottom: '1rem' }}>
+              תצוגה מקדימה ועריכת קישורים
+            </h3>
+            <p style={{ color: 'rgba(255, 255, 255, 0.75)', marginBottom: '1.5rem' }}>
+              כעת ניתן לפתוח את עורך הקישורים על גבי הגיליון, למקם קישורים אינטראקטיביים על העיתון ולשמור טיוטה לפני פרסום.
+            </p>
+            {!currentIssueId && (
+              <p style={{ color: '#f97316', marginBottom: '1.5rem' }}>
+                יש להעלות PDF ולשמור טיוטה לפני פתיחת עורך הקישורים.
+              </p>
+            )}
+
+            {(() => {
+              console.log('🟢 Preview Step - pdfUrl:', pdfUrl);
+              if (!pdfUrl) {
+                return (
+                  <div style={{ color: 'white', textAlign: 'center', padding: '2rem' }}>
+                    לא נבחר או הועלה קובץ PDF.<br />
+                    בחרי קובץ ונסי שוב.
+                  </div>
+                );
+              }
+              if (pdfUrl.startsWith('blob:')) {
+                return (
+                  <iframe
+                    src={pdfUrl}
+                    title="תצוגה מקדימה של PDF"
+                    style={{ width: '100%', height: '100%', border: '2px solid #10b981', background: '#222' }}
+                  />
+                );
+              }
+              if (pdfUrl.includes('pending-upload')) {
+                return (
+                  <div style={{ color: 'white', textAlign: 'center', padding: '2rem' }}>
+                    הקובץ עדיין בתהליך העלאה לשרת.<br />
+                    נא להמתין או לשמור טיוטה.<br />
+                  </div>
+                );
+              }
+              return (
+                <FlipCanvasViewer
+                  issue={{
+                    pdf_url: pdfUrl,
+                    IssueId: currentIssueId,
+                    Title: issueData.title || 'תצוגה מקדימה'
+                  }}
+                  onClose={() => setCurrentStep(2)}
+                />
+              );
+            })()}
           </PreviewContainer>
         )}
 
@@ -733,7 +797,16 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
           <ActionButtons>
             {currentStep < 4 && (
               <PrimaryActionButton
-                onClick={() => setCurrentStep(currentStep + 1)}
+                onClick={() => {
+                  if (currentStep === 2) {
+                    setCurrentStep(3);
+                    if (currentIssueId) {
+                      handleOpenLinkEditor();
+                    }
+                  } else {
+                    setCurrentStep(currentStep + 1);
+                  }
+                }}
                 disabled={!canProceedToNextStep()}
               >
                 {currentStep === 1 && 'המשך'}
@@ -741,7 +814,7 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
                 {currentStep === 3 && 'המשך לפרסום'}
               </PrimaryActionButton>
             )}
-            {currentStep === 2 && (
+            {(currentStep === 2 || currentStep === 3) && (
               <SecondaryActionButton onClick={handleSaveDraft} disabled={saving || !currentIssueId}>
                 {saving ? (
                   <>
@@ -754,6 +827,14 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
                     שמור טיוטה
                   </>
                 )}
+              </SecondaryActionButton>
+            )}
+            {currentStep === 3 && currentIssueId && (
+              <SecondaryActionButton onClick={handleOpenLinkEditor} disabled={!currentIssueId}>
+                <>
+                  <Eye size={18} />
+                  עריכת קישורים על הגיליון
+                </>
               </SecondaryActionButton>
             )}
             {currentStep === 4 && (

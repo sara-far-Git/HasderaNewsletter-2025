@@ -7,6 +7,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import styled, { keyframes, createGlobalStyle } from "styled-components";
 import { useNavigate } from "react-router-dom";
+import { Link as LinkIcon, Mail, ExternalLink, Phone, MapPin, Calendar, Clock, Star, Heart, ShoppingCart, User } from "lucide-react";
 
 // 🎬 אנימציות
 const fadeIn = keyframes`
@@ -365,6 +366,7 @@ const FlipbookContainer = styled.div`
   visibility: visible !important;
   opacity: 1 !important;
   display: block !important;
+  pointer-events: auto; /* ✅ מאפשר events */
   
   /* וידוא שהספר מוצג */
   & > div {
@@ -375,6 +377,70 @@ const FlipbookContainer = styled.div`
 `;
 
 // ============================================
+// 🎯 Link Overlay Components (צד קוראים בלבד, ללא גרירה)
+const LinkOverlay = styled.div`
+  position: absolute;
+  top: ${props => props.y}px;
+  left: ${props => props.x}px;
+  width: ${props => props.width}px;
+  height: ${props => props.height}px;
+  border: 2px solid rgba(20, 184, 166, 0.6);
+  background: rgba(20, 184, 166, 0.08);
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  user-select: none;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  
+  &:hover {
+    background: rgba(20, 184, 166, 0.2);
+    border-color: #14b8a6;
+    transform: translateY(-1px) scale(1.01);
+  }
+`;
+
+const LinkBadge = styled.div`
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 30px;
+  height: 30px;
+  background: #14b8a6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+`;
+
+const LinkIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+`;
+
+// איקונים זמינים לקישורים (תואם AdminFlipbookViewer)
+const availableIcons = [
+  { name: 'Link', component: LinkIcon },
+  { name: 'Mail', component: Mail },
+  { name: 'ExternalLink', component: ExternalLink },
+  { name: 'Phone', component: Phone },
+  { name: 'MapPin', component: MapPin },
+  { name: 'Calendar', component: Calendar },
+  { name: 'Clock', component: Clock },
+  { name: 'Star', component: Star },
+  { name: 'Heart', component: Heart },
+  { name: 'ShoppingCart', component: ShoppingCart },
+  { name: 'User', component: User },
+];
+
 // 🎯 חצי ניווט מותאמים אישית
 // ============================================
 const NavigationArrow = styled.button`
@@ -387,24 +453,26 @@ const NavigationArrow = styled.button`
   visibility: visible !important;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(16, 185, 129, 0.85);
   backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(16, 185, 129, 0.6);
   border-radius: 50%;
   color: white;
   cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
   z-index: 10002;
   transition: all 0.3s ease;
-  opacity: ${props => props.$disabled ? 0.4 : 1};
+  opacity: ${props => props.$disabled ? 0.5 : 1};
   pointer-events: ${props => props.$disabled ? 'auto' : 'auto'};
+  font-size: 24px;
+  font-weight: bold;
   
   ${props => props.$side === 'right' ? 'right: 30px;' : 'left: 30px;'}
   
   &:hover:not(:disabled) {
-    background: rgba(16, 185, 129, 0.8);
-    border-color: #10b981;
-    transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 6px 25px rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 1);
+    border-color: white;
+    transform: translateY(-50%) scale(1.15);
+    box-shadow: 0 8px 30px rgba(16, 185, 129, 0.7);
   }
   
   &:active:not(:disabled) {
@@ -413,12 +481,50 @@ const NavigationArrow = styled.button`
   
   &:disabled {
     cursor: not-allowed;
+    background: rgba(100, 100, 100, 0.5);
+    border-color: rgba(100, 100, 100, 0.3);
   }
   
   @media (max-width: 768px) {
     width: 50px;
     height: 50px;
     ${props => props.$side === 'right' ? 'right: 15px;' : 'left: 15px;'}
+  }
+`;
+
+// ============================================
+// 🎯 אזורי לחיצה פשוטים בצדי העמודים
+// ============================================
+const ClickZone = styled.div`
+  position: fixed;
+  top: 74px;
+  ${props =>
+    props.$side === 'right'
+      ? 'right: 0;'
+      : props.$isFirstPage
+        ? 'left: calc(50% - 90px);'
+        : 'left: 0;'
+  }
+  width: 180px;
+  height: calc(100vh - 74px);
+  cursor: ${props => props.$disabled ? 'default' : 'pointer'};
+  pointer-events: ${props => props.$disabled ? 'none' : 'auto'};
+  z-index: 9999;
+  
+  /* רקע שקוף עם אפקט hover עדין */
+  background: transparent;
+  transition: background 0.3s ease;
+  
+  &:hover {
+    background: ${props => props.$disabled ? 'transparent' : 
+      props.$side === 'right' 
+        ? 'linear-gradient(to right, transparent 0%, rgba(16, 185, 129, 0.08) 100%)' 
+        : 'linear-gradient(to left, transparent 0%, rgba(16, 185, 129, 0.08) 100%)'
+    };
+  }
+  
+  @media (max-width: 768px) {
+    width: 120px;
   }
 `;
 
@@ -437,12 +543,26 @@ const PageCurlOverlay = styled.div`
 
 const CurlZone = styled.div`
   position: absolute;
-  width: 120px;
+  width: 150px;
   height: 100%;
   pointer-events: auto;
   cursor: pointer;
   
   ${props => props.$side === 'right' ? 'right: 0;' : 'left: 0;'}
+  
+  /* Visual indicator - subtle background */
+  background: ${props => props.$side === 'right' 
+    ? 'linear-gradient(to right, transparent 0%, rgba(16, 185, 129, 0.05) 100%)' 
+    : 'linear-gradient(to left, transparent 0%, rgba(16, 185, 129, 0.05) 100%)'
+  };
+  transition: background 0.3s ease;
+  
+  &:hover {
+    background: ${props => props.$side === 'right' 
+      ? 'linear-gradient(to right, transparent 0%, rgba(16, 185, 129, 0.15) 100%)' 
+      : 'linear-gradient(to left, transparent 0%, rgba(16, 185, 129, 0.15) 100%)'
+    };
+  }
 `;
 
 const CurlEffect = styled.div`
@@ -721,6 +841,8 @@ export default function FlipCanvasViewer({ issue, onClose }) {
   const navigate = useNavigate();
   const flipbookContainerRef = useRef(null);
   const flipbookInstanceRef = useRef(null);
+  const lastPageRef = useRef(1); // ✅ שמירת העמוד האחרון שהצגנו
+  const trackedPageRef = useRef(1); // 🔄 Track actual page being displayed (independent from state)
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -728,13 +850,6 @@ export default function FlipCanvasViewer({ issue, onClose }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showHint, setShowHint] = useState(true);
   const [links, setLinks] = useState([]);
-  
-  // 🎯 מצב עיקול פינה
-  const [curlState, setCurlState] = useState({
-    active: false,
-    side: null,
-    size: 0,
-  });
 
   // טעינת קישורים מה-metadata
   useEffect(() => {
@@ -743,8 +858,23 @@ export default function FlipCanvasViewer({ issue, onClose }) {
         const summary = issue.Summary || issue.summary;
         const metadata = JSON.parse(summary);
         if (metadata.links && Array.isArray(metadata.links)) {
-          console.log('🔗 FlipCanvasViewer: Loaded links:', metadata.links);
-          setLinks(metadata.links);
+          console.log('🔗 FlipCanvasViewer: Loaded links from metadata:', metadata.links);
+          const normalizedLinks = metadata.links.map((link, index) => {
+            const normalized = {
+              id: String(link.id || link.Id || Date.now() + index),
+              page: Number(link.page || link.Page || 1),
+              x: Number(link.x || link.X || 0),
+              y: Number(link.y || link.Y || 0),
+              width: Number(link.width || link.Width || 100),
+              height: Number(link.height || link.Height || 50),
+              url: String(link.url || link.Url || ''),
+              icon: link.icon || link.Icon || 'Link',
+              email: link.email || link.Email || ''
+            };
+            console.log('🔗 FlipCanvasViewer: Normalized link:', normalized);
+            return normalized;
+          });
+          setLinks(normalizedLinks);
         }
       } catch (e) {
         console.error('Error parsing metadata:', e);
@@ -783,6 +913,28 @@ export default function FlipCanvasViewer({ issue, onClose }) {
     if (!issue?.pdf_url || !flipbookContainerRef.current) return;
     if (!window.FlipBook && !window.FLIPBOOK) return;
     
+    // ✅ תיקון: המרת pending-upload ל-URL מלא
+    let pdfUrl = issue.pdf_url;
+    if (pdfUrl.startsWith('pending-upload-')) {
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 
+                        window.location.origin.replace(':5173', ':5055').replace(/:\d+/, ':5055') ||
+                        'http://localhost:5055';
+      const tempFileName = pdfUrl.replace('pending-upload-', '');
+      pdfUrl = `${apiBaseUrl}/api/issues/draft-file/${tempFileName}`;
+      console.log('🔧 FlipCanvasViewer: Converted pending-upload to API URL:', pdfUrl);
+    }
+    
+    // ✅ הוספת token לURL עבור draft-file endpoints
+    if (pdfUrl.includes('/api/issues/draft-file/')) {
+      const token = localStorage.getItem('hasdera_token');
+      if (token) {
+        const urlObj = new URL(pdfUrl);
+        urlObj.searchParams.set('token', token);
+        pdfUrl = urlObj.toString();
+        console.log('🔧 Added token to draft-file URL');
+      }
+    }
+    
     if (flipbookInstanceRef.current) {
       try {
         flipbookInstanceRef.current.destroy?.() || flipbookInstanceRef.current.dispose?.();
@@ -802,7 +954,7 @@ export default function FlipCanvasViewer({ issue, onClose }) {
       flipbookContainerRef.current.appendChild(container);
 
       const options = {
-        pdfUrl: issue.pdf_url,
+        pdfUrl: pdfUrl,
         rightToLeft: true,
         startPage: 0,
         backgroundColor: '#1a1a1a',
@@ -817,7 +969,7 @@ export default function FlipCanvasViewer({ issue, onClose }) {
         loadPagesF: 3,
         loadPagesB: 2,
         viewMode: 'webgl',
-        pageFlipDuration: 1,
+        pageFlipDuration: 0.6,
         lights: true,
         lightIntensity: 0.6,
         shadows: true,
@@ -882,16 +1034,43 @@ export default function FlipCanvasViewer({ issue, onClose }) {
         flipbookInstanceRef.current = flipbook;
         console.log('📖 Flipbook instance saved to ref');
 
+        // ✅ הוסף event listener לחסום click propagation בFlipBook container
+        if (flipbookContainerRef.current) {
+          const handleContainerClick = (e) => {
+            // אל תחסום את ה-events מ-FlipBook עצמו, רק אל תעביר אותם הלאה
+            e.stopPropagation?.();
+          };
+          
+          flipbookContainerRef.current.addEventListener('click', handleContainerClick, true);
+          flipbookContainerRef.current.addEventListener('mousedown', handleContainerClick, true);
+        }
+
         if (flipbook.on) {
           flipbook.on('pagechange', () => {
             const page = flipbook.getCurrentPageNumber?.();
-            if (page) setCurrentPage(page);
+            console.log('📄 pagechange event fired, page:', page);
+            if (page) {
+              trackedPageRef.current = page; // 🔄 Update tracked page immediately
+              lastPageRef.current = page; // ✅ שמור את העמוד בRef
+              setCurrentPage(page);
+              console.log('✅ Updated currentPage state to:', page, 'tracked:', trackedPageRef.current);
+            }
           });
 
           flipbook.on('ready', () => {
             console.log('✅ Flipbook ready event fired');
             setIsLoading(false);
             setTotalPages(flipbook.options?.numPages || flipbook.options?.pages?.length);
+            
+            // ✅ אם יש עמוד שנשמר, חזור אליו
+            if (lastPageRef.current > 1) {
+              try {
+                flipbook.goToPage?.(lastPageRef.current);
+                console.log('📖 Restored to page:', lastPageRef.current);
+              } catch (e) {
+                console.log('⚠️ Could not restore page:', e);
+              }
+            }
           });
 
           flipbook.on('pdfinit', () => {
@@ -917,15 +1096,46 @@ export default function FlipCanvasViewer({ issue, onClose }) {
         } catch (e) {}
       }
     };
-  }, [issue?.pdf_url]);
+  }, [issue?.pdf_url]); // ✅ סיר את currentPage מכאן - זה גרם ללולאה אינסופית!
 
-  // 🔧 פונקציות ניווט
+  // 🔧 פונקציות ניווט - משתמשות ב-getCurrentPageNumber + goToPage של הספרייה
   const goToPrevPage = useCallback(() => {
-    flipbookInstanceRef.current?.prevPage?.();
+    const flipbook = flipbookInstanceRef.current;
+    if (!flipbook) return;
+
+    const current = flipbook.getCurrentPageNumber?.() || trackedPageRef.current || 1;
+    console.log('⬅️ goToPrevPage: current from flipbook =', current);
+
+    if (current <= 1) {
+      console.log('⬅️ Already at first page');
+      return;
+    }
+
+    const target = current - 1;
+    console.log('⬅️ Going to page', target);
+    trackedPageRef.current = target;
+    setCurrentPage(target);
+    flipbook.goToPage?.(target);
   }, []);
 
   const goToNextPage = useCallback(() => {
-    flipbookInstanceRef.current?.nextPage?.();
+    const flipbook = flipbookInstanceRef.current;
+    if (!flipbook) return;
+
+    const current = flipbook.getCurrentPageNumber?.() || trackedPageRef.current || 1;
+    const maxPages = flipbook.options?.numPages || totalPages || 999;
+    console.log('➡️ goToNextPage: current from flipbook =', current, ', max =', maxPages);
+
+    if (current >= maxPages) {
+      console.log('➡️ Already at last page');
+      return;
+    }
+
+    const target = current + 1;
+    console.log('➡️ Going to page', target);
+    trackedPageRef.current = target;
+    setCurrentPage(target);
+    flipbook.goToPage?.(target);
   }, []);
 
   // קיצורי מקלדת
@@ -948,36 +1158,6 @@ export default function FlipCanvasViewer({ issue, onClose }) {
   }, []);
 
   // 🎯 טיפול בעיקול פינה
-  const handleCurlEnter = useCallback((side) => {
-    setCurlState({ active: true, side, size: 80 });
-  }, []);
-
-  const handleCurlLeave = useCallback(() => {
-    setCurlState({ active: false, side: null, size: 0 });
-  }, []);
-
-  const handleCurlMove = useCallback((e, side) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const distanceFromBottom = rect.height - y;
-    
-    // עיקול גדול יותר כשקרובים לפינה התחתונה
-    if (distanceFromBottom < 200) {
-      const size = Math.min(120, Math.max(40, 120 - (distanceFromBottom / 2)));
-      setCurlState({ active: true, side, size });
-    } else {
-      setCurlState(prev => ({ ...prev, size: 40 }));
-    }
-  }, []);
-
-  const handleCurlClick = useCallback((side) => {
-    if (side === 'right') {
-      goToPrevPage();
-    } else {
-      goToNextPage();
-    }
-  }, [goToPrevPage, goToNextPage]);
-
   const toggleFullscreen = () => {
     document.fullscreenElement ? document.exitFullscreen?.() : document.documentElement.requestFullscreen?.();
   };
@@ -1016,7 +1196,10 @@ export default function FlipCanvasViewer({ issue, onClose }) {
           <IconButton onClick={toggleFullscreen} title="מסך מלא">
             <MaximizeIcon />
           </IconButton>
-          <IconButton onClick={() => navigate('/dashboard')} title="חזרה לדשבורד">
+          <IconButton onClick={() => navigate('/admin/issues')} title="חזור לעריכה">
+            <ChevronLeftIcon />
+          </IconButton>
+          <IconButton onClick={() => navigate('/dashboard')} title="דשבורד">
             <HomeIcon />
           </IconButton>
           <CloseButton onClick={handleClose} title="סגור (ESC)">
@@ -1032,7 +1215,11 @@ export default function FlipCanvasViewer({ issue, onClose }) {
           <NavigationArrow 
             $side="right" 
             $disabled={!canGoPrev}
-            onClick={canGoPrev ? goToPrevPage : undefined}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (canGoPrev) goToPrevPage();
+            }}
             title={canGoPrev ? "עמוד קודם" : "אין עמוד קודם"}
             aria-label={canGoPrev ? "עמוד קודם" : "אין עמוד קודם"}
             disabled={!canGoPrev}
@@ -1044,7 +1231,11 @@ export default function FlipCanvasViewer({ issue, onClose }) {
           <NavigationArrow 
             $side="left" 
             $disabled={!canGoNext}
-            onClick={canGoNext ? goToNextPage : undefined}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (canGoNext) goToNextPage();
+            }}
             title={canGoNext ? "עמוד הבא" : "אין עמוד הבא"}
             aria-label={canGoNext ? "עמוד הבא" : "אין עמוד הבא"}
             disabled={!canGoNext}
@@ -1054,53 +1245,10 @@ export default function FlipCanvasViewer({ issue, onClose }) {
         </>
       )}
 
-      {/* 🎯 אפקט עיקול פינה מותאם אישית */}
-      {!isLoading && !error && (
-        <PageCurlOverlay>
-          {/* צד ימין - עמוד קודם */}
-          {canGoPrev && (
-            <CurlZone 
-              $side="right"
-              onMouseEnter={() => handleCurlEnter('right')}
-              onMouseLeave={handleCurlLeave}
-              onMouseMove={(e) => handleCurlMove(e, 'right')}
-              onClick={() => handleCurlClick('right')}
-            >
-              <CornerIndicator $side="right" $show={!curlState.active} />
-            </CurlZone>
-          )}
-          
-          {/* צד שמאל - עמוד הבא */}
-          {canGoNext && (
-            <CurlZone 
-              $side="left"
-              onMouseEnter={() => handleCurlEnter('left')}
-              onMouseLeave={handleCurlLeave}
-              onMouseMove={(e) => handleCurlMove(e, 'left')}
-              onClick={() => handleCurlClick('left')}
-            >
-              <CornerIndicator $side="left" $show={!curlState.active} />
-            </CurlZone>
-          )}
-          
-          {/* אפקט העיקול עצמו */}
-          {curlState.active && (
-            <CurlEffect 
-              $side={curlState.side} 
-              $active={curlState.active}
-              $curlSize={curlState.size}
-            >
-              <CurlPage $side={curlState.side} />
-              <CurlShadow $side={curlState.side} $active={curlState.active} />
-            </CurlEffect>
-          )}
-        </PageCurlOverlay>
-      )}
-
       {/* Navigation hint */}
       {!isLoading && !error && showHint && currentPage === 1 && (
         <NavigationHint>
-          השתמשי בחצים או העבירי עכבר לפינת הדף לדפדוף
+          השתמשי בחצים לדפדוף בעמודים
         </NavigationHint>
       )}
 
@@ -1127,7 +1275,82 @@ export default function FlipCanvasViewer({ issue, onClose }) {
       {!error && (
         <FlipbookWrapper>
           <FlipbookContainer ref={flipbookContainerRef} />
+
+          {/* קישורים אינטראקטיביים על גבי העיתון */}
+          {!isLoading && !error && totalPages && (
+            (() => {
+              const filteredLinks = (links || []).filter(link => Number(link.page) === Number(currentPage));
+              console.log('🔗 FlipCanvasViewer: Rendering links for page', currentPage, 'count:', filteredLinks.length);
+              return filteredLinks.map(link => {
+                const IconComponent = availableIcons.find(icon => icon.name === (link.icon || 'Link'))?.component || LinkIcon;
+                return (
+                  <LinkOverlay
+                    key={link.id}
+                    x={link.x}
+                    y={link.y}
+                    width={link.width}
+                    height={link.height}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!link.url) return;
+                      // טיפול ב-mailto
+                      if (link.url.startsWith('mailto:')) {
+                        window.location.href = link.url;
+                        return;
+                      }
+                      try {
+                        let urlToOpen = link.url;
+                        if (!urlToOpen.startsWith('http://') && !urlToOpen.startsWith('https://')) {
+                          urlToOpen = `https://${urlToOpen}`;
+                        }
+                        window.open(urlToOpen, '_blank', 'noopener,noreferrer');
+                      } catch (err) {
+                        console.error('Error opening link:', err);
+                      }
+                    }}
+                    title={link.url}
+                  >
+                    <LinkBadge>
+                      <LinkIconWrapper>
+                        <IconComponent size={18} />
+                      </LinkIconWrapper>
+                    </LinkBadge>
+                  </LinkOverlay>
+                );
+              });
+            })()
+          )}
         </FlipbookWrapper>
+      )}
+
+      {/* אזורי לחיצה בקצוות העמודים */}
+      {!isLoading && !error && (
+        <>
+          {/* אזור לחיצה ימני - עמוד קודם (RTL) */}
+          <ClickZone 
+            $side="right"
+            $disabled={!canGoPrev}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (canGoPrev) goToPrevPage();
+            }}
+            title={canGoPrev ? "לחץ לעמוד הקודם" : ""}
+          />
+          
+          {/* אזור לחיצה שמאלי - עמוד הבא (RTL) */}
+          <ClickZone 
+            $side="left"
+            $isFirstPage={currentPage === 1}
+            $disabled={!canGoNext}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (canGoNext) goToNextPage();
+            }}
+            title={canGoNext ? "לחץ לעמוד הבא" : ""}
+          />
+        </>
       )}
     </ViewerContainer>
   );

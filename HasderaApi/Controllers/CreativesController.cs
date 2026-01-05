@@ -29,7 +29,7 @@ namespace HasderaApi.Controllers
         // POST /api/creatives/upload
         [Authorize]
         [HttpPost("upload")]
-        public async Task<IActionResult> UploadCreative(IFormFile file, int? orderId = null)
+        public async Task<IActionResult> UploadCreative(IFormFile file, [FromForm] int? orderId = null)
         {
             try
             {
@@ -76,7 +76,7 @@ namespace HasderaApi.Controllers
                 }
 
                 // יצירת order אם לא קיים
-                Adorder order;
+                Adorder? order;
                 if (orderId.HasValue && orderId.Value > 0)
                 {
                     order = await _context.AdOrders
@@ -183,6 +183,150 @@ namespace HasderaApi.Controllers
                 {
                     creativeId = creative.CreativeId,
                     orderId = order.OrderId,
+                    fileUrl = fileUrl,
+                    fileName = file.FileName
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "שגיאה בהעלאת הקובץ", details = ex.Message });
+            }
+        }
+
+        // POST /api/creatives/admin-upload
+        // העלאה עבור מנהל (הזמנה טלפונית) - ללא תלות ב-Advertiser של המשתמש המחובר
+        [Authorize]
+        [HttpPost("admin-upload")]
+        public async Task<IActionResult> AdminUploadCreative(IFormFile file, [FromForm] int advertiserId, [FromForm] int? orderId = null)
+        {
+            try
+            {
+                var advertiser = await _context.Advertisers.FirstOrDefaultAsync(a => a.AdvertiserId == advertiserId);
+                if (advertiser == null)
+                {
+                    return NotFound("מפרסם לא נמצא");
+                }
+
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("קובץ לא הועלה");
+                }
+
+                // בדיקת סוג קובץ
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".pdf", ".gif", ".webp" };
+                var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(fileExtension))
+                {
+                    return BadRequest("סוג קובץ לא נתמך. אנא העלה תמונה (jpg, png, gif, webp) או PDF");
+                }
+
+                // יצירת order אם לא קיים
+                Adorder? order;
+                if (orderId.HasValue && orderId.Value > 0)
+                {
+                    order = await _context.AdOrders
+                        .FirstOrDefaultAsync(o => o.OrderId == orderId.Value && o.AdvertiserId == advertiser.AdvertiserId);
+                    if (order == null)
+                    {
+                        return NotFound("הזמנה לא נמצאה");
+                    }
+                }
+                else
+                {
+                    // מציאת package קיים למפרסם או יצירת אחד חדש
+                    var existingPackage = await _context.Packages
+                        .FirstOrDefaultAsync(p => p.AdvertiserId == advertiser.AdvertiserId);
+
+                    int packageId;
+                    if (existingPackage != null)
+                    {
+                        packageId = existingPackage.PackageId;
+                    }
+                    else
+                    {
+                        var newPackage = new Package
+                        {
+                            AdvertiserId = advertiser.AdvertiserId,
+                            Name = "חבילה בסיסית",
+                            Price = 0,
+                            StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1))
+                        };
+                        _context.Packages.Add(newPackage);
+                        await _context.SaveChangesAsync();
+                        packageId = newPackage.PackageId;
+                    }
+
+                    order = new Adorder
+                    {
+                        AdvertiserId = advertiser.AdvertiserId,
+                        PackageId = packageId,
+                        OrderDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                        Status = "pending"
+                    };
+                    _context.AdOrders.Add(order);
+                    await _context.SaveChangesAsync();
+                }
+
+                // העלאת קובץ ל-S3
+                string fileUrl;
+                try
+                {
+                    var bucketName = _configuration["S3:Bucket"] ?? "hasdera-issues";
+                    var prefix = "creatives/";
+                    var fileName = $"{Guid.NewGuid()}{fileExtension}";
+                    var s3Key = $"{prefix}{fileName}";
+
+                    using var fileStream = file.OpenReadStream();
+                    var putRequest = new PutObjectRequest
+                    {
+                        BucketName = bucketName,
+                        Key = s3Key,
+                        InputStream = fileStream,
+                        ContentType = file.ContentType ?? "application/octet-stream",
+                        ServerSideEncryptionMethod = ServerSideEncryptionMethod.AES256
+                    };
+
+                    await _s3.PutObjectAsync(putRequest);
+
+                    // יצירת pre-signed URL (תוקף 7 ימים)
+                    var generatePreSignedUrls = _configuration.GetValue<bool>("GeneratePreSignedUrls", true);
+                    if (generatePreSignedUrls)
+                    {
+                        var psRequest = new GetPreSignedUrlRequest
+                        {
+                            BucketName = bucketName,
+                            Key = s3Key,
+                            Verb = HttpVerb.GET,
+                            Expires = DateTime.UtcNow.AddDays(7)
+                        };
+                        fileUrl = _s3.GetPreSignedURL(psRequest);
+                    }
+                    else
+                    {
+                        fileUrl = $"https://{bucketName}.s3.eu-north-1.amazonaws.com/{s3Key}";
+                    }
+                }
+                catch
+                {
+                    fileUrl = $"pending-upload-{Guid.NewGuid()}";
+                }
+
+                var creative = new Creative
+                {
+                    OrderId = order.OrderId,
+                    FileUrl = fileUrl,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Creatives.Add(creative);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    creativeId = creative.CreativeId,
+                    orderId = order.OrderId,
+                    advertiserId = advertiser.AdvertiserId,
                     fileUrl = fileUrl,
                     fileName = file.FileName
                 });

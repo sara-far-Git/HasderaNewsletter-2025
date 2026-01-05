@@ -18,8 +18,12 @@ public partial class Issue
 public string? PdfUrl { get; set; } // ✅ הוספת ? כדי לאפשר Null. אין צורך באתחול ל-string.Empty.
     public string? Summary { get; set; }
     
-    // שדה לבדיקה אם הגיליון פורסם (אם PdfUrl לא מתחיל ב-pending-upload- אז הוא פורסם)
-    public bool IsPublished => !string.IsNullOrEmpty(PdfUrl) && !PdfUrl.StartsWith("pending-upload-");
+    // שדה לבדיקה אם הגיליון פורסם
+    // גיליון פורסם = יש PdfUrl תקין שאינו טיוטה (pending-upload או draft:)
+    public bool IsPublished => !string.IsNullOrEmpty(PdfUrl) && 
+                               !PdfUrl.StartsWith("pending-upload-") &&
+                               !PdfUrl.StartsWith("draft:") &&
+                               (PdfUrl.Contains("amazonaws.com") || PdfUrl.Contains(".s3."));
 
     public virtual ICollection<Ad> Ads { get; set; } = new List<Ad>();
 

@@ -76,7 +76,8 @@ function FlipIssue() {
           pdf_url: issueData.PdfUrl || issueData.pdf_url,
           title: issueData.Title || issueData.title,
           issue_id: issueData.IssueId || issueData.issue_id,
-          issueDate: issueData.IssueDate || issueData.issueDate
+          issueDate: issueData.IssueDate || issueData.issueDate,
+          Summary: issueData.Summary || issueData.summary
         };
 
         setIssue(formattedIssue);

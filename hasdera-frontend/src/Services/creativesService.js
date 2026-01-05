@@ -29,6 +29,34 @@ export async function uploadCreative(file, orderId = null) {
 }
 
 /**
+ * העלאת creative עבור מנהל (הזמנה טלפונית)
+ * @param {File} file - קובץ להעלאה
+ * @param {number} advertiserId - מזהה מפרסם
+ * @param {number} [orderId] - מזהה הזמנה (אופציונלי)
+ */
+export async function adminUploadCreative(file, advertiserId, orderId = null) {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('advertiserId', advertiserId);
+    if (orderId) {
+      formData.append('orderId', orderId);
+    }
+
+    const res = await api.post('/Creatives/admin-upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return res.data;
+  } catch (err) {
+    handleError('POST Creative admin-upload', err);
+    throw err;
+  }
+}
+
+/**
  * קבלת creatives לפי orderId
  * @param {number} orderId - מזהה הזמנה
  * @returns {Promise<Array>} רשימת creatives

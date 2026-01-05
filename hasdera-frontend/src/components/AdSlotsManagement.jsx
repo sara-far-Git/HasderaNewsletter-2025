@@ -1,51 +1,50 @@
 /**
  * AdSlotsManagement.jsx
- * ניהול מקומות פרסום - flipbook עם הצגת מקומות תפוסים ופנויים
- * מעוצב כמו אזור המפרסמים
+ * ניהול מקומות פרסום - תצוגת flipbook של מקומות פרסום בגיליון
+ * - תפוס: מציג מי תפס + פרטי מפרסם
+ * - פנוי: לחיצה פותחת הזמנה טלפונית (פרטי מפרסם, העלאת מודעה, תשלום)
  */
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef, forwardRef } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FileText, ChevronDown, CheckCircle, XCircle, Tag, Plus, Building2 } from 'lucide-react';
+import HTMLFlipBook from 'react-pageflip';
+import { FileText, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import AdminFlipbookViewer from './AdminFlipbookViewer';
-import { getIssues, getIssueSlots } from '../Services/issuesService';
-
-// 🎬 אנימציות
-const fadeInUp = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
+import { getIssues, getIssueSlots, bookIssueSlot, updateIssueSlotBooking } from '../Services/issuesService';
+import { getAdvertisers } from '../Services/advertisersService';
+import { adminUploadCreative } from '../Services/creativesService';
+import AdPlacementSelector from './AdPlacementSelector';
 
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
 `;
 
-// 🎨 Container
+const slideIn = keyframes`
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+`;
+
 const Container = styled.div`
   max-width: 1400px;
   margin: 0 auto;
-  animation: ${fadeIn} 0.8s ease-out;
   padding: 2rem;
+  animation: ${fadeIn} 0.6s ease-out;
+  position: relative;
 `;
 
-// 🎨 Issue Selector
-const IssueSelectorWrapper = styled.div`
-  margin-bottom: 2rem;
-  animation: ${fadeInUp} 0.8s ease-out;
+const TopRow = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: space-between;
 `;
 
 const SelectWrapper = styled.div`
   position: relative;
   width: 100%;
-  max-width: 500px;
+  max-width: 520px;
 `;
 
 const Select = styled.select`
@@ -60,7 +59,7 @@ const Select = styled.select`
   cursor: pointer;
   appearance: none;
   padding-right: 3rem;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   font-family: inherit;
 
   &:hover {
@@ -89,92 +88,330 @@ const SelectIcon = styled(ChevronDown)`
   color: rgba(255, 255, 255, 0.5);
 `;
 
-// 🎨 Slots Info
-const SlotsInfo = styled.div`
+const Stats = styled.div`
   display: flex;
   gap: 1rem;
-  margin-top: 1rem;
   flex-wrap: wrap;
 `;
 
-const InfoCard = styled.div`
-  padding: 1rem 1.5rem;
+const StatCard = styled.div`
+  padding: 0.9rem 1.2rem;
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
+  color: white;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+`;
+
+const StatValue = styled.div`
+  font-weight: 700;
+  color: ${p => (p.$variant === 'available' ? '#10b981' : p.$variant === 'occupied' ? '#ef4444' : 'white')};
+`;
+
+const MainRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+`;
+
+const BookShell = styled.div`
+  min-height: 620px;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  color: white;
-`;
-
-const InfoLabel = styled.span`
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
-`;
-
-const InfoValue = styled.span`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: ${props => {
-    if (props.$variant === 'available') return '#10b981';
-    if (props.$variant === 'occupied') return '#ef4444';
-    return 'white';
-  }};
-`;
-
-// 🎨 Flipbook Container
-const FlipbookContainer = styled.div`
-  width: 100%;
-  min-height: 600px;
-  animation: ${fadeInUp} 0.8s ease-out;
-  animation-delay: 0.2s;
-  animation-fill-mode: both;
+  justify-content: center;
 `;
 
 const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   padding: 4rem 2rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
   text-align: center;
 `;
 
-const EmptyIcon = styled(FileText)`
-  width: 64px;
-  height: 64px;
-  margin-bottom: 1rem;
-  opacity: 0.3;
+const Sidebar = styled.aside`
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 420px;
+  max-width: 92vw;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 200;
+  padding: 1.25rem;
+  animation: ${slideIn} 0.25s ease-out;
+  overflow-y: auto;
+  direction: rtl;
 `;
 
-const EmptyText = styled.p`
-  font-size: 1.125rem;
-  margin: 0;
+const SidebarTitle = styled.h3`
+  margin: 0 0 0.75rem 0;
+  color: white;
+  font-size: 1.1rem;
 `;
+
+const SidebarSection = styled.div`
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+`;
+
+const Label = styled.div`
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.35rem;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(16, 185, 129, 0.5);
+  }
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+`;
+
+const SidebarSelect = styled(Select)`
+  max-width: 100%;
+`;
+
+const PrimaryButton = styled.button`
+  flex: 1;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.26);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const SecondaryButton = styled.button`
+  flex: 1;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+`;
+
+const BookPage = styled.div`
+  width: 360px;
+  height: 510px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 12px;
+  padding: 1rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  direction: rtl;
+  color: #0f172a;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+`;
+
+const SlotTitle = styled.div`
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 1.05rem;
+`;
+
+const SlotMeta = styled.div`
+  color: rgba(15, 23, 42, 0.7);
+  font-size: 0.9rem;
+  margin-top: 0.35rem;
+`;
+
+const SlotBox = styled.button`
+  margin-top: 1rem;
+  flex: 1;
+  border-radius: 12px;
+  border: 1px dashed rgba(15, 23, 42, 0.25);
+  background: rgba(248, 250, 252, 1);
+  color: rgba(15, 23, 42, 0.9);
+  cursor: pointer;
+  padding: 1rem;
+  text-align: right;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(241, 245, 249, 1);
+    border-color: rgba(16, 185, 129, 0.5);
+  }
+`;
+
+const StatusLine = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  color: ${p => (p.$occupied ? '#ef4444' : '#10b981')};
+  font-weight: 700;
+`;
+
+function normalizeIssueId(issue) {
+  return issue?.issueId ?? issue?.issue_id ?? issue?.Issue_id;
+}
+
+function normalizeIssueTitle(issue) {
+  return issue?.title ?? issue?.Title ?? '';
+}
+
+function normalizeIssueDate(issue) {
+  return issue?.issueDate ?? issue?.issue_date ?? issue?.Issue_date ?? null;
+}
+
+function normalizeSlotsPayload(payload) {
+  const rawSlots = payload?.slots ?? payload?.Slots ?? [];
+  return rawSlots.map(s => ({
+    slotId: s.slotId ?? s.SlotId,
+    code: s.code ?? s.Code,
+    name: s.name ?? s.Name,
+    basePrice: s.basePrice ?? s.BasePrice,
+    isOccupied: s.isOccupied ?? s.IsOccupied,
+    occupiedBy: s.occupiedBy ?? s.OccupiedBy ?? null,
+  }));
+}
+
+function normalizeOrderStatus(occupiedBy) {
+  return occupiedBy?.orderStatus ?? occupiedBy?.OrderStatus ?? null;
+}
+
+function paymentStatusLabel(status) {
+  const s = String(status ?? '').toLowerCase();
+  if (!s) return '—';
+  if (s === 'paid') return 'שולם';
+  if (s === 'pending') return 'ממתין';
+  if (s === 'failed') return 'נכשל';
+  if (s === 'refunded') return 'הוחזר';
+  if (s === 'canceled') return 'בוטל';
+  return s;
+}
+
+const SlotPage = forwardRef(function SlotPage({ slot, onClick }, ref) {
+  const occupied = !!slot.isOccupied;
+  const buyer = slot.occupiedBy;
+
+  return (
+    <BookPage ref={ref} data-density="soft">
+      <div>
+        <SlotTitle>{slot.name}</SlotTitle>
+        <SlotMeta>{slot.code}{slot.basePrice != null ? ` · מחיר בסיס: ${slot.basePrice}` : ''}</SlotMeta>
+        <StatusLine $occupied={occupied}>
+          {occupied ? <XCircle size={18} /> : <CheckCircle size={18} />}
+          {occupied ? 'תפוס' : 'פנוי'}
+        </StatusLine>
+      </div>
+
+      <SlotBox onClick={() => onClick(slot)}>
+        {occupied ? (
+          <div>
+            <div style={{ fontWeight: 800, marginBottom: '0.5rem' }}>נקנה ע"י</div>
+            <div>{buyer?.advertiserName ?? buyer?.AdvertiserName ?? '—'}</div>
+            {(buyer?.phone || buyer?.Phone) && <div style={{ opacity: 0.85, marginTop: '0.25rem' }}>{buyer?.phone ?? buyer?.Phone}</div>}
+            {(buyer?.email || buyer?.Email) && <div style={{ opacity: 0.85, marginTop: '0.25rem' }}>{buyer?.email ?? buyer?.Email}</div>}
+            <div style={{ opacity: 0.75, marginTop: '0.75rem' }}>לחץ לפרטים</div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontWeight: 800, marginBottom: '0.5rem' }}>לחץ לרכישה טלפונית</div>
+            <div style={{ opacity: 0.75 }}>פתיחת תהליך: פרטי מפרסם · העלאה · תשלום</div>
+          </div>
+        )}
+      </SlotBox>
+
+      <div style={{ opacity: 0.6, fontSize: '0.85rem', marginTop: '0.75rem' }}>דפדף בין המקומות</div>
+    </BookPage>
+  );
+});
 
 export default function AdSlotsManagement() {
+  const bookRef = useRef(null);
+
   const [issues, setIssues] = useState([]);
   const [selectedIssueId, setSelectedIssueId] = useState(null);
   const [selectedIssue, setSelectedIssue] = useState(null);
-  const [slots, setSlots] = useState(null);
+  const [slotsPayload, setSlotsPayload] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // טעינת רשימת גליונות
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarMode, setSidebarMode] = useState('details');
+  const [selectedSlot, setSelectedSlot] = useState(null);
+
+  const [advertisers, setAdvertisers] = useState([]);
+  const [selectedAdvertiserId, setSelectedAdvertiserId] = useState('');
+  const [advName, setAdvName] = useState('');
+  const [advCompany, setAdvCompany] = useState('');
+  const [advEmail, setAdvEmail] = useState('');
+  const [advPhone, setAdvPhone] = useState('');
+
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('טלפון');
+  const [paymentStatus, setPaymentStatus] = useState('paid');
+
+  const [creativeFile, setCreativeFile] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [editMode, setEditMode] = useState(false);
+  const [editTargetSlotId, setEditTargetSlotId] = useState('');
+  const [editPaymentStatus, setEditPaymentStatus] = useState('');
+
+  const [bookStep, setBookStep] = useState('size'); // size -> details
+  const [placementSelection, setPlacementSelection] = useState(null); // { size, quarters, description }
+
   useEffect(() => {
     const loadIssues = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        const issuesList = await getIssues(1, 100, true); // רק גליונות שפורסמו
-        setIssues(issuesList);
-        if (issuesList.length > 0 && !selectedIssueId) {
-          setSelectedIssueId(issuesList[0].issueId || issuesList[0].issue_id);
+        const list = await getIssues(1, 100, false);
+        const sorted = (list || []).sort((a, b) => {
+          const dateA = new Date(normalizeIssueDate(a) || 0);
+          const dateB = new Date(normalizeIssueDate(b) || 0);
+          return dateB - dateA;
+        });
+        setIssues(sorted);
+        if (sorted.length && !selectedIssueId) {
+          setSelectedIssueId(normalizeIssueId(sorted[0]));
         }
-      } catch (err) {
-        console.error('❌ שגיאה בטעינת גליונות:', err);
+      } catch (e) {
+        console.error(e);
         setError('לא ניתן לטעון גליונות');
       } finally {
         setLoading(false);
@@ -184,131 +421,462 @@ export default function AdSlotsManagement() {
     loadIssues();
   }, []);
 
-  // טעינת מקומות פרסום לפי גיליון נבחר
+  useEffect(() => {
+    const loadAdvertisers = async () => {
+      try {
+        const list = await getAdvertisers();
+        setAdvertisers(Array.isArray(list) ? list : []);
+      } catch {
+        setAdvertisers([]);
+      }
+    };
+    loadAdvertisers();
+  }, []);
+
   useEffect(() => {
     if (!selectedIssueId) return;
-
     const loadSlots = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        setError(null);
-        
-        // מציאת הגיליון הנבחר
-        const issue = issues.find(i => (i.issueId || i.issue_id) === selectedIssueId);
+        const issue = issues.find(i => normalizeIssueId(i) === selectedIssueId);
         setSelectedIssue(issue);
-
-        // טעינת מקומות פרסום
-        const slotsData = await getIssueSlots(selectedIssueId);
-        setSlots(slotsData);
-      } catch (err) {
-        console.error('❌ שגיאה בטעינת מקומות פרסום:', err);
+        const payload = await getIssueSlots(selectedIssueId);
+        setSlotsPayload(payload);
+      } catch (e) {
+        console.error(e);
         setError('לא ניתן לטעון מקומות פרסום');
       } finally {
         setLoading(false);
       }
     };
-
     loadSlots();
   }, [selectedIssueId, issues]);
 
-  const handleIssueChange = (e) => {
-    const issueId = parseInt(e.target.value);
-    setSelectedIssueId(issueId);
-    setSlots(null);
-  };
+  const slots = useMemo(() => normalizeSlotsPayload(slotsPayload), [slotsPayload]);
 
-  // חישוב סטטיסטיקות
   const stats = useMemo(() => {
-    if (!slots || !slots.slots) {
-      return { total: 0, occupied: 0, available: 0 };
-    }
-
-    const total = slots.totalSlots || slots.slots.length;
-    const occupied = slots.occupiedSlots || slots.slots.filter(s => s.isOccupied).length;
-    const available = slots.availableSlots || (total - occupied);
-
+    const total = slots.length;
+    const occupied = slots.filter(s => s.isOccupied).length;
+    const available = total - occupied;
     return { total, occupied, available };
   }, [slots]);
+
+  const resetBookingForm = useCallback(() => {
+    setSelectedAdvertiserId('');
+    setAdvName('');
+    setAdvCompany('');
+    setAdvEmail('');
+    setAdvPhone('');
+    setPaymentAmount('');
+    setPaymentMethod('טלפון');
+    setPaymentStatus('paid');
+    setCreativeFile(null);
+    setBookStep('size');
+    setPlacementSelection(null);
+  }, []);
+
+  const openDetails = useCallback((slot) => {
+    setSelectedSlot(slot);
+    setSidebarMode('details');
+    setEditMode(false);
+    setEditTargetSlotId('');
+    setEditPaymentStatus(normalizeOrderStatus(slot.occupiedBy) ?? '');
+    setSidebarOpen(true);
+  }, []);
+
+  const openBooking = useCallback((slot) => {
+    setSelectedSlot(slot);
+    setSidebarMode('book');
+    setEditMode(false);
+    resetBookingForm();
+    setSidebarOpen(true);
+  }, [resetBookingForm]);
+
+  const availableSlotsForMove = useMemo(() => {
+    if (!selectedSlot) return [];
+    return slots
+      .filter(s => !s.isOccupied || s.slotId === selectedSlot.slotId)
+      .sort((a, b) => String(a.code ?? '').localeCompare(String(b.code ?? '')));
+  }, [slots, selectedSlot]);
+
+  const onSlotClick = useCallback((slot) => {
+    if (slot.isOccupied) openDetails(slot);
+    else openBooking(slot);
+  }, [openBooking, openDetails]);
+
+  const onAdvertiserPick = useCallback((value) => {
+    setSelectedAdvertiserId(value);
+    if (!value) return;
+    const adv = advertisers.find(a => String(a.advertiserId ?? a.AdvertiserId) === String(value));
+    if (!adv) return;
+    setAdvName(adv.name ?? adv.Name ?? '');
+    setAdvCompany(adv.company ?? adv.Company ?? '');
+    setAdvEmail(adv.email ?? adv.Email ?? '');
+    setAdvPhone(adv.phone ?? adv.Phone ?? '');
+  }, [advertisers]);
+
+  const submitBooking = useCallback(async () => {
+    if (!selectedIssueId || !selectedSlot?.slotId) return;
+    if (!placementSelection?.size || !Array.isArray(placementSelection?.quarters) || placementSelection.quarters.length === 0) {
+      setError('חובה לבחור גודל ומיקום מודעה');
+      return;
+    }
+    if (!creativeFile) {
+      setError('חובה להעלות מודעה');
+      return;
+    }
+    if (!selectedAdvertiserId && !advName.trim()) {
+      setError('חובה להזין שם מפרסם');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const payload = {
+        advertiserId: selectedAdvertiserId ? Number(selectedAdvertiserId) : null,
+        name: advName.trim() || null,
+        company: advCompany || null,
+        email: advEmail || null,
+        phone: advPhone || null,
+        size: placementSelection.size,
+        quarters: placementSelection.quarters,
+        placementDescription: placementSelection.description ?? null,
+        amount: paymentAmount ? Number(paymentAmount) : null,
+        method: paymentMethod || null,
+        paymentStatus: paymentStatus || null,
+      };
+
+      const booking = await bookIssueSlot(selectedIssueId, selectedSlot.slotId, payload);
+
+      const advertiserId = booking.advertiserId ?? booking.AdvertiserId ?? payload.advertiserId;
+      const orderId = booking.orderId ?? booking.OrderId;
+
+      await adminUploadCreative(creativeFile, advertiserId, orderId);
+
+      const refreshed = await getIssueSlots(selectedIssueId);
+      setSlotsPayload(refreshed);
+      setSidebarOpen(false);
+    } catch (e) {
+      console.error(e);
+      setError(e?.response?.data?.message || e?.response?.data?.error || 'שגיאה בביצוע הזמנה');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [advCompany, advEmail, advName, advPhone, creativeFile, paymentAmount, paymentMethod, paymentStatus, placementSelection, selectedAdvertiserId, selectedIssueId, selectedSlot]);
+
+  const saveBookingEdits = useCallback(async () => {
+    if (!selectedIssueId || !selectedSlot?.slotId) return;
+
+    const payload = {
+      targetSlotId: editTargetSlotId ? Number(editTargetSlotId) : null,
+      paymentStatus: editPaymentStatus || null,
+    };
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await updateIssueSlotBooking(selectedIssueId, selectedSlot.slotId, payload);
+      const refreshed = await getIssueSlots(selectedIssueId);
+      setSlotsPayload(refreshed);
+
+      const normalized = normalizeSlotsPayload(refreshed);
+      const newSlotId = result?.toSlotId ?? result?.ToSlotId ?? payload.targetSlotId ?? selectedSlot.slotId;
+      const nextSelected = normalized.find(s => s.slotId === newSlotId) ?? normalized.find(s => s.slotId === selectedSlot.slotId);
+      if (nextSelected) {
+        setSelectedSlot(nextSelected);
+        setEditPaymentStatus(normalizeOrderStatus(nextSelected.occupiedBy) ?? editPaymentStatus);
+      }
+
+      setEditMode(false);
+      setEditTargetSlotId('');
+    } catch (e) {
+      console.error(e);
+      setError(e?.response?.data?.message || e?.response?.data?.error || 'שגיאה בעריכת הזמנה');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [editPaymentStatus, editTargetSlotId, selectedIssueId, selectedSlot, submitting]);
+
+  const handleIssueChange = (e) => {
+    const issueId = Number(e.target.value);
+    setSelectedIssueId(issueId);
+    setSlotsPayload(null);
+    setSidebarOpen(false);
+  };
 
   return (
     <AdminLayout title="ניהול מקומות פרסום">
       <Container>
-        <IssueSelectorWrapper>
+        <TopRow>
           <SelectWrapper>
-            <SelectIcon size={20} />
-            <Select
-              value={selectedIssueId || ''}
-              onChange={handleIssueChange}
-              disabled={loading || issues.length === 0}
-            >
-              {issues.length === 0 ? (
-                <option value="">אין גליונות זמינים</option>
-              ) : (
-                <>
-                  <option value="">בחר גיליון...</option>
-                  {issues.map((issue) => (
-                    <option
-                      key={issue.issueId || issue.issue_id}
-                      value={issue.issueId || issue.issue_id}
-                    >
-                      {issue.title} - {new Date(issue.issueDate || issue.issue_date).toLocaleDateString('he-IL')}
-                    </option>
-                  ))}
-                </>
-              )}
+            <Select value={selectedIssueId ?? ''} onChange={handleIssueChange} disabled={loading || !issues.length}>
+              {issues.map(issue => {
+                const id = normalizeIssueId(issue);
+                const title = normalizeIssueTitle(issue);
+                const date = normalizeIssueDate(issue);
+                const label = `${title || 'גיליון'}${date ? ` · ${new Date(date).toLocaleDateString('he-IL')}` : ''}`;
+                return (
+                  <option key={id} value={id}>{label}</option>
+                );
+              })}
             </Select>
+            <SelectIcon size={20} />
           </SelectWrapper>
 
-          {slots && (
-            <SlotsInfo>
-              <InfoCard>
-                <FileText size={20} />
-                <InfoLabel>סה"כ מקומות:</InfoLabel>
-                <InfoValue>{stats.total}</InfoValue>
-              </InfoCard>
-              <InfoCard>
-                <CheckCircle size={20} color="#10b981" />
-                <InfoLabel>פנויים:</InfoLabel>
-                <InfoValue $variant="available">{stats.available}</InfoValue>
-              </InfoCard>
-              <InfoCard>
-                <XCircle size={20} color="#ef4444" />
-                <InfoLabel>תפוסים:</InfoLabel>
-                <InfoValue $variant="occupied">{stats.occupied}</InfoValue>
-              </InfoCard>
-            </SlotsInfo>
+          <Stats>
+            <StatCard>
+              <FileText size={18} />
+              <div>סה"כ: <StatValue>{stats.total}</StatValue></div>
+            </StatCard>
+            <StatCard>
+              <XCircle size={18} color="#ef4444" />
+              <div>תפוסים: <StatValue $variant="occupied">{stats.occupied}</StatValue></div>
+            </StatCard>
+            <StatCard>
+              <CheckCircle size={18} color="#10b981" />
+              <div>פנויים: <StatValue $variant="available">{stats.available}</StatValue></div>
+            </StatCard>
+          </Stats>
+        </TopRow>
+
+        <MainRow>
+          {error && (
+            <div style={{ color: '#ef4444', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: '0.75rem 1rem', direction: 'rtl' }}>
+              {error}
+            </div>
           )}
-        </IssueSelectorWrapper>
 
-        {error && (
-          <EmptyState>
-            <EmptyIcon />
-            <EmptyText>{error}</EmptyText>
-          </EmptyState>
-        )}
+          <BookShell>
+            {loading ? (
+              <EmptyState>טוען...</EmptyState>
+            ) : !slots.length ? (
+              <EmptyState>
+                <FileText size={56} style={{ opacity: 0.35 }} />
+                <div style={{ marginTop: '0.75rem' }}>אין מקומות להצגה</div>
+              </EmptyState>
+            ) : (
+              <HTMLFlipBook
+                width={360}
+                height={510}
+                size="fixed"
+                minWidth={280}
+                maxWidth={420}
+                minHeight={420}
+                maxHeight={600}
+                maxShadowOpacity={0.35}
+                showCover={false}
+                mobileScrollSupport={true}
+                ref={bookRef}
+              >
+                {slots.map(slot => (
+                  <SlotPage key={slot.slotId} slot={slot} onClick={onSlotClick} />
+                ))}
+              </HTMLFlipBook>
+            )}
+          </BookShell>
+        </MainRow>
 
-        {loading && !selectedIssue && (
-          <EmptyState>
-            <EmptyText>טוען גליונות...</EmptyText>
-          </EmptyState>
-        )}
+        {sidebarOpen && selectedSlot && (
+          <Sidebar>
+            <SidebarTitle>
+              {sidebarMode === 'details' ? 'פרטי מקום תפוס' : 'הזמנה טלפונית'}
+            </SidebarTitle>
 
-        {selectedIssue && selectedIssueId && (
-          <FlipbookContainer>
-            <AdminFlipbookViewer
-              issueId={selectedIssueId}
-              issue={selectedIssue}
-              slots={slots}
-              showSlotsManagement={true}
-            />
-          </FlipbookContainer>
-        )}
+            <div style={{ color: 'rgba(255,255,255,0.8)' }}>
+              <div style={{ fontWeight: 800 }}>{selectedSlot.name}</div>
+              <div style={{ opacity: 0.75, marginTop: '0.25rem' }}>{selectedSlot.code}</div>
+              {selectedIssue && (
+                <div style={{ opacity: 0.65, marginTop: '0.5rem' }}>
+                  גיליון: {normalizeIssueTitle(selectedIssue)}
+                </div>
+              )}
+            </div>
 
-        {!loading && !selectedIssue && issues.length > 0 && (
-          <EmptyState>
-            <EmptyIcon />
-            <EmptyText>בחר גיליון כדי להציג את מקומות הפרסום</EmptyText>
-          </EmptyState>
+            {sidebarMode === 'details' && (
+              <SidebarSection>
+                <Label>נקנה ע"י</Label>
+                <div style={{ color: 'white', fontWeight: 800 }}>
+                  {selectedSlot.occupiedBy?.advertiserName ?? selectedSlot.occupiedBy?.AdvertiserName ?? '—'}
+                </div>
+                {(selectedSlot.occupiedBy?.phone || selectedSlot.occupiedBy?.Phone) && (
+                  <div style={{ marginTop: '0.35rem', color: 'rgba(255,255,255,0.85)' }}>{selectedSlot.occupiedBy?.phone ?? selectedSlot.occupiedBy?.Phone}</div>
+                )}
+                {(selectedSlot.occupiedBy?.email || selectedSlot.occupiedBy?.Email) && (
+                  <div style={{ marginTop: '0.35rem', color: 'rgba(255,255,255,0.85)' }}>{selectedSlot.occupiedBy?.email ?? selectedSlot.occupiedBy?.Email}</div>
+                )}
+
+                <div style={{ marginTop: '0.75rem' }}>
+                  <Label>סטטוס תשלום</Label>
+                  {!editMode ? (
+                    <div style={{ color: 'rgba(255,255,255,0.92)', fontWeight: 700 }}>
+                      {paymentStatusLabel(normalizeOrderStatus(selectedSlot.occupiedBy))}
+                    </div>
+                  ) : (
+                    <SelectWrapper style={{ maxWidth: '100%' }}>
+                      <SidebarSelect value={editPaymentStatus} onChange={(e) => setEditPaymentStatus(e.target.value)}>
+                        <option value="">—</option>
+                        <option value="paid">שולם</option>
+                        <option value="pending">ממתין</option>
+                        <option value="failed">נכשל</option>
+                        <option value="refunded">הוחזר</option>
+                        <option value="canceled">בוטל</option>
+                      </SidebarSelect>
+                      <SelectIcon size={20} />
+                    </SelectWrapper>
+                  )}
+                </div>
+
+                {editMode && (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <Label>להעביר למקום אחר (אופציונלי)</Label>
+                    <SelectWrapper style={{ maxWidth: '100%' }}>
+                      <SidebarSelect value={editTargetSlotId} onChange={(e) => setEditTargetSlotId(e.target.value)}>
+                        <option value="">לא להעביר</option>
+                        {availableSlotsForMove
+                          .filter(s => s.slotId !== selectedSlot.slotId)
+                          .map(s => (
+                            <option key={s.slotId} value={s.slotId}>
+                              {s.name} ({s.code})
+                            </option>
+                          ))}
+                      </SidebarSelect>
+                      <SelectIcon size={20} />
+                    </SelectWrapper>
+                  </div>
+                )}
+              </SidebarSection>
+            )}
+
+            {sidebarMode === 'book' && (
+              <>
+                <SidebarSection>
+                  {bookStep === 'size' ? (
+                    <>
+                      <Label>העלאת מודעה (לתצוגה מקדימה)</Label>
+                      <Input type="file" onChange={(e) => setCreativeFile(e.target.files?.[0] ?? null)} />
+                      {creativeFile && <div style={{ marginTop: '0.5rem', opacity: 0.75 }}>{creativeFile.name}</div>}
+                      <div style={{ marginTop: '0.5rem', opacity: 0.65, fontSize: '0.85rem' }}>
+                        תצוגה מקדימה זמינה לתמונות ול-PDF
+                      </div>
+
+                      <AdPlacementSelector
+                        onCancel={() => setSidebarOpen(false)}
+                        onSelect={(selection) => {
+                          setPlacementSelection(selection);
+                          setBookStep('details');
+                        }}
+                        previewFile={creativeFile}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Label>בחירת מפרסם קיים (אופציונלי)</Label>
+                      <SelectWrapper style={{ maxWidth: '100%' }}>
+                        <Select value={selectedAdvertiserId} onChange={(e) => onAdvertiserPick(e.target.value)}>
+                          <option value="">מפרסם חדש</option>
+                          {advertisers.map(a => {
+                            const id = a.advertiserId ?? a.AdvertiserId;
+                            const label = a.company ?? a.Company ?? a.name ?? a.Name ?? a.email ?? a.Email ?? `מפרסם ${id}`;
+                            return (
+                              <option key={id} value={id}>{label}</option>
+                            );
+                          })}
+                        </Select>
+                        <SelectIcon size={20} />
+                      </SelectWrapper>
+
+                      <div style={{ marginTop: '0.75rem', color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>
+                        מיקום שנבחר: {placementSelection?.description ?? '—'}
+                      </div>
+
+                      {creativeFile && <div style={{ marginTop: '0.5rem', opacity: 0.7 }}>מודעה: {creativeFile.name}</div>}
+
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <Label>שם</Label>
+                        <Input value={advName} onChange={(e) => setAdvName(e.target.value)} placeholder="שם מפרסם" />
+                      </div>
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <Label>חברה</Label>
+                        <Input value={advCompany} onChange={(e) => setAdvCompany(e.target.value)} placeholder="שם חברה" />
+                      </div>
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <Label>טלפון</Label>
+                        <Input value={advPhone} onChange={(e) => setAdvPhone(e.target.value)} placeholder="טלפון" />
+                      </div>
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <Label>אימייל</Label>
+                        <Input value={advEmail} onChange={(e) => setAdvEmail(e.target.value)} placeholder="אימייל" />
+                      </div>
+                    </>
+                  )}
+                </SidebarSection>
+
+                {bookStep === 'details' && (
+                  <>
+                    <SidebarSection>
+                      <Label>תשלום</Label>
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <Label>סכום</Label>
+                        <Input value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="למשל 500" />
+                      </div>
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <Label>אמצעי</Label>
+                        <Input value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} placeholder="טלפון / אשראי / העברה" />
+                      </div>
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <Label>סטטוס</Label>
+                        <SelectWrapper style={{ maxWidth: '100%' }}>
+                          <SidebarSelect value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)}>
+                            <option value="paid">שולם</option>
+                            <option value="pending">ממתין</option>
+                            <option value="failed">נכשל</option>
+                            <option value="refunded">הוחזר</option>
+                            <option value="canceled">בוטל</option>
+                          </SidebarSelect>
+                          <SelectIcon size={20} />
+                        </SelectWrapper>
+                      </div>
+                    </SidebarSection>
+
+                    <ButtonRow>
+                      <SecondaryButton type="button" onClick={() => setBookStep('size')}>חזרה</SecondaryButton>
+                      <PrimaryButton type="button" onClick={submitBooking} disabled={submitting}>
+                        {submitting ? 'מבצע...' : 'אישור ורכישה'}
+                      </PrimaryButton>
+                    </ButtonRow>
+                  </>
+                )}
+              </>
+            )}
+
+            {sidebarMode === 'details' && (
+              <ButtonRow>
+                {!editMode ? (
+                  <>
+                    <SecondaryButton onClick={() => setSidebarOpen(false)}>סגירה</SecondaryButton>
+                    <PrimaryButton type="button" onClick={() => setEditMode(true)} disabled={submitting}>
+                      עריכה
+                    </PrimaryButton>
+                  </>
+                ) : (
+                  <>
+                    <SecondaryButton onClick={() => {
+                      setEditMode(false);
+                      setEditTargetSlotId('');
+                      setEditPaymentStatus(normalizeOrderStatus(selectedSlot.occupiedBy) ?? '');
+                    }}>
+                      ביטול
+                    </SecondaryButton>
+                    <PrimaryButton type="button" onClick={saveBookingEdits} disabled={submitting}>
+                      {submitting ? 'שומר...' : 'שמירה'}
+                    </PrimaryButton>
+                  </>
+                )}
+              </ButtonRow>
+            )}
+          </Sidebar>
         )}
       </Container>
     </AdminLayout>

@@ -21,7 +21,18 @@ const getApiBaseUrl = () => {
   
   // אם יש VITE_API_URL, נשתמש בו
   if (import.meta.env.VITE_API_URL) {
-    const url = import.meta.env.VITE_API_URL;
+    let url = import.meta.env.VITE_API_URL.trim();
+    
+    // בדיקה שה-URL לא יחסי (לא מתחיל ב-/)
+    if (url.startsWith('/')) {
+      console.error('❌ VITE_API_URL is relative! It should be a full URL like https://hasderanewsletter-2025.onrender.com');
+      console.error('❌ Current VITE_API_URL:', url);
+      // נשתמש ב-production URL במקום
+      const productionUrl = "https://hasderanewsletter-2025.onrender.com/api";
+      console.log('✅ Falling back to Render API:', productionUrl);
+      return productionUrl;
+    }
+    
     // וודא שיש /api בסוף אם לא קיים
     const finalUrl = url.endsWith('/api') ? url : url + '/api';
     console.log('✅ Using VITE_API_URL:', finalUrl);

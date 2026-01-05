@@ -106,9 +106,9 @@ namespace HasderaApi.Controllers
                 // ============================================================
                 
                 // קוראים את כל הפלט מה-Python (stdout - זה התשובה)
-                string output = process.StandardOutput.ReadToEnd();
+                string? output = process.StandardOutput.ReadToEnd();
                 // קוראים את כל הלוגים/שגיאות מה-Python (stderr)
-                string error = process.StandardError.ReadToEnd();
+                string? error = process.StandardError.ReadToEnd();
 
                 // מחכים שהתהליך יסתיים
                 process.WaitForExit();
