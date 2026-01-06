@@ -16,6 +16,8 @@ try {
 }
 console.log('🧩 api.js version:', API_CLIENT_VERSION);
 
+const EFFECTIVE_DEFAULT_BASEURL = import.meta.env.PROD ? DEFAULT_PROD_API_BASEURL : DEFAULT_DEV_API_BASEURL;
+
 const normalizeApiBaseUrl = (rawUrl, fallbackUrl) => {
   const fallback = String(fallbackUrl ?? "").trim();
   const raw = typeof rawUrl === "string" ? rawUrl.trim() : "";
@@ -74,10 +76,11 @@ const getApiBaseUrl = () => {
 };
 
 const apiBaseUrl = getApiBaseUrl();
-console.log('🔍 Final API baseURL:', apiBaseUrl);
+const resolvedApiBaseUrl = normalizeApiBaseUrl(apiBaseUrl, EFFECTIVE_DEFAULT_BASEURL);
+console.log('🔍 Final API baseURL:', resolvedApiBaseUrl);
 
 export const api = axios.create({
-  baseURL: apiBaseUrl || (import.meta.env.PROD ? DEFAULT_PROD_API_BASEURL : DEFAULT_DEV_API_BASEURL),
+  baseURL: resolvedApiBaseUrl,
   headers: {
     "Content-Type": "application/json"
   },
@@ -88,14 +91,14 @@ export const api = axios.create({
 // ——— REQUEST INTERCEPTOR ———
 api.interceptors.request.use((config) => {
   // Failsafe: אם baseURL ריק/חסר/שגוי, נכפה URL מוחלט כדי שלא נשלח ל-pages.dev
-  const effectiveDefaultBaseUrl = import.meta.env.PROD ? DEFAULT_PROD_API_BASEURL : DEFAULT_DEV_API_BASEURL;
+  const effectiveDefaultBaseUrl = EFFECTIVE_DEFAULT_BASEURL;
 
   const url = String(config.url ?? "");
   const isAbsoluteUrl = /^https?:\/\//i.test(url);
 
   if (!isAbsoluteUrl) {
     // אל תסמוך רק על baseURL של axios; נרמול + בניית URL מוחלט תמיד.
-    const candidateBase = config.baseURL ?? api.defaults.baseURL ?? apiBaseUrl;
+    const candidateBase = config.baseURL ?? api.defaults.baseURL ?? resolvedApiBaseUrl;
     const normalizedBase = normalizeApiBaseUrl(candidateBase, effectiveDefaultBaseUrl).replace(/\/+$/, "");
     const normalizedPath = url.startsWith("/") ? url : "/" + url;
 
@@ -104,6 +107,8 @@ api.interceptors.request.use((config) => {
       // נבנה URL מוחלט ישירות.
       config.baseURL = undefined;
       config.url = normalizedBase + normalizedPath;
+    } else {
+      console.error('❌ Could not resolve API baseURL; request will be relative!', { url, candidateBase, effectiveDefaultBaseUrl });
     }
   }
 
