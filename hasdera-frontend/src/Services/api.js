@@ -88,6 +88,38 @@ export const api = axios.create({
   timeout: 60000 
 });
 
+// Hard failsafe: ensure relative URLs never go to pages.dev (or any current origin)
+// by converting them to absolute backend URLs before Axios runs interceptors.
+const _originalRequest = api.request.bind(api);
+api.request = (config) => {
+  let normalizedConfig = config;
+
+  // Axios supports api.request(urlString)
+  if (typeof normalizedConfig === "string") {
+    normalizedConfig = { url: normalizedConfig };
+  }
+
+  try {
+    const url = String(normalizedConfig?.url ?? "");
+    const isAbsoluteUrl = /^https?:\/\//i.test(url);
+
+    if (!isAbsoluteUrl && url) {
+      const base = normalizeApiBaseUrl(api.defaults.baseURL, EFFECTIVE_DEFAULT_BASEURL).replace(/\/+$/, "");
+      const path = url.startsWith("/") ? url : "/" + url;
+
+      if (base) {
+        normalizedConfig = { ...(normalizedConfig ?? {}) };
+        normalizedConfig.baseURL = undefined;
+        normalizedConfig.url = base + path;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return _originalRequest(normalizedConfig);
+};
+
 // ——— REQUEST INTERCEPTOR ———
 api.interceptors.request.use((config) => {
   // Failsafe: אם baseURL ריק/חסר/שגוי, נכפה URL מוחלט כדי שלא נשלח ל-pages.dev
