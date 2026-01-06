@@ -88,6 +88,13 @@ export const api = axios.create({
   timeout: 60000 
 });
 
+try {
+  // Expose effective baseURL for production debugging: window.__HASDERA_API_BASEURL
+  window.__HASDERA_API_BASEURL = resolvedApiBaseUrl;
+} catch {
+  // ignore (non-browser)
+}
+
 // Hard failsafe: ensure relative URLs never go to pages.dev (or any current origin)
 // by converting them to absolute backend URLs before Axios runs interceptors.
 const _originalRequest = api.request.bind(api);
