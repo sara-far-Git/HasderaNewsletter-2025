@@ -5,6 +5,17 @@ import axiosRetry from 'axios-retry';
 const DEFAULT_PROD_API_BASEURL = "https://hasderanewsletter-2025.onrender.com/api";
 const DEFAULT_DEV_API_BASEURL = "http://localhost:5055/api";
 
+// Version stamp to verify which bundle is running in production.
+// Keep this in sync with the latest deployment commit when debugging.
+export const API_CLIENT_VERSION = "9f55435";
+try {
+  // Expose for quick checks in DevTools: window.__HASDERA_API_CLIENT_VERSION
+  window.__HASDERA_API_CLIENT_VERSION = API_CLIENT_VERSION;
+} catch {
+  // ignore (non-browser)
+}
+console.log('🧩 api.js version:', API_CLIENT_VERSION);
+
 // יצירת אינסטנס עם baseURL
 // שימוש ב-VITE_API_URL אם קיים, אחרת localhost לפיתוח
 const getApiBaseUrl = () => {
