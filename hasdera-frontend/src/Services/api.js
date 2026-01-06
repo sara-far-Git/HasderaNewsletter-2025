@@ -94,9 +94,8 @@ api.interceptors.request.use((config) => {
   const isAbsoluteUrl = /^https?:\/\//i.test(url);
 
   if (!isAbsoluteUrl) {
-    // נעדיף את ה-baseURL של האינסטנס אם הוא קיים, אחרת fallback ברור
-    const candidateBase = (config.baseURL || api.defaults.baseURL || effectiveDefaultBaseUrl || "").trim();
-    const normalizedBase = candidateBase.replace(/\/+$/, "");
+    // אל תסמוך על baseURL (יכול להיות ריק/מנוטרל ע"י axios); נבנה URL מוחלט תמיד.
+    const normalizedBase = String(effectiveDefaultBaseUrl || "").trim().replace(/\/+$/, "");
     const normalizedPath = url.startsWith("/") ? url : "/" + url;
 
     if (normalizedBase) {
