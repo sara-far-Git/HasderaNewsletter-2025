@@ -87,17 +87,29 @@ export const api = axios.create({
 
 // ——— REQUEST INTERCEPTOR ———
 api.interceptors.request.use((config) => {
-  // Failsafe: אם baseURL ריק/חסר, נכפה אותו כדי שלא נשלח ל-pages.dev
+  // Failsafe: אם baseURL ריק/חסר, נכפה URL מוחלט כדי שלא נשלח ל-pages.dev
   const effectiveDefaultBaseUrl = import.meta.env.PROD ? DEFAULT_PROD_API_BASEURL : DEFAULT_DEV_API_BASEURL;
-  if (!api.defaults.baseURL) {
-    api.defaults.baseURL = effectiveDefaultBaseUrl;
-  }
-  if (!config.baseURL) {
-    config.baseURL = api.defaults.baseURL || effectiveDefaultBaseUrl;
+
+  const url = String(config.url ?? "");
+  const isAbsoluteUrl = /^https?:\/\//i.test(url);
+
+  if (!isAbsoluteUrl) {
+    // נעדיף את ה-baseURL של האינסטנס אם הוא קיים, אחרת fallback ברור
+    const candidateBase = (config.baseURL || api.defaults.baseURL || effectiveDefaultBaseUrl || "").trim();
+    const normalizedBase = candidateBase.replace(/\/+$/, "");
+    const normalizedPath = url.startsWith("/") ? url : "/" + url;
+
+    if (normalizedBase) {
+      // כדי להימנע ממצב בו axios מתעלם מ-baseURL/משאיר request יחסי,
+      // נבנה URL מוחלט ישירות.
+      config.baseURL = undefined;
+      config.url = normalizedBase + normalizedPath;
+    }
   }
 
-  // לוג כדי לוודא שה-baseURL נכון
-  console.log('🔍 API Request:', config.method?.toUpperCase(), config.baseURL + config.url);
+  // לוג כדי לוודא שה-URL הסופי נכון
+  const logUrl = String(config.baseURL ? config.baseURL + (config.url ?? "") : (config.url ?? ""));
+  console.log('🔍 API Request:', config.method?.toUpperCase(), logUrl);
   
   const token = localStorage.getItem("hasdera_token");
   if (token) {
