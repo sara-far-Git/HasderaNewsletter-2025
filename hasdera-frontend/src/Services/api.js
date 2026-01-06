@@ -16,6 +16,18 @@ try {
 }
 console.log('🧩 api.js version:', API_CLIENT_VERSION);
 
+const normalizeApiBaseUrl = (rawUrl, fallbackUrl) => {
+  const fallback = String(fallbackUrl ?? "").trim();
+  const raw = typeof rawUrl === "string" ? rawUrl.trim() : "";
+
+  if (!raw) return fallback;
+  if (raw.startsWith('/')) return fallback;
+  if (!/^https?:\/\//i.test(raw)) return fallback;
+
+  const trimmed = raw.replace(/\/+$/, "");
+  return trimmed.endsWith('/api') ? trimmed : trimmed + '/api';
+};
+
 // יצירת אינסטנס עם baseURL
 // שימוש ב-VITE_API_URL אם קיים, אחרת localhost לפיתוח
 const getApiBaseUrl = () => {
@@ -32,43 +44,20 @@ const getApiBaseUrl = () => {
                        !window.location.hostname.includes('192.168.');
   
   console.log('🔍 isProduction:', isProduction);
-  
-  // אם יש VITE_API_URL, נשתמש בו
-  if (import.meta.env.VITE_API_URL) {
-    let url = import.meta.env.VITE_API_URL.trim();
 
-    // אם המשתנה קיים אבל ריק/רווחים, נחשב אותו כלא מוגדר
-    if (!url) {
-      console.error('❌ VITE_API_URL is set but empty. Falling back to default API URL.');
-      const productionUrl = DEFAULT_PROD_API_BASEURL;
-      console.log('✅ Falling back to Render API:', productionUrl);
-      return productionUrl;
-    }
-    
-    // בדיקה שה-URL לא יחסי (לא מתחיל ב-/)
-    if (url.startsWith('/')) {
-      console.error('❌ VITE_API_URL is relative! It should be a full URL like https://hasderanewsletter-2025.onrender.com');
-      console.error('❌ Current VITE_API_URL:', url);
-      // נשתמש ב-production URL במקום
-      const productionUrl = DEFAULT_PROD_API_BASEURL;
-      console.log('✅ Falling back to Render API:', productionUrl);
-      return productionUrl;
-    }
+  const effectiveDefaultBaseUrl = import.meta.env.PROD ? DEFAULT_PROD_API_BASEURL : DEFAULT_DEV_API_BASEURL;
 
-    // בדיקה שה-URL מוחלט וכולל scheme (http/https)
-    if (!/^https?:\/\//i.test(url)) {
-      console.error('❌ VITE_API_URL is missing http/https scheme! It should be a full URL like https://hasderanewsletter-2025.onrender.com');
-      console.error('❌ Current VITE_API_URL:', url);
-      const productionUrl = DEFAULT_PROD_API_BASEURL;
-      console.log('✅ Falling back to Render API:', productionUrl);
-      return productionUrl;
-    }
-    
-    // וודא שיש /api בסוף אם לא קיים
-    url = url.replace(/\/+$/, ''); // הסרת / בסוף כדי לא לקבל //api
-    const finalUrl = url.endsWith('/api') ? url : url + '/api';
-    console.log('✅ Using VITE_API_URL:', finalUrl);
-    return finalUrl;
+  // אם יש VITE_API_URL, נשתמש בו (אחרי נרמול). אם הוא ריק/לא תקין - ניפול לברירת מחדל.
+  const rawEnvUrl = import.meta.env.VITE_API_URL;
+  const normalizedEnvUrl = normalizeApiBaseUrl(rawEnvUrl, "");
+
+  if (typeof rawEnvUrl === 'string' && rawEnvUrl.length > 0 && !normalizedEnvUrl) {
+    console.error('❌ VITE_API_URL is set but empty/invalid. Falling back to default API URL.');
+  }
+
+  if (normalizedEnvUrl) {
+    console.log('✅ Using VITE_API_URL:', normalizedEnvUrl);
+    return normalizedEnvUrl;
   }
   
   // אם אנחנו ב-production, נשתמש ב-Render API
@@ -98,15 +87,16 @@ export const api = axios.create({
 
 // ——— REQUEST INTERCEPTOR ———
 api.interceptors.request.use((config) => {
-  // Failsafe: אם baseURL ריק/חסר, נכפה URL מוחלט כדי שלא נשלח ל-pages.dev
+  // Failsafe: אם baseURL ריק/חסר/שגוי, נכפה URL מוחלט כדי שלא נשלח ל-pages.dev
   const effectiveDefaultBaseUrl = import.meta.env.PROD ? DEFAULT_PROD_API_BASEURL : DEFAULT_DEV_API_BASEURL;
 
   const url = String(config.url ?? "");
   const isAbsoluteUrl = /^https?:\/\//i.test(url);
 
   if (!isAbsoluteUrl) {
-    // אל תסמוך על baseURL (יכול להיות ריק/מנוטרל ע"י axios); נבנה URL מוחלט תמיד.
-    const normalizedBase = String(effectiveDefaultBaseUrl || "").trim().replace(/\/+$/, "");
+    // אל תסמוך רק על baseURL של axios; נרמול + בניית URL מוחלט תמיד.
+    const candidateBase = config.baseURL ?? api.defaults.baseURL ?? apiBaseUrl;
+    const normalizedBase = normalizeApiBaseUrl(candidateBase, effectiveDefaultBaseUrl).replace(/\/+$/, "");
     const normalizedPath = url.startsWith("/") ? url : "/" + url;
 
     if (normalizedBase) {
