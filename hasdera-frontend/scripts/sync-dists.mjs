@@ -9,6 +9,11 @@ const TARGETS = [
   path.join(ROOT, 'dist-reader'),
 ];
 
+// העתקת functions מ-root ל-dist (לצורך Cloudflare Pages)
+// ROOT הוא hasdera-frontend, אז functions נמצא ב-../functions
+const FUNCTIONS_SOURCE = path.resolve(ROOT, '..', 'functions');
+const FUNCTIONS_TARGET = path.join(SOURCE, 'functions');
+
 async function exists(filePath) {
   try {
     await fs.access(filePath);
@@ -41,6 +46,13 @@ async function main() {
   if (!(await exists(SOURCE))) {
     console.error('sync-dists: missing dist/. Run build first.');
     process.exit(1);
+  }
+
+  // העתקת functions ל-dist (לצורך Cloudflare Pages)
+  if (await exists(FUNCTIONS_SOURCE)) {
+    await fs.rm(FUNCTIONS_TARGET, { recursive: true, force: true });
+    await copyDir(FUNCTIONS_SOURCE, FUNCTIONS_TARGET);
+    console.log('sync-dists: copied functions to dist/functions');
   }
 
   for (const target of TARGETS) {
