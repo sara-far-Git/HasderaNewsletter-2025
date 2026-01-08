@@ -45,9 +45,20 @@ const getApiBaseUrl = () => {
                        !window.location.hostname.includes('127.0.0.1') &&
                        !window.location.hostname.includes('192.168.');
   
+  // בדיקה אם אנחנו ב-Cloudflare Pages
+  const isCloudflarePages = window.location.hostname.includes('pages.dev') || 
+                           window.location.hostname.includes('cloudflarepages.com');
+  
   console.log('🔍 isProduction:', isProduction);
+  console.log('🔍 isCloudflarePages:', isCloudflarePages);
 
   const effectiveDefaultBaseUrl = import.meta.env.PROD ? DEFAULT_PROD_API_BASEURL : DEFAULT_DEV_API_BASEURL;
+
+  // אם אנחנו ב-Cloudflare Pages, נשתמש ב-relative URLs כדי שה-functions יוכלו לתפוס אותם
+  if (isCloudflarePages) {
+    console.log('✅ Cloudflare Pages detected - using relative URLs for functions');
+    return ""; // יחזיר empty string, ואז הקוד יבנה relative URLs
+  }
 
   // אם יש VITE_API_URL, נשתמש בו (אחרי נרמול). אם הוא ריק/לא תקין - ניפול לברירת מחדל.
   const rawEnvUrl = import.meta.env.VITE_API_URL;
@@ -129,14 +140,25 @@ api.request = (config) => {
 
 // ——— REQUEST INTERCEPTOR ———
 api.interceptors.request.use((config) => {
-  // Failsafe: אם baseURL ריק/חסר/שגוי, נכפה URL מוחלט כדי שלא נשלח ל-pages.dev
-  const effectiveDefaultBaseUrl = EFFECTIVE_DEFAULT_BASEURL;
+  // בדיקה אם אנחנו ב-Cloudflare Pages
+  const isCloudflarePages = typeof window !== 'undefined' && (
+    window.location.hostname.includes('pages.dev') || 
+    window.location.hostname.includes('cloudflarepages.com')
+  );
 
   const url = String(config.url ?? "");
   const isAbsoluteUrl = /^https?:\/\//i.test(url);
 
+  // אם אנחנו ב-Cloudflare Pages ו-baseURL ריק, נשאיר relative URL כדי שה-functions יוכלו לתפוס אותו
+  if (!isAbsoluteUrl && isCloudflarePages && (!config.baseURL || !api.defaults.baseURL || !resolvedApiBaseUrl)) {
+    // נשאיר את ה-URL כ-relative - ה-functions יוכלו לתפוס אותו
+    console.log('🔍 Cloudflare Pages - keeping relative URL for functions:', url);
+    return config;
+  }
+
   if (!isAbsoluteUrl) {
-    // אל תסמוך רק על baseURL של axios; נרמול + בניית URL מוחלט תמיד.
+    // Failsafe: אם baseURL ריק/חסר/שגוי, נכפה URL מוחלט כדי שלא נשלח ל-pages.dev
+    const effectiveDefaultBaseUrl = EFFECTIVE_DEFAULT_BASEURL;
     const candidateBase = config.baseURL ?? api.defaults.baseURL ?? resolvedApiBaseUrl;
     const normalizedBase = normalizeApiBaseUrl(candidateBase, effectiveDefaultBaseUrl).replace(/\/+$/, "");
     const normalizedPath = url.startsWith("/") ? url : "/" + url;
