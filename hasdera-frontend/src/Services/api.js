@@ -67,7 +67,8 @@ const getApiBaseUrl = () => {
 };
 
 const apiBaseUrl = getApiBaseUrl();
-const resolvedApiBaseUrl = normalizeApiBaseUrl(apiBaseUrl, EFFECTIVE_DEFAULT_BASEURL);
+// ב-Cloudflare Pages, אם apiBaseUrl ריק, נשאיר אותו ריק (לא ננרמל עם fallback)
+const resolvedApiBaseUrl = apiBaseUrl === "" ? "" : normalizeApiBaseUrl(apiBaseUrl, EFFECTIVE_DEFAULT_BASEURL);
 
 export const api = axios.create({
   baseURL: resolvedApiBaseUrl,
