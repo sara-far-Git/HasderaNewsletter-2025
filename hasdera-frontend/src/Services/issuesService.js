@@ -11,12 +11,11 @@ export async function getIssues(page = 1, pageSize = 100, publishedOnly = false)
       params.append('publishedOnly', 'true');
     }
     const res = await api.get(`/Issues?${params.toString()}`);
-    console.log(`📋 getIssues - Response type:`, typeof res.data, Array.isArray(res.data));
     
     // בדיקה אם התשובה היא HTML במקום JSON (שגיאה)
     if (typeof res.data === 'string') {
       if (res.data.includes('<!doctype') || res.data.includes('<html') || res.data.trim().startsWith('<!')) {
-        console.error('❌ getIssues - Received HTML instead of JSON. Response:', res.data.substring(0, 200));
+        console.error('❌ getIssues - Received HTML instead of JSON');
         return [];
       }
       // אם זה string אבל לא HTML, ננסה לפרסר כ-JSON
@@ -34,13 +33,10 @@ export async function getIssues(page = 1, pageSize = 100, publishedOnly = false)
     
     // ה-API מחזיר PagedResult עם items
     if (res.data && res.data.items && Array.isArray(res.data.items)) {
-      console.log(`✅ getIssues - Found ${res.data.items.length} issues (total: ${res.data.total})`);
       return res.data.items;
     }
     // אם אין items, נחזיר את הנתונים ישירות (תואם לאחור)
-    const items = Array.isArray(res.data) ? res.data : [];
-    console.log(`✅ getIssues - Returning ${items.length} issues (legacy format)`);
-    return items;
+    return Array.isArray(res.data) ? res.data : [];
   } catch (err) {
     console.error("❌ שגיאה ב-GET Issues:", err);
     // במקרה של שגיאה, נחזיר מערך ריק במקום לזרוק שגיאה

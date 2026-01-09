@@ -1,8 +1,6 @@
 const BACKEND_ORIGIN = "https://hasderanewsletter-2025.onrender.com";
 
 export async function onRequest({ request }) {
-  console.log('🔍 Issues function called (root):', request.method, request.url);
-  
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,

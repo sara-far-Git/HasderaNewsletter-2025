@@ -33,13 +33,6 @@ const normalizeApiBaseUrl = (rawUrl, fallbackUrl) => {
 // יצירת אינסטנס עם baseURL
 // שימוש ב-VITE_API_URL אם קיים, אחרת localhost לפיתוח
 const getApiBaseUrl = () => {
-  console.log('🔍 getApiBaseUrl called');
-  console.log('🔍 window.location.hostname:', window.location.hostname);
-  console.log('🔍 import.meta.env.VITE_API_URL:', import.meta.env.VITE_API_URL);
-  console.log('🔍 import.meta.env.DEV:', import.meta.env.DEV);
-  console.log('🔍 import.meta.env.MODE:', import.meta.env.MODE);
-  console.log('🔍 import.meta.env.PROD:', import.meta.env.PROD);
-  
   // בדיקה אם אנחנו ב-production (לא localhost)
   const isProduction = window.location.hostname !== 'localhost' && 
                        !window.location.hostname.includes('127.0.0.1') &&
@@ -48,15 +41,11 @@ const getApiBaseUrl = () => {
   // בדיקה אם אנחנו ב-Cloudflare Pages
   const isCloudflarePages = window.location.hostname.includes('pages.dev') || 
                            window.location.hostname.includes('cloudflarepages.com');
-  
-  console.log('🔍 isProduction:', isProduction);
-  console.log('🔍 isCloudflarePages:', isCloudflarePages);
 
   const effectiveDefaultBaseUrl = import.meta.env.PROD ? DEFAULT_PROD_API_BASEURL : DEFAULT_DEV_API_BASEURL;
 
   // אם אנחנו ב-Cloudflare Pages, נשתמש ב-relative URLs כדי שה-functions יוכלו לתפוס אותם
   if (isCloudflarePages) {
-    console.log('✅ Cloudflare Pages detected - using relative URLs for functions');
     return ""; // יחזיר empty string, ואז הקוד יבנה relative URLs
   }
 
@@ -64,31 +53,21 @@ const getApiBaseUrl = () => {
   const rawEnvUrl = import.meta.env.VITE_API_URL;
   const normalizedEnvUrl = normalizeApiBaseUrl(rawEnvUrl, "");
 
-  if (typeof rawEnvUrl === 'string' && rawEnvUrl.length > 0 && !normalizedEnvUrl) {
-    console.error('❌ VITE_API_URL is set but empty/invalid. Falling back to default API URL.');
-  }
-
   if (normalizedEnvUrl) {
-    console.log('✅ Using VITE_API_URL:', normalizedEnvUrl);
     return normalizedEnvUrl;
   }
   
   // אם אנחנו ב-production, נשתמש ב-Render API
   if (isProduction) {
-    const productionUrl = DEFAULT_PROD_API_BASEURL;
-    console.log('✅ Production mode - using Render API:', productionUrl);
-    console.log('⚠️ VITE_API_URL not set! Please set it in Cloudflare Pages Environment Variables');
-    return productionUrl;
+    return DEFAULT_PROD_API_BASEURL;
   }
   
   // בפיתוח מקומי, נשתמש ב-localhost
-  console.log('✅ Development mode - using localhost:5055');
   return DEFAULT_DEV_API_BASEURL;
 };
 
 const apiBaseUrl = getApiBaseUrl();
 const resolvedApiBaseUrl = normalizeApiBaseUrl(apiBaseUrl, EFFECTIVE_DEFAULT_BASEURL);
-console.log('🔍 Final API baseURL:', resolvedApiBaseUrl);
 
 export const api = axios.create({
   baseURL: resolvedApiBaseUrl,
@@ -152,7 +131,6 @@ api.interceptors.request.use((config) => {
   // אם אנחנו ב-Cloudflare Pages ו-baseURL ריק, נשאיר relative URL כדי שה-functions יוכלו לתפוס אותו
   if (!isAbsoluteUrl && isCloudflarePages && (!config.baseURL || !api.defaults.baseURL || !resolvedApiBaseUrl)) {
     // נשאיר את ה-URL כ-relative - ה-functions יוכלו לתפוס אותו
-    console.log('🔍 Cloudflare Pages - keeping relative URL for functions:', url);
     return config;
   }
 
@@ -173,10 +151,6 @@ api.interceptors.request.use((config) => {
     }
   }
 
-  // לוג כדי לוודא שה-URL הסופי נכון
-  const logUrl = String(config.baseURL ? config.baseURL + (config.url ?? "") : (config.url ?? ""));
-  console.log('🔍 API Request:', config.method?.toUpperCase(), logUrl);
-  
   const token = localStorage.getItem("hasdera_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
