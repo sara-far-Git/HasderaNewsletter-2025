@@ -129,7 +129,7 @@ api.interceptors.request.use((config) => {
   const isAbsoluteUrl = /^https?:\/\//i.test(url);
 
   // אם אנחנו ב-Cloudflare Pages ו-baseURL ריק, נשאיר relative URL כדי שה-functions יוכלו לתפוס אותו
-  if (!isAbsoluteUrl && isCloudflarePages && (!config.baseURL || !api.defaults.baseURL || !resolvedApiBaseUrl)) {
+  if (!isAbsoluteUrl && isCloudflarePages && (!resolvedApiBaseUrl || resolvedApiBaseUrl === "")) {
     // נשאיר את ה-URL כ-relative - ה-functions יוכלו לתפוס אותו
     return config;
   }
