@@ -12,13 +12,20 @@ export async function getIssues(page = 1, pageSize = 100, publishedOnly = false)
     }
     const res = await api.get(`/Issues?${params.toString()}`);
     console.log(`📋 getIssues - Response:`, res.data);
+    
+    // בדיקה אם התשובה היא HTML במקום JSON (שגיאה)
+    if (typeof res.data === 'string' && res.data.includes('<!doctype html>')) {
+      console.error('❌ getIssues - Received HTML instead of JSON. Response:', res.data.substring(0, 200));
+      return [];
+    }
+    
     // ה-API מחזיר PagedResult עם items
-    if (res.data && res.data.items) {
+    if (res.data && res.data.items && Array.isArray(res.data.items)) {
       console.log(`✅ getIssues - Found ${res.data.items.length} issues (total: ${res.data.total})`);
       return res.data.items;
     }
     // אם אין items, נחזיר את הנתונים ישירות (תואם לאחור)
-    const items = res.data || [];
+    const items = Array.isArray(res.data) ? res.data : [];
     console.log(`✅ getIssues - Returning ${items.length} issues (legacy format)`);
     return items;
   } catch (err) {
