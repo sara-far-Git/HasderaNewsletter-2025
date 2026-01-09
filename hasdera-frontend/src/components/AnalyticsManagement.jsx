@@ -8,8 +8,6 @@ import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { BarChart3, Eye, MousePointerClick, TrendingUp, Calendar, FileText } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import Analytics from './Analytics';
-import HasderaChat from './HasderaChat';
 
 // 🎬 אנימציות
 const fadeInUp = keyframes`
@@ -237,13 +235,15 @@ export default function AnalyticsManagement() {
         </TabsBar>
 
         <ContentArea>
-          {activeTab === 'overview' && <Analytics />}
-          {activeTab === 'chat' && <HasderaChat />}
-          {(activeTab === 'heatmap' || activeTab === 'reports' || activeTab === 'comparison') && (
+          {(activeTab === 'overview' || activeTab === 'chat' || activeTab === 'heatmap' || activeTab === 'reports' || activeTab === 'comparison') && (
             <EmptyState>
               <BarChart3 size={64} />
               <p>
-                {activeTab === 'heatmap' 
+                {activeTab === 'overview'
+                  ? 'סקירה כללית - בקרוב'
+                  : activeTab === 'chat'
+                  ? 'צ\'אט AI - בקרוב'
+                  : activeTab === 'heatmap' 
                   ? 'מפת חום - בקרוב' 
                   : activeTab === 'reports' 
                   ? 'דוחות מפורטים - בקרוב' 
