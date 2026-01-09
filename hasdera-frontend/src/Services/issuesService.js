@@ -11,12 +11,25 @@ export async function getIssues(page = 1, pageSize = 100, publishedOnly = false)
       params.append('publishedOnly', 'true');
     }
     const res = await api.get(`/Issues?${params.toString()}`);
-    console.log(`📋 getIssues - Response:`, res.data);
+    console.log(`📋 getIssues - Response type:`, typeof res.data, Array.isArray(res.data));
     
     // בדיקה אם התשובה היא HTML במקום JSON (שגיאה)
-    if (typeof res.data === 'string' && res.data.includes('<!doctype html>')) {
-      console.error('❌ getIssues - Received HTML instead of JSON. Response:', res.data.substring(0, 200));
-      return [];
+    if (typeof res.data === 'string') {
+      if (res.data.includes('<!doctype') || res.data.includes('<html') || res.data.trim().startsWith('<!')) {
+        console.error('❌ getIssues - Received HTML instead of JSON. Response:', res.data.substring(0, 200));
+        return [];
+      }
+      // אם זה string אבל לא HTML, ננסה לפרסר כ-JSON
+      try {
+        const parsed = JSON.parse(res.data);
+        if (parsed && parsed.items && Array.isArray(parsed.items)) {
+          return parsed.items;
+        }
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        console.error('❌ getIssues - Received string that is not JSON or HTML');
+        return [];
+      }
     }
     
     // ה-API מחזיר PagedResult עם items
