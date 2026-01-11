@@ -53,5 +53,27 @@ export async function getIssueById(id) {
     throw err;
   }
 }
+
+// קבלת מקומות פרסום (slots) לפי גיליון
+export async function getIssueSlots(issueId) {
+  try {
+    const res = await api.get(`/Issues/${issueId}/slots`);
+    return res.data;
+  } catch (err) {
+    console.error("❌ שגיאה ב-GET Issue Slots:", err);
+    throw err;
+  }
+}
+
+// הזמנת מקום פרסום (slot) בגיליון
+export async function bookIssueSlot(issueId, slotId, payload) {
+  try {
+    const res = await api.post(`/Issues/${issueId}/slots/${slotId}/book`, payload);
+    return res.data;
+  } catch (err) {
+    console.error("❌ שגיאה ב-POST Book Issue Slot:", err);
+    throw err;
+  }
+}
   
   
