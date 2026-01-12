@@ -856,24 +856,24 @@ const SlotPage = React.forwardRef(({ slot, onClick }, ref) => {
   const occupied = !!slot.isOccupied;
   
   return (
-    <PageWrapper ref={ref} data-density="soft" $isCover={false}>
+  <PageWrapper ref={ref} data-density="soft" $isCover={false}>
       {!occupied && (
-        <PageOverlayButton 
+    <PageOverlayButton 
           onClick={() => onClick && onClick(slot)} 
           title={`בחר ${slot.name} לפרסום`}
           aria-label={`בחר ${slot.name} לפרסום`}
-        >
-          <PageOverlayContent>
-            <PageOverlayIcon>
-              <Tag size={28} />
-            </PageOverlayIcon>
+    >
+      <PageOverlayContent>
+        <PageOverlayIcon>
+          <Tag size={28} />
+        </PageOverlayIcon>
             <PageOverlayText>{slot.name}</PageOverlayText>
-            <PageOverlaySubtext>לחץ לבחירה</PageOverlaySubtext>
-          </PageOverlayContent>
-        </PageOverlayButton>
+        <PageOverlaySubtext>לחץ לבחירה</PageOverlaySubtext>
+      </PageOverlayContent>
+    </PageOverlayButton>
       )}
 
-      <EmptyPageContent>
+    <EmptyPageContent>
         <div style={{ 
           width: '100%', 
           height: '100%', 
@@ -930,26 +930,16 @@ const SlotPage = React.forwardRef(({ slot, onClick }, ref) => {
             </div>
           )}
         </div>
-      </EmptyPageContent>
-      
+    </EmptyPageContent>
+    
       <PageNumber>{slot.code}</PageNumber>
-    </PageWrapper>
+  </PageWrapper>
   );
 });
 SlotPage.displayName = 'SlotPage';
 
 // --- Main Component ---
 
-<<<<<<< HEAD:hasdera-frontend/src/components/PlacementBook.jsx
-export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const initialIssue = propIssue || location.state || {
-    title: "בחירת מיקום פרסומי",
-    issue_number: "גיליון חדש",
-  };
-
-=======
 // Helper functions to normalize data
 function normalizeIssueId(issue) {
   return issue?.issueId ?? issue?.issue_id ?? issue?.Issue_id;
@@ -979,7 +969,6 @@ export default function PlacementBook() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
->>>>>>> feature/create-Advertiser-area:hasdera-frontend/src/Components/PlacementBook.jsx
   const bookRef = useRef(null);
 
   // State for issues and slots
@@ -1326,16 +1315,16 @@ export default function PlacementBook() {
       setPlacementSelection(null);
 
       // מעבר לדף התשלום
-      navigate('/advertiser/payment', {
-        state: {
+    navigate('/advertiser/payment', {
+      state: {
           slot: selectedSlot,
           slotDisplayName: selectedSlot.name,
           issueTitle: normalizeIssueTitle(selectedIssue),
-          placement: placementData,
+        placement: placementData,
           creative: uploadedCreative,
           orderId: orderId
-        }
-      });
+      }
+    });
     } catch (e) {
       console.error(e);
       setError(e?.response?.data?.message || e?.response?.data?.error || 'שגיאה בהזמנת מקום פרסום');
@@ -1455,9 +1444,9 @@ export default function PlacementBook() {
                 <SelectIconWrapper size={18} />
               </SelectWrapper>
             )}
-            <PageCounter>
-              {getRealPageNumber()} / {totalPages}
-            </PageCounter>
+          <PageCounter>
+            {getRealPageNumber()} / {totalPages}
+          </PageCounter>
           </div>
         </HeaderContent>
       </Header>
@@ -1570,33 +1559,33 @@ export default function PlacementBook() {
       </MainContent>
 
       {!showUpload && (
-        <Footer>
-          <FooterContent>
-            <FooterButton onClick={goToLastPage}>
-              <ChevronsRight size={18} />
-              אחרון
-            </FooterButton>
+      <Footer>
+        <FooterContent>
+          <FooterButton onClick={goToLastPage}>
+            <ChevronsRight size={18} />
+            אחרון
+          </FooterButton>
 
-            <FooterButton onClick={goToNextPage} disabled={currentPage >= Math.floor((totalPages - 1) / 2)}>
-              <ArrowRight size={18} />
-              הבא
-            </FooterButton>
+          <FooterButton onClick={goToNextPage} disabled={currentPage >= Math.floor((totalPages - 1) / 2)}>
+            <ArrowRight size={18} />
+            הבא
+          </FooterButton>
 
-            <PageCounter>
-              {getRealPageNumber()} / {totalPages}
-            </PageCounter>
+          <PageCounter>
+            {getRealPageNumber()} / {totalPages}
+          </PageCounter>
 
-            <FooterButton onClick={goToPrevPage} disabled={currentPage === 0}>
-              קודם
-              <ArrowLeft size={18} />
-            </FooterButton>
+          <FooterButton onClick={goToPrevPage} disabled={currentPage === 0}>
+            קודם
+            <ArrowLeft size={18} />
+          </FooterButton>
 
-            <FooterButton onClick={goToFirstPage}>
-              ראשון
-              <ChevronsLeft size={18} />
-            </FooterButton>
-          </FooterContent>
-        </Footer>
+          <FooterButton onClick={goToFirstPage}>
+            ראשון
+            <ChevronsLeft size={18} />
+          </FooterButton>
+        </FooterContent>
+      </Footer>
       )}
 
       {showPlacementSelector && selectedSlot && (
