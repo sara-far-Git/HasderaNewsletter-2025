@@ -16,6 +16,10 @@ import AdvertiserChat from "./AdvertiserChat";
 import AdPlacementSelector from "./AdPlacementSelector";
 import AdUpload from "./AdUpload";
 import hasederaTheme from "../styles/HasederaTheme";
+import { getIssues, getIssueSlots, bookIssueSlot } from "../Services/issuesService";
+import { uploadCreative } from "../Services/creativesService";
+import { useAuth } from "../contexts/AuthContext";
+import { ChevronDown, CheckCircle, XCircle } from "lucide-react";
 
 // CSS גלובלי להסתרת עמודים ריקים ליד כריכות + תיקון איקונים
 // תחליפי את ה-CoverStyles הקיים בזה:
@@ -198,6 +202,53 @@ const PageCounter = styled.div`
   justify-content: center;
   font-family: 'Heebo', -apple-system, BlinkMacSystemFont, sans-serif;
   box-shadow: 0 2px 8px rgba(20, 184, 166, 0.1);
+`;
+
+const IssueSelect = styled.select`
+  padding: 0.625rem 1.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  appearance: none;
+  padding-right: 3rem;
+  transition: all 0.2s ease;
+  font-family: 'Heebo', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-width: 250px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(16, 185, 129, 0.5);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+
+  option {
+    background: #1e293b;
+    color: white;
+  }
+`;
+
+const SelectWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const SelectIconWrapper = styled(ChevronDown)`
+  position: absolute;
+  left: 1rem;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.5);
+  width: 18px;
+  height: 18px;
 `;
 
 const MainContent = styled.main`
@@ -800,35 +851,96 @@ const BlankPage = React.forwardRef((props, ref) => (
 ));
 BlankPage.displayName = 'BlankPage';
 
-// עמוד פנימי
-const InnerPage = React.forwardRef(({ pageNumber, onClick }, ref) => (
-  <PageWrapper ref={ref} data-density="soft" $isCover={false}>
-    <PageOverlayButton 
-      onClick={() => onClick && onClick(pageNumber)} 
-      title={`בחר עמוד ${pageNumber} לפרסום`}
-      aria-label={`בחר עמוד ${pageNumber} לפרסום`}
-    >
-      <PageOverlayContent>
-        <PageOverlayIcon>
-          <Tag size={28} />
-        </PageOverlayIcon>
-        <PageOverlayText>עמוד {pageNumber}</PageOverlayText>
-        <PageOverlaySubtext>לחץ לבחירה</PageOverlaySubtext>
-      </PageOverlayContent>
-    </PageOverlayButton>
+// עמוד מקום פרסום (slot)
+const SlotPage = React.forwardRef(({ slot, onClick }, ref) => {
+  const occupied = !!slot.isOccupied;
+  
+  return (
+    <PageWrapper ref={ref} data-density="soft" $isCover={false}>
+      {!occupied && (
+        <PageOverlayButton 
+          onClick={() => onClick && onClick(slot)} 
+          title={`בחר ${slot.name} לפרסום`}
+          aria-label={`בחר ${slot.name} לפרסום`}
+        >
+          <PageOverlayContent>
+            <PageOverlayIcon>
+              <Tag size={28} />
+            </PageOverlayIcon>
+            <PageOverlayText>{slot.name}</PageOverlayText>
+            <PageOverlaySubtext>לחץ לבחירה</PageOverlaySubtext>
+          </PageOverlayContent>
+        </PageOverlayButton>
+      )}
 
-    <EmptyPageContent>
-      <FileText size={48} style={{ opacity: 0.3 }} />
-      <div style={{ fontSize: '0.875rem', opacity: 0.5 }}>עמוד ריק</div>
-    </EmptyPageContent>
-    
-    <PageNumber>עמוד {pageNumber}</PageNumber>
-  </PageWrapper>
-));
-InnerPage.displayName = 'InnerPage';
+      <EmptyPageContent>
+        <div style={{ 
+          width: '100%', 
+          height: '100%', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          padding: '2rem',
+          gap: '1rem'
+        }}>
+          <div style={{ 
+            fontSize: '1.2rem', 
+            fontWeight: 700, 
+            color: occupied ? '#ef4444' : '#14b8a6',
+            textAlign: 'center'
+          }}>
+            {slot.name}
+          </div>
+          <div style={{ 
+            fontSize: '0.9rem', 
+            color: '#94a3b8',
+            textAlign: 'center'
+          }}>
+            {slot.code}
+          </div>
+          {slot.basePrice != null && (
+            <div style={{ 
+              fontSize: '0.85rem', 
+              color: '#64748b',
+              textAlign: 'center'
+            }}>
+              מחיר בסיס: ₪{slot.basePrice}
+            </div>
+          )}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem',
+            marginTop: '0.5rem',
+            color: occupied ? '#ef4444' : '#10b981',
+            fontWeight: 700
+          }}>
+            {occupied ? <XCircle size={18} /> : <CheckCircle size={18} />}
+            {occupied ? 'תפוס' : 'זמין'}
+          </div>
+          {occupied && slot.occupiedBy && (
+            <div style={{ 
+              fontSize: '0.75rem', 
+              color: '#64748b',
+              textAlign: 'center',
+              marginTop: '0.5rem'
+            }}>
+              תפוס על ידי: {slot.occupiedBy.advertiserName || slot.occupiedBy.AdvertiserName || 'לא ידוע'}
+            </div>
+          )}
+        </div>
+      </EmptyPageContent>
+      
+      <PageNumber>{slot.code}</PageNumber>
+    </PageWrapper>
+  );
+});
+SlotPage.displayName = 'SlotPage';
 
 // --- Main Component ---
 
+<<<<<<< HEAD:hasdera-frontend/src/components/PlacementBook.jsx
 export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -837,19 +949,109 @@ export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
     issue_number: "גיליון חדש",
   };
 
+=======
+// Helper functions to normalize data
+function normalizeIssueId(issue) {
+  return issue?.issueId ?? issue?.issue_id ?? issue?.Issue_id;
+}
+
+function normalizeIssueTitle(issue) {
+  return issue?.title ?? issue?.Title ?? '';
+}
+
+function normalizeIssueDate(issue) {
+  return issue?.issueDate ?? issue?.issue_date ?? issue?.Issue_date ?? null;
+}
+
+function normalizeSlotsPayload(payload) {
+  const rawSlots = payload?.slots ?? payload?.Slots ?? [];
+  return rawSlots.map(s => ({
+    slotId: s.slotId ?? s.SlotId,
+    code: s.code ?? s.Code,
+    name: s.name ?? s.Name,
+    basePrice: s.basePrice ?? s.BasePrice,
+    isOccupied: s.isOccupied ?? s.IsOccupied,
+    occupiedBy: s.occupiedBy ?? s.OccupiedBy ?? null,
+  }));
+}
+
+export default function PlacementBook() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+>>>>>>> feature/create-Advertiser-area:hasdera-frontend/src/Components/PlacementBook.jsx
   const bookRef = useRef(null);
 
-  const [innerPages, setInnerPages] = useState(2);
+  // State for issues and slots
+  const [issues, setIssues] = useState([]);
+  const [selectedIssueId, setSelectedIssueId] = useState(null);
+  const [selectedIssue, setSelectedIssue] = useState(null);
+  const [slotsPayload, setSlotsPayload] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // State for flipbook
   const [currentPage, setCurrentPage] = useState(0);
   const [pageWidth, setPageWidth] = useState(400);
   const [pageHeight, setPageHeight] = useState(566);
-  const [selectedPage, setSelectedPage] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState(null);
   const [showPlacementSelector, setShowPlacementSelector] = useState(false);
   const [isBookReady, setIsBookReady] = useState(false);
   const [uploadedCreative, setUploadedCreative] = useState(null);
   const [showUpload, setShowUpload] = useState(true);
+  const [placementSelection, setPlacementSelection] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const totalPages = innerPages + 2;
+  const slots = useMemo(() => normalizeSlotsPayload(slotsPayload), [slotsPayload]);
+  const totalPages = slots.length || 2;
+
+  // Load issues on mount
+  useEffect(() => {
+    const loadIssues = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const list = await getIssues(1, 100, false);
+        const sorted = (list || []).sort((a, b) => {
+          const dateA = new Date(normalizeIssueDate(a) || 0);
+          const dateB = new Date(normalizeIssueDate(b) || 0);
+          return dateB - dateA;
+        });
+        setIssues(sorted);
+        if (sorted.length && !selectedIssueId) {
+          setSelectedIssueId(normalizeIssueId(sorted[0]));
+        }
+      } catch (e) {
+        console.error(e);
+        setError('לא ניתן לטעון גיליונות');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadIssues();
+  }, []);
+
+  // Load slots when issue is selected
+  useEffect(() => {
+    if (!selectedIssueId) return;
+    const loadSlots = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const issue = issues.find(i => normalizeIssueId(i) === selectedIssueId);
+        setSelectedIssue(issue);
+        const payload = await getIssueSlots(selectedIssueId);
+        setSlotsPayload(payload);
+      } catch (e) {
+        console.error(e);
+        setError('לא ניתן לטעון מקומות פרסום');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSlots();
+  }, [selectedIssueId, issues]);
 
   useEffect(() => {
     const onResize = () => {
@@ -969,7 +1171,7 @@ export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
         observer.disconnect();
       }
     };
-  }, [innerPages, currentPage]);
+  }, [slots.length, currentPage]);
 
   const goToNextPage = useCallback(() => {
     try {
@@ -1007,6 +1209,13 @@ export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
       console.error('Error going to last page:', error);
     }
   }, [totalPages]);
+
+  const handleIssueChange = useCallback((e) => {
+    const issueId = Number(e.target.value);
+    setSelectedIssueId(issueId);
+    setSlotsPayload(null);
+    setShowPlacementSelector(false);
+  }, []);
 
   const handleFlip = useCallback((event) => {
     setCurrentPage(event.data);
@@ -1064,33 +1273,81 @@ export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
     }
   }, [totalPages, currentPage]);
 
-  const openBuyModal = useCallback((pageIdentifier) => {
-    setSelectedPage(pageIdentifier);
+  const openBuyModal = useCallback((slot) => {
+    if (slot.isOccupied) {
+      // אם המקום תפוס, לא ניתן לבחור אותו
+      return;
+    }
+    setSelectedSlot(slot);
     setShowPlacementSelector(true);
   }, []);
 
-  const handlePlacementSelect = useCallback((placementData) => {
-    setShowPlacementSelector(false);
-    
-    // קביעת שם העמוד לתצוגה
-    const pageDisplayName = selectedPage === 'back-cover' 
-      ? 'כריכה אחורית' 
-      : `עמוד ${selectedPage}`;
-    
-    navigate('/advertiser/payment', {
-      state: {
-        page: selectedPage,
-        pageDisplayName: pageDisplayName,
-        issueTitle: initialIssue.title,
-        placement: placementData,
-        creative: uploadedCreative
-      }
-    });
-  }, [selectedPage, initialIssue.title, navigate, uploadedCreative]);
+  const handlePlacementSelect = useCallback(async (placementData) => {
+    if (!selectedIssueId || !selectedSlot?.slotId || !uploadedCreative) {
+      setError('חסרים נתונים להזמנה');
+      return;
+    }
+
+    if (!placementData?.size || !Array.isArray(placementData?.quarters) || placementData.quarters.length === 0) {
+      setError('אנא בחר גודל ומיקום למודעה');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const payload = {
+        advertiserId: user?.advertiserId ? Number(user.advertiserId) : null,
+        name: user?.name || user?.Name || null,
+        company: user?.company || user?.Company || null,
+        email: user?.email || user?.Email || null,
+        phone: user?.phone || user?.Phone || null,
+        size: placementData.size,
+        quarters: placementData.quarters,
+        placementDescription: placementData.description ?? null,
+      };
+
+      const booking = await bookIssueSlot(selectedIssueId, selectedSlot.slotId, payload);
+      const advertiserId = booking.advertiserId ?? booking.AdvertiserId ?? payload.advertiserId;
+      const orderId = booking.orderId ?? booking.OrderId;
+
+      // העלאת הקובץ
+      await uploadCreative(uploadedCreative, orderId);
+
+      // רענון המקומות הפרסומיים
+      const refreshed = await getIssueSlots(selectedIssueId);
+      setSlotsPayload(refreshed);
+
+      setShowPlacementSelector(false);
+      setSelectedSlot(null);
+      setUploadedCreative(null);
+      setShowUpload(true);
+      setPlacementSelection(null);
+
+      // מעבר לדף התשלום
+      navigate('/advertiser/payment', {
+        state: {
+          slot: selectedSlot,
+          slotDisplayName: selectedSlot.name,
+          issueTitle: normalizeIssueTitle(selectedIssue),
+          placement: placementData,
+          creative: uploadedCreative,
+          orderId: orderId
+        }
+      });
+    } catch (e) {
+      console.error(e);
+      setError(e?.response?.data?.message || e?.response?.data?.error || 'שגיאה בהזמנת מקום פרסום');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [selectedIssueId, selectedSlot, uploadedCreative, user, navigate, selectedIssue]);
 
   const handlePlacementCancel = useCallback(() => {
     setShowPlacementSelector(false);
-    setSelectedPage(null);
+    setSelectedSlot(null);
+    setPlacementSelection(null);
   }, []);
 
   const handleUploadComplete = useCallback((creativeData) => {
@@ -1109,6 +1366,10 @@ export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
 
   const renderPages = useMemo(() => {
     try {
+      if (!slots.length) {
+        return [];
+      }
+
       const pages = [];
       
       // עבור RTL - הספר נפתח מימין לשמאל
@@ -1119,17 +1380,20 @@ export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
       pages.push(
         <BackCover 
           key="back-cover"
-          onClick={openBuyModal}
+          onClick={() => {
+            // לא ניתן לבחור כריכה אחורית ישירות - צריך לבחור slot
+          }}
         />
       );
 
-      // עמודים פנימיים - ניתנים לקנייה (יופיעו בזוגות)
+      // מקומות פרסום - ניתנים לקנייה (יופיעו בזוגות)
       // הפיכת הסדר עבור RTL
-      for (let i = innerPages; i >= 1; i--) {
+      for (let i = slots.length - 1; i >= 0; i--) {
+        const slot = slots[i];
         pages.push(
-          <InnerPage
-            key={`inner-page-${i}`}
-            pageNumber={i}
+          <SlotPage
+            key={`slot-${slot.slotId}`}
+            slot={slot}
             onClick={openBuyModal}
           />
         );
@@ -1139,8 +1403,8 @@ export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
       pages.push(
         <FrontCover 
           key="front-cover" 
-          issueTitle={initialIssue?.title || "גיליון חדש"}
-          issueNumber={initialIssue?.issue_number || ""}
+          issueTitle={normalizeIssueTitle(selectedIssue) || "גיליון חדש"}
+          issueNumber={normalizeIssueDate(selectedIssue) ? new Date(normalizeIssueDate(selectedIssue)).toLocaleDateString('he-IL') : ""}
         />
       );
 
@@ -1149,7 +1413,7 @@ export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
       console.error('Error rendering pages:', error);
       return [];
     }
-  }, [innerPages, initialIssue?.title, initialIssue?.issue_number, openBuyModal]);
+  }, [slots, selectedIssue, openBuyModal]);
 
   return (
     <Container>
@@ -1162,13 +1426,39 @@ export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
           </BackButton>
 
           <TitleSection>
-            <Title>{showUpload && !uploadedCreative ? 'העלאת מודעה' : (initialIssue?.title || 'בחירת מיקום פרסומי')}</Title>
-            <Subtitle>{showUpload && !uploadedCreative ? 'העלי את המודעה לפני בחירת המיקום' : (initialIssue?.issue_number || 'בחירת עמודים לפרסום')}</Subtitle>
+            <Title>{showUpload && !uploadedCreative ? 'העלאת מודעה' : (normalizeIssueTitle(selectedIssue) || 'בחירת מיקום פרסומי')}</Title>
+            <Subtitle>
+              {showUpload && !uploadedCreative 
+                ? 'העלי את המודעה לפני בחירת המיקום' 
+                : (selectedIssue ? `גיליון ${normalizeIssueDate(selectedIssue) ? new Date(normalizeIssueDate(selectedIssue)).toLocaleDateString('he-IL') : ''}` : 'בחירת עמודים לפרסום')}
+            </Subtitle>
           </TitleSection>
 
-          <PageCounter>
-            {getRealPageNumber()} / {totalPages}
-          </PageCounter>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            {!showUpload && (
+              <SelectWrapper>
+                <IssueSelect 
+                  value={selectedIssueId ?? ''} 
+                  onChange={handleIssueChange}
+                  disabled={loading || !issues.length}
+                >
+                  {issues.map(issue => {
+                    const id = normalizeIssueId(issue);
+                    const title = normalizeIssueTitle(issue);
+                    const date = normalizeIssueDate(issue);
+                    const label = `${title || 'גיליון'}${date ? ` · ${new Date(date).toLocaleDateString('he-IL')}` : ''}`;
+                    return (
+                      <option key={id} value={id}>{label}</option>
+                    );
+                  })}
+                </IssueSelect>
+                <SelectIconWrapper size={18} />
+              </SelectWrapper>
+            )}
+            <PageCounter>
+              {getRealPageNumber()} / {totalPages}
+            </PageCounter>
+          </div>
         </HeaderContent>
       </Header>
 
@@ -1189,9 +1479,46 @@ export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
           </NavButton>
 
           <FlipBookContainer>
-            {pageWidth > 0 && pageHeight > 0 && renderPages.length > 0 ? (
+            {loading ? (
+              <div style={{ 
+                width: '400px', 
+                height: '566px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: 'rgba(255, 255, 255, 0.5)'
+              }}>
+                טוען...
+              </div>
+            ) : error ? (
+              <div style={{ 
+                width: '400px', 
+                height: '566px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: '#ef4444',
+                textAlign: 'center',
+                padding: '2rem'
+              }}>
+                {error}
+              </div>
+            ) : !slots.length ? (
+              <div style={{ 
+                width: '400px', 
+                height: '566px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: 'rgba(255, 255, 255, 0.5)',
+                textAlign: 'center',
+                padding: '2rem'
+              }}>
+                אין מקומות פרסום זמינים בגיליון זה
+              </div>
+            ) : pageWidth > 0 && pageHeight > 0 && renderPages.length > 0 ? (
               <HTMLFlipBook
-                key={`flipbook-${innerPages}`}
+                key={`flipbook-${selectedIssueId}-${slots.length}`}
                 ref={bookRef}
                 width={pageWidth}
                 height={pageHeight}
@@ -1242,48 +1569,44 @@ export default function PlacementBook({ issue: propIssue, slots: propSlots }) {
         )}
       </MainContent>
 
-      <Footer>
-        <FooterContent>
-          <AddPagesButton onClick={() => addPages(2)}>
-            <Plus size={18} />
-            הוסף 2 עמודים
-          </AddPagesButton>
+      {!showUpload && (
+        <Footer>
+          <FooterContent>
+            <FooterButton onClick={goToLastPage}>
+              <ChevronsRight size={18} />
+              אחרון
+            </FooterButton>
 
-          <FooterButton onClick={goToLastPage}>
-            <ChevronsRight size={18} />
-            אחרון
-          </FooterButton>
+            <FooterButton onClick={goToNextPage} disabled={currentPage >= Math.floor((totalPages - 1) / 2)}>
+              <ArrowRight size={18} />
+              הבא
+            </FooterButton>
 
-          <FooterButton onClick={goToNextPage} disabled={currentPage >= Math.floor((totalPages - 1) / 2)}>
-            <ArrowRight size={18} />
-            הבא
-          </FooterButton>
+            <PageCounter>
+              {getRealPageNumber()} / {totalPages}
+            </PageCounter>
 
-          <PageCounter>
-            {getRealPageNumber()} / {totalPages}
-          </PageCounter>
+            <FooterButton onClick={goToPrevPage} disabled={currentPage === 0}>
+              קודם
+              <ArrowLeft size={18} />
+            </FooterButton>
 
-          <FooterButton onClick={goToPrevPage} disabled={currentPage === 0}>
-            קודם
-            <ArrowLeft size={18} />
-          </FooterButton>
+            <FooterButton onClick={goToFirstPage}>
+              ראשון
+              <ChevronsLeft size={18} />
+            </FooterButton>
+          </FooterContent>
+        </Footer>
+      )}
 
-          <FooterButton onClick={goToFirstPage}>
-            ראשון
-            <ChevronsLeft size={18} />
-          </FooterButton>
-        </FooterContent>
-      </Footer>
-
-      {showPlacementSelector && (
+      {showPlacementSelector && selectedSlot && (
         <>
           <SidebarOverlay onClick={handlePlacementCancel} />
           <SidebarPanel>
             <AdPlacementSelector
-              pageNumber={selectedPage}
-              pageDisplayName={selectedPage === 'back-cover' ? 'כריכה אחורית' : `עמוד ${selectedPage}`}
               onSelect={handlePlacementSelect}
               onCancel={handlePlacementCancel}
+              previewFile={uploadedCreative}
             />
           </SidebarPanel>
         </>

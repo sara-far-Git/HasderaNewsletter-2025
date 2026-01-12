@@ -3,6 +3,11 @@ import { fetchMe } from '../Services/Login';
 
 const AuthContext = createContext(null);
 
+function isAuthFailure(err) {
+  const status = err?.response?.status;
+  return status === 401 || status === 403;
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,43 +33,59 @@ export function AuthProvider({ children }) {
       try {
         const token = localStorage.getItem('hasdera_token');
         const userStr = localStorage.getItem('hasdera_user');
-        
-        console.log('🔐 Auth init - token exists:', !!token, 'user exists:', !!userStr);
-        
+
+        if (import.meta.env.DEV) {
+          console.log('🔐 Auth init - token exists:', !!token, 'user exists:', !!userStr);
+        }
+
         if (token && userStr) {
+          // Optimistic session restore (do not block UI on network)
+          try {
+            const cachedUser = JSON.parse(userStr);
+            setUser(cachedUser);
+            setIsAuthenticated(true);
+          } catch {
+            // ignore parse issues; we’ll validate against server anyway
+          }
+
           try {
             // נסה לוודא שהטוקן עדיין תקף על ידי קריאה לשרת
-            console.log('🔐 Validating token with server...');
+            if (import.meta.env.DEV) console.log('🔐 Validating token with server...');
             const freshUser = await fetchMe();
             // רק אם הקריאה הצליחה, נגדיר את המשתמש כמחובר
-            console.log('✅ Token valid, user authenticated:', freshUser);
+            if (import.meta.env.DEV) console.log('✅ Token valid, user authenticated:', freshUser);
             setUser(freshUser);
             setIsAuthenticated(true);
             localStorage.setItem('hasdera_user', JSON.stringify(freshUser));
           } catch (err) {
-            // אם הטוקן לא תקף, ננקה הכל
-            console.warn('❌ Token validation failed:', err);
-            localStorage.removeItem('hasdera_token');
-            localStorage.removeItem('hasdera_user');
-            setUser(null);
-            setIsAuthenticated(false);
+            // Only clear session if token is truly invalid/unauthorized.
+            if (isAuthFailure(err)) {
+              if (import.meta.env.DEV) console.warn('❌ Token invalid (401/403), logging out:', err);
+              localStorage.removeItem('hasdera_token');
+              localStorage.removeItem('hasdera_user');
+              setUser(null);
+              setIsAuthenticated(false);
+            } else {
+              // Network / server issues: keep the cached session and allow UI to load.
+              if (import.meta.env.DEV) console.warn('⚠️ Token validation skipped due to network/server error:', err);
+            }
           }
         } else {
           // אם אין token או user, נוודא שהמשתמש לא מחובר
-          console.log('🔓 No token found, user not authenticated');
+          if (import.meta.env.DEV) console.log('🔓 No token found, user not authenticated');
           setIsAuthenticated(false);
           setUser(null);
         }
       } catch (err) {
         // במקרה של שגיאה כללית, נוודא שהמשתמש לא מחובר
-        console.error('❌ Auth init error:', err);
+        if (import.meta.env.DEV) console.error('❌ Auth init error:', err);
         setIsAuthenticated(false);
         setUser(null);
         localStorage.removeItem('hasdera_token');
         localStorage.removeItem('hasdera_user');
       } finally {
         // תמיד נקבע את loading ל-false בסוף
-        console.log('🔐 Auth init complete, loading set to false');
+        if (import.meta.env.DEV) console.log('🔐 Auth init complete, loading set to false');
         setLoading(false);
       }
     };

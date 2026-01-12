@@ -30,6 +30,8 @@ const normalizeApiBaseUrl = (rawUrl, fallbackUrl) => {
   return trimmed.endsWith('/api') ? trimmed : trimmed + '/api';
 };
 
+const withCredentials = String(import.meta.env.VITE_WITH_CREDENTIALS || "false").toLowerCase() === "true";
+
 // יצירת אינסטנס עם baseURL
 // שימוש ב-VITE_API_URL אם קיים, אחרת localhost לפיתוח
 const getApiBaseUrl = () => {
@@ -75,8 +77,9 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json"
   },
-  withCredentials: true, // נדרש עבור CORS עם credentials
-  timeout: 60000 
+  // Default off; enable explicitly only when using cookie auth.
+  withCredentials,
+  timeout: Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000),
 });
 
 try {
@@ -182,8 +185,12 @@ axiosRetry(api, {
   retries: 3,
   retryDelay: axiosRetry.exponentialDelay,
   retryCondition: (error) => {
-    return axiosRetry.isNetworkOrIdempotentRequestError(error) || 
-           error.code === 'ECONNABORTED';
+    const method = (error.config?.method || "get").toLowerCase();
+    const canRetry = method === "get" || method === "head" || method === "options";
+    return (
+      canRetry &&
+      (axiosRetry.isNetworkOrIdempotentRequestError(error) || error.code === "ECONNABORTED")
+    );
   }
 });
 

@@ -140,7 +140,7 @@ export async function deleteIssue(issueId) {
   }
 }
 
-// קבלת מקומות פרסום לפי גיליון
+// קבלת מקומות פרסום (slots) לפי גיליון
 export async function getIssueSlots(issueId) {
   try {
     const res = await api.get(`/Issues/${issueId}/slots`);
@@ -151,13 +151,13 @@ export async function getIssueSlots(issueId) {
   }
 }
 
-// הזמנה טלפונית (מנהל) למקום פרסום בגיליון
+// הזמנת מקום פרסום (slot) בגיליון
 export async function bookIssueSlot(issueId, slotId, payload) {
   try {
     const res = await api.post(`/Issues/${issueId}/slots/${slotId}/book`, payload);
     return res.data;
   } catch (err) {
-    console.error("❌ שגיאה ב-POST Issue Slot booking:", err);
+    console.error("❌ שגיאה ב-POST Book Issue Slot:", err);
     throw err;
   }
 }
@@ -172,4 +172,3 @@ export async function updateIssueSlotBooking(issueId, slotId, payload) {
     throw err;
   }
 }
-  
