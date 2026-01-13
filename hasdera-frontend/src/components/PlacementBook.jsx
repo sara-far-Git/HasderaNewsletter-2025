@@ -1243,7 +1243,7 @@ export default function PlacementBook() {
       clearTimeout(timeout);
       clearInterval(interval);
     };
-  }, [isBookReady, innerPages]);
+  }, [isBookReady, slots.length]);
 
   const getRealPageNumber = useCallback(() => {
     if (!totalPages) return 1;
@@ -1348,10 +1348,7 @@ export default function PlacementBook() {
     navigate('/advertiser');
   }, [navigate]);
 
-  const addPages = useCallback((count = 2) => {
-    const evenCount = count % 2 === 0 ? count : count + 1;
-    setInnerPages(prev => prev + evenCount);
-  }, []);
+  // Function removed - pages are now dynamically loaded from slots
 
   const renderPages = useMemo(() => {
     try {
