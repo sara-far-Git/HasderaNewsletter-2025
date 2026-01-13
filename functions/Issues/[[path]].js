@@ -20,10 +20,28 @@ export async function onRequest({ request, params }) {
   const targetUrl = new URL(`/api/Issues/${rest}`, BACKEND_ORIGIN);
   targetUrl.search = incomingUrl.search;
 
-  // העברת כל ה-headers, method, ו-body
+  // בניית headers חדשים - רק אלה שצריך להעביר
+  const headers = new Headers();
+  // העברת Authorization header (חשוב מאוד!)
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader) {
+    headers.set('Authorization', authHeader);
+  }
+  // העברת Content-Type אם קיים
+  const contentType = request.headers.get('Content-Type');
+  if (contentType) {
+    headers.set('Content-Type', contentType);
+  }
+  // העברת headers נוספים אם צריך
+  const accept = request.headers.get('Accept');
+  if (accept) {
+    headers.set('Accept', accept);
+  }
+
+  // העברת method, headers, ו-body
   const proxiedRequest = new Request(targetUrl.toString(), {
     method: request.method,
-    headers: request.headers,
+    headers: headers,
     body: request.body,
   });
 

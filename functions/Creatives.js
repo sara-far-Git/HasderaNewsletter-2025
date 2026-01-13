@@ -17,9 +17,27 @@ export async function onRequest({ request }) {
   const targetUrl = new URL(`/api/Creatives`, BACKEND_ORIGIN);
   targetUrl.search = incomingUrl.search;
 
+  // בניית headers חדשים - רק אלה שצריך להעביר
+  const headers = new Headers();
+  // העברת Authorization header (חשוב מאוד!)
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader) {
+    headers.set('Authorization', authHeader);
+  }
+  // העברת Content-Type אם קיים (חשוב ל-multipart/form-data)
+  const contentType = request.headers.get('Content-Type');
+  if (contentType) {
+    headers.set('Content-Type', contentType);
+  }
+  // העברת headers נוספים אם צריך
+  const accept = request.headers.get('Accept');
+  if (accept) {
+    headers.set('Accept', accept);
+  }
+
   const proxiedRequest = new Request(targetUrl.toString(), {
     method: request.method,
-    headers: request.headers,
+    headers: headers,
     body: request.body,
   });
 

@@ -18,9 +18,18 @@ export async function onRequest({ request, params }) {
   const targetUrl = new URL(`/api/Analytics/${rest}`, BACKEND_ORIGIN);
   targetUrl.search = incomingUrl.search;
 
+  // בניית headers חדשים - רק אלה שצריך להעביר
+  const headers = new Headers();
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader) headers.set('Authorization', authHeader);
+  const contentType = request.headers.get('Content-Type');
+  if (contentType) headers.set('Content-Type', contentType);
+  const accept = request.headers.get('Accept');
+  if (accept) headers.set('Accept', accept);
+
   const proxiedRequest = new Request(targetUrl.toString(), {
     method: request.method,
-    headers: request.headers,
+    headers: headers,
     body: request.body,
   });
 
