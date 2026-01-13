@@ -21,10 +21,18 @@ export async function onRequest({ request, params }) {
   const targetUrl = new URL(`/api/${rest}`, BACKEND_ORIGIN);
   targetUrl.search = incomingUrl.search;
 
-  // העברת כל ה-headers, method, ו-body
+  // העברת method + body, ושמירה על headers קריטיים (Authorization + Content-Type וכו')
+  const headers = new Headers();
+  const auth = request.headers.get("Authorization");
+  if (auth) headers.set("Authorization", auth);
+  const contentType = request.headers.get("Content-Type");
+  if (contentType) headers.set("Content-Type", contentType);
+  const accept = request.headers.get("Accept");
+  if (accept) headers.set("Accept", accept);
+
   const proxiedRequest = new Request(targetUrl.toString(), {
     method: request.method,
-    headers: request.headers,
+    headers,
     body: request.body,
   });
 
@@ -35,6 +43,11 @@ export async function onRequest({ request, params }) {
   responseHeaders.set('Access-Control-Allow-Origin', '*');
   responseHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   responseHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // Debug headers (safe): helps verify requests are passing through Pages Functions
+  responseHeaders.set('X-Hasdera-Proxy', 'pages-api');
+  responseHeaders.set('X-Hasdera-Proxy-Target', targetUrl.pathname);
+  responseHeaders.set('X-Hasdera-Proxy-Auth', auth ? 'present' : 'absent');
   
   return new Response(response.body, {
     status: response.status,
