@@ -143,10 +143,18 @@ export async function deleteIssue(issueId) {
 // קבלת מקומות פרסום (slots) לפי גיליון
 export async function getIssueSlots(issueId) {
   try {
+    if (!issueId) {
+      throw new Error("Issue ID is required");
+    }
     const res = await api.get(`/Issues/${issueId}/slots`);
     return res.data;
   } catch (err) {
     console.error("❌ שגיאה ב-GET Issue Slots:", err);
+    // אם זה 400 או 404, נחזיר אובייקט ריק במקום לזרוק שגיאה
+    if (err.response?.status === 400 || err.response?.status === 404) {
+      console.warn(`⚠️ Issue ${issueId} slots not found, returning empty data`);
+      return { slots: [] };
+    }
     throw err;
   }
 }

@@ -54,6 +54,14 @@ export async function getAdvertiserDashboard() {
     };
   } catch (err) {
     console.error("❌ שגיאה בטעינת dashboard:", err);
+    // אם זה 404, נחזיר אובייקט ריק במקום לזרוק שגיאה
+    if (err.response?.status === 404) {
+      console.warn("⚠️ Dashboard endpoint not found, returning empty data");
+      return {
+        ads: [],
+        stats: {}
+      };
+    }
     throw err;
   }
 }
