@@ -25,10 +25,10 @@ export default function PublicRoute({ children }) {
     );
   }
 
-  // אם כבר מחובר כמפרסם, ניתוב לדשבורד
+  // אם כבר מחובר כמפרסם, ניתוב לדף הבית
   if (isAuthenticated && user && user.role === 'Advertiser') {
-    console.log('🔓 PublicRoute - user authenticated, redirecting to /Navbar');
-    return <Navigate to="/Navbar" replace />;
+    console.log('🔓 PublicRoute - user authenticated, redirecting to /');
+    return <Navigate to="/" replace />;
   }
 
   console.log('🔓 PublicRoute - showing login page');
