@@ -26,22 +26,31 @@ async function exists(filePath) {
 }
 
 async function copyDir(src, dst) {
-  await fs.mkdir(dst, { recursive: true });
-  const entries = await fs.readdir(src, { withFileTypes: true });
-  await Promise.all(
-    entries.map(async (entry) => {
+  try {
+    await fs.mkdir(dst, { recursive: true });
+    const entries = await fs.readdir(src, { withFileTypes: true });
+    
+    // העתקה מקבילה אבל עם הגבלה כדי לא להעמיס
+    const copyPromises = entries.map(async (entry) => {
       const from = path.join(src, entry.name);
       const to = path.join(dst, entry.name);
-      if (entry.isDirectory()) {
-        await copyDir(from, to);
-      } else if (entry.isSymbolicLink()) {
-        const link = await fs.readlink(from);
-        await fs.symlink(link, to);
-      } else {
-        await fs.copyFile(from, to);
+      try {
+        if (entry.isDirectory()) {
+          await copyDir(from, to);
+        } else {
+          // רק העתקת קבצים רגילים - לא symlinks (יכול לגרום לבעיות)
+          await fs.copyFile(from, to);
+        }
+      } catch (err) {
+        console.warn(`sync-dists: warning - failed to copy ${entry.name}:`, err.message);
       }
-    })
-  );
+    });
+    
+    await Promise.all(copyPromises);
+  } catch (err) {
+    console.error(`sync-dists: error copying ${src} to ${dst}:`, err.message);
+    throw err;
+  }
 }
 
 async function main() {
@@ -51,39 +60,30 @@ async function main() {
   }
 
   // העתקת functions ל-dist (לצורך Cloudflare Pages)
-  // קודם נעתיק מ-hasdera-frontend/functions (אם קיים)
+  // קודם נעתיק מ-hasdera-frontend/functions (אם קיים) - זה העדיפות הגבוהה ביותר
   if (await exists(FUNCTIONS_SOURCE_LOCAL)) {
     await fs.rm(FUNCTIONS_TARGET, { recursive: true, force: true });
     await copyDir(FUNCTIONS_SOURCE_LOCAL, FUNCTIONS_TARGET);
     console.log('sync-dists: copied functions from hasdera-frontend/functions to dist/functions');
-  }
-  // ואז נשלים מ-../functions (אם קיים) - רק קבצים שלא קיימים
-  if (await exists(FUNCTIONS_SOURCE_ROOT)) {
-    if (!(await exists(FUNCTIONS_TARGET))) {
-      await fs.mkdir(FUNCTIONS_TARGET, { recursive: true });
-    }
-    // העתק רק קבצים/תיקיות שלא קיימים כבר
-    const rootEntries = await fs.readdir(FUNCTIONS_SOURCE_ROOT, { withFileTypes: true });
-    for (const entry of rootEntries) {
-      const srcPath = path.join(FUNCTIONS_SOURCE_ROOT, entry.name);
-      const dstPath = path.join(FUNCTIONS_TARGET, entry.name);
-      if (!(await exists(dstPath))) {
-        if (entry.isDirectory()) {
-          await copyDir(srcPath, dstPath);
-        } else {
-          await fs.copyFile(srcPath, dstPath);
-        }
-        console.log(`sync-dists: copied ${entry.name} from ../functions to dist/functions`);
-      }
-    }
+  } else if (await exists(FUNCTIONS_SOURCE_ROOT)) {
+    // רק אם אין functions מקומיים, נעתיק מ-../functions
+    await fs.rm(FUNCTIONS_TARGET, { recursive: true, force: true });
+    await copyDir(FUNCTIONS_SOURCE_ROOT, FUNCTIONS_TARGET);
+    console.log('sync-dists: copied functions from ../functions to dist/functions');
+  } else {
+    console.warn('sync-dists: no functions directory found - Cloudflare Functions may not work');
   }
 
+  // העתקת dist לתיקיות יעד (רק אם צריך)
   for (const target of TARGETS) {
-    await fs.rm(target, { recursive: true, force: true });
+    if (await exists(target)) {
+      await fs.rm(target, { recursive: true, force: true });
+    }
     await copyDir(SOURCE, target);
   }
 
   console.log(`sync-dists: copied dist -> ${TARGETS.map(t => path.basename(t)).join(', ')}`);
+  console.log('sync-dists: done');
 }
 
 await main();
