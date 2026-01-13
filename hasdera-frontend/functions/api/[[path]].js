@@ -18,7 +18,9 @@ export async function onRequest({ request, params }) {
   // ב-Cloudflare Pages עם [[path]], הפרמטר הוא string
   const rest = params?.path || "";
 
-  const targetUrl = new URL(`/api/${rest}`, BACKEND_ORIGIN);
+  // אם rest כבר מתחיל ב-/api/, נסיר את זה כדי לא לכפול
+  const cleanRest = rest.startsWith('api/') ? rest.substring(4) : rest;
+  const targetUrl = new URL(`/api/${cleanRest}`, BACKEND_ORIGIN);
   targetUrl.search = incomingUrl.search;
 
   // העברת method + body, ושמירה על headers קריטיים (Authorization + Content-Type וכו')
