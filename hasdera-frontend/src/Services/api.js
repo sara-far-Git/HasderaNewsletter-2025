@@ -89,38 +89,6 @@ try {
   // ignore (non-browser)
 }
 
-// Hard failsafe: ensure relative URLs never go to pages.dev (or any current origin)
-// by converting them to absolute backend URLs before Axios runs interceptors.
-const _originalRequest = api.request.bind(api);
-api.request = (config) => {
-  let normalizedConfig = config;
-
-  // Axios supports api.request(urlString)
-  if (typeof normalizedConfig === "string") {
-    normalizedConfig = { url: normalizedConfig };
-  }
-
-  try {
-    const url = String(normalizedConfig?.url ?? "");
-    const isAbsoluteUrl = /^https?:\/\//i.test(url);
-
-    if (!isAbsoluteUrl && url) {
-      const base = normalizeApiBaseUrl(api.defaults.baseURL, EFFECTIVE_DEFAULT_BASEURL).replace(/\/+$/, "");
-      const path = url.startsWith("/") ? url : "/" + url;
-
-      if (base) {
-        normalizedConfig = { ...(normalizedConfig ?? {}) };
-        normalizedConfig.baseURL = undefined;
-        normalizedConfig.url = base + path;
-      }
-    }
-  } catch {
-    // ignore
-  }
-
-  return _originalRequest(normalizedConfig);
-};
-
 // ——— REQUEST INTERCEPTOR ———
 api.interceptors.request.use((config) => {
   // בדיקה אם אנחנו ב-Cloudflare Pages
@@ -132,13 +100,17 @@ api.interceptors.request.use((config) => {
   const url = String(config.url ?? "");
   const isAbsoluteUrl = /^https?:\/\//i.test(url);
 
-  // אם אנחנו ב-Cloudflare Pages ו-baseURL ריק, נשאיר relative URL כדי שה-functions יוכלו לתפוס אותו
-  if (!isAbsoluteUrl && isCloudflarePages && (!resolvedApiBaseUrl || resolvedApiBaseUrl === "")) {
-    // נשאיר את ה-URL כ-relative - ה-functions יוכלו לתפוס אותו
-    return config;
-  }
+  // Cloudflare Pages: תמיד ננתב דרך /api/* כדי שה-Functions יתפסו את הבקשה.
+  // חשוב: לא חוזרים מוקדם כאן, כי אחרת לא נוסיף Authorization token!
+  if (!isAbsoluteUrl && isCloudflarePages) {
+    // שמירה על baseURL ריק כדי שהבקשה תהיה relative
+    config.baseURL = undefined;
 
-  if (!isAbsoluteUrl) {
+    // אם כבר מתחיל ב-/api נשאיר; אחרת נקדים /api
+    if (url.startsWith("/") && !url.startsWith("/api/")) {
+      config.url = "/api" + url;
+    }
+  } else if (!isAbsoluteUrl) {
     // Failsafe: אם baseURL ריק/חסר/שגוי, נכפה URL מוחלט כדי שלא נשלח ל-pages.dev
     const effectiveDefaultBaseUrl = EFFECTIVE_DEFAULT_BASEURL;
     const candidateBase = config.baseURL ?? api.defaults.baseURL ?? resolvedApiBaseUrl;
