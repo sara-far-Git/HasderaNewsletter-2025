@@ -194,9 +194,9 @@ function HomePageWrapper() {
     return <Navigate to="/admin" replace />;
   }
   
-  // אם המשתמש מחובר, נעביר אותו ישירות לדשבורד
-  console.log('🏠 HomePageWrapper - user authenticated, redirecting to /Navbar');
-  return <Navigate to="/Navbar" replace />;
+  // אם המשתמש מחובר, נציג את דף הבית של המפרסם (AdvertiserNav)
+  console.log('🏠 HomePageWrapper - user authenticated, showing advertiser home page');
+  return <AdvertiserNav />;
 }
 
 export const advertiserRoutes = [
