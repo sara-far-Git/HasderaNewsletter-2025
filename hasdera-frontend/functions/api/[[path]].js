@@ -1,33 +1,45 @@
 const BACKEND_ORIGIN = "https://hasderanewsletter-2025.onrender.com";
 
 export async function onRequest({ request, params }) {
-  // טיפול ב-OPTIONS requests עבור CORS
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Max-Age': '86400',
-      },
-    });
-  }
+  try {
+    // טיפול ב-OPTIONS requests עבור CORS
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
 
-  const incomingUrl = new URL(request.url);
-  // ב-Cloudflare Pages עם [[path]], הפרמטר הוא string
-  // אם הבקשה היא /api/User/google-login, אז params.path = "User/google-login"
-  const rest = params?.path || "";
+    const incomingUrl = new URL(request.url);
+    // ב-Cloudflare Pages עם [[path]], הפרמטר הוא string
+    // אם הבקשה היא /api/User/google-login, אז params.path = "User/google-login"
+    const rest = params?.path || "";
 
-  // אם rest כבר מתחיל ב-api/, נסיר את זה כדי לא לכפול
-  // אבל בדרך כלל זה לא צריך לקרות כי params.path לא כולל את "api/"
-  let cleanRest = rest;
-  if (rest.startsWith('api/')) {
-    cleanRest = rest.substring(4);
-  }
-  
-  const targetUrl = new URL(`/api/${cleanRest}`, BACKEND_ORIGIN);
-  targetUrl.search = incomingUrl.search;
+    // אם rest כבר מתחיל ב-api/, נסיר את זה כדי לא לכפול
+    // אבל בדרך כלל זה לא צריך לקרות כי params.path לא כולל את "api/"
+    let cleanRest = rest;
+    if (rest.startsWith('api/')) {
+      cleanRest = rest.substring(4);
+    }
+    
+    // אם cleanRest ריק, זה אומר שהבקשה היא /api/ בלבד
+    if (!cleanRest) {
+      return new Response(JSON.stringify({ error: 'Invalid API path', path: rest, params: params }), {
+        status: 400,
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Hasdera-Proxy': 'pages-api-error',
+        },
+      });
+    }
+    
+    const targetUrl = new URL(`/api/${cleanRest}`, BACKEND_ORIGIN);
+    targetUrl.search = incomingUrl.search;
 
   // העברת method + body, ושמירה על headers קריטיים (Authorization + Content-Type וכו')
   const headers = new Headers();
@@ -44,23 +56,37 @@ export async function onRequest({ request, params }) {
     body: request.body,
   });
 
-  const response = await fetch(proxiedRequest);
-  
-  // העברת ה-headers מה-response (כולל CORS)
-  const responseHeaders = new Headers(response.headers);
-  responseHeaders.set('Access-Control-Allow-Origin', '*');
-  responseHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  responseHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    const response = await fetch(proxiedRequest);
+    
+    // העברת ה-headers מה-response (כולל CORS)
+    const responseHeaders = new Headers(response.headers);
+    responseHeaders.set('Access-Control-Allow-Origin', '*');
+    responseHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    responseHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // Debug headers (safe): helps verify requests are passing through Pages Functions
-  responseHeaders.set('X-Hasdera-Proxy', 'pages-api');
-  responseHeaders.set('X-Hasdera-Proxy-Target', targetUrl.pathname);
-  responseHeaders.set('X-Hasdera-Proxy-Auth', auth ? 'present' : 'absent');
-  
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: responseHeaders,
-  });
+    // Debug headers (safe): helps verify requests are passing through Pages Functions
+    responseHeaders.set('X-Hasdera-Proxy', 'pages-api');
+    responseHeaders.set('X-Hasdera-Proxy-Target', targetUrl.pathname);
+    responseHeaders.set('X-Hasdera-Proxy-Auth', auth ? 'present' : 'absent');
+    
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    // אם יש שגיאה, נחזיר שגיאה עם debug info
+    return new Response(JSON.stringify({ 
+      error: 'Proxy error', 
+      message: error.message,
+      stack: error.stack 
+    }), {
+      status: 500,
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Hasdera-Proxy': 'pages-api-error',
+      },
+    });
+  }
 }
 
