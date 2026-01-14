@@ -16,6 +16,9 @@ const FUNCTIONS_SOURCE_LOCAL = path.join(ROOT, 'functions'); // hasdera-frontend
 const FUNCTIONS_SOURCE_ROOT = path.resolve(ROOT, '..', 'functions'); // HasderaNewsletter-2025/functions
 const FUNCTIONS_TARGET = path.join(SOURCE, 'functions');
 
+// העתקת _redirects מ-public ל-dist (לצורך Cloudflare Pages)
+const REDIRECTS_SOURCE = path.join(ROOT, 'public', '_redirects');
+
 async function exists(filePath) {
   try {
     await fs.access(filePath);
@@ -80,6 +83,24 @@ async function main() {
       await fs.rm(target, { recursive: true, force: true });
     }
     await copyDir(SOURCE, target);
+  }
+
+  // העתקת _redirects ל-dist ול-targets (לצורך Cloudflare Pages)
+  // חשוב: זה צריך להיות אחרי העתקת dist כדי שה-_redirects לא יימחק
+  if (await exists(REDIRECTS_SOURCE)) {
+    // העתק ל-dist הראשי
+    const redirectsTargetDist = path.join(SOURCE, '_redirects');
+    await fs.copyFile(REDIRECTS_SOURCE, redirectsTargetDist);
+    console.log('sync-dists: copied _redirects to dist/_redirects');
+    
+    // העתק לכל תיקיות היעד (אחרי שהעתקנו את dist)
+    for (const target of TARGETS) {
+      const redirectsTarget = path.join(target, '_redirects');
+      await fs.copyFile(REDIRECTS_SOURCE, redirectsTarget);
+      console.log(`sync-dists: copied _redirects to ${path.basename(target)}/_redirects`);
+    }
+  } else {
+    console.warn('sync-dists: _redirects file not found in public/ - redirects may not work');
   }
 
   console.log(`sync-dists: copied dist -> ${TARGETS.map(t => path.basename(t)).join(', ')}`);
