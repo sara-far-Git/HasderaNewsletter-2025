@@ -16,10 +16,16 @@ export async function onRequest({ request, params }) {
 
   const incomingUrl = new URL(request.url);
   // ב-Cloudflare Pages עם [[path]], הפרמטר הוא string
+  // אם הבקשה היא /api/User/google-login, אז params.path = "User/google-login"
   const rest = params?.path || "";
 
-  // אם rest כבר מתחיל ב-/api/, נסיר את זה כדי לא לכפול
-  const cleanRest = rest.startsWith('api/') ? rest.substring(4) : rest;
+  // אם rest כבר מתחיל ב-api/, נסיר את זה כדי לא לכפול
+  // אבל בדרך כלל זה לא צריך לקרות כי params.path לא כולל את "api/"
+  let cleanRest = rest;
+  if (rest.startsWith('api/')) {
+    cleanRest = rest.substring(4);
+  }
+  
   const targetUrl = new URL(`/api/${cleanRest}`, BACKEND_ORIGIN);
   targetUrl.search = incomingUrl.search;
 
