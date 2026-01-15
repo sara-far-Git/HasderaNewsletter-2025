@@ -58,8 +58,22 @@ const getApiBaseUrl = () => {
   }
 
   if (normalizedEnvUrl) {
-    console.log('✅ Using VITE_API_URL:', normalizedEnvUrl);
-    return normalizedEnvUrl;
+    try {
+      const envHost = new URL(normalizedEnvUrl).hostname;
+      const currentHost = window.location.hostname;
+      const isPagesOrigin = currentHost.endsWith(".pages.dev");
+      const isSameHost = envHost === currentHost;
+
+      if (isPagesOrigin && isSameHost) {
+        console.warn('⚠️ VITE_API_URL points to the Pages origin; ignoring to avoid /api 404.');
+      } else {
+        console.log('✅ Using VITE_API_URL:', normalizedEnvUrl);
+        return normalizedEnvUrl;
+      }
+    } catch {
+      console.log('✅ Using VITE_API_URL:', normalizedEnvUrl);
+      return normalizedEnvUrl;
+    }
   }
   
   // אם אנחנו ב-production, נשתמש ב-Render API
