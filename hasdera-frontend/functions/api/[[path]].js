@@ -40,20 +40,8 @@ export async function onRequest({ request, params }) {
     const targetUrl = new URL(`/api/${cleanRest}`, BACKEND_ORIGIN);
     targetUrl.search = incomingUrl.search;
 
-    // העברת method + body, ושמירה על headers קריטיים (Authorization + Content-Type וכו')
-    const headers = new Headers();
     const auth = request.headers.get("Authorization");
-    if (auth) headers.set("Authorization", auth);
-    const contentType = request.headers.get("Content-Type");
-    if (contentType) headers.set("Content-Type", contentType);
-    const accept = request.headers.get("Accept");
-    if (accept) headers.set("Accept", accept);
-
-    const proxiedRequest = new Request(targetUrl.toString(), {
-      method: request.method,
-      headers,
-      body: request.body,
-    });
+    const proxiedRequest = new Request(targetUrl.toString(), request);
 
     const response = await fetch(proxiedRequest);
     
