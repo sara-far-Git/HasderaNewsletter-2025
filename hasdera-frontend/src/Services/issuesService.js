@@ -94,11 +94,7 @@ export async function uploadIssuePdf(file, title = null, issueNumber = null, iss
     if (issueNumber) formData.append('issueNumber', issueNumber);
     if (issueDate) formData.append('issueDate', issueDate);
 
-    const res = await api.post("/Issues/upload-pdf", formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const res = await api.post("/Issues/upload-pdf", formData);
     
     return res.data;
   } catch (err) {

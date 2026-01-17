@@ -15,11 +15,7 @@ export async function uploadCreative(file, orderId = null) {
       formData.append('orderId', orderId);
     }
 
-    const res = await api.post("/Creatives/upload", formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const res = await api.post("/Creatives/upload", formData);
     
     return res.data;
   } catch (err) {
@@ -43,11 +39,7 @@ export async function adminUploadCreative(file, advertiserId, orderId = null) {
       formData.append('orderId', orderId);
     }
 
-    const res = await api.post('/Creatives/admin-upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const res = await api.post('/Creatives/admin-upload', formData);
 
     return res.data;
   } catch (err) {
@@ -99,11 +91,7 @@ export async function updateCreative(creativeId, file = null) {
       formData.append('file', file);
     }
 
-    const res = await api.put(`/Creatives/${creativeId}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const res = await api.put(`/Creatives/${creativeId}`, formData);
     
     return res.data;
   } catch (err) {

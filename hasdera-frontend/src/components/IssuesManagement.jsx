@@ -80,6 +80,13 @@ const getFileUrl = (issue) => {
   return issue.File_url || issue.FileUrl || issue.file_url || issue.fileUrl || '';
 };
 
+const buildIssuePdfProxyUrl = (issueId) => {
+  if (!issueId) return '';
+  const base = api.defaults.baseURL;
+  if (!base) return `/api/issues/${issueId}/pdf`;
+  return `${base}/issues/${issueId}/pdf`;
+};
+
 /**
  * בדיקה האם יש לגיליון קובץ PDF/קובץ להורדה
  */
@@ -513,7 +520,7 @@ const IssueCardComponent = React.memo(function IssueCardComponent({
   const isPublished = isIssuePublished(pdfUrl);
   const title = getIssueTitle(issue, issueId);
   const hasValidPdf = isValidPdfUrl(pdfUrl);
-  const coverUrl = hasValidPdf && getIssueId(issue) ? `${api.defaults.baseURL}/issues/${getIssueId(issue)}/pdf` : pdfUrl;
+  const coverUrl = hasValidPdf && getIssueId(issue) ? buildIssuePdfProxyUrl(getIssueId(issue)) : pdfUrl;
   
   return (
     <IssueCard>
@@ -622,7 +629,10 @@ export default function IssuesManagement() {
 
   const handleDownload = useCallback((issue) => {
     const pdfUrl = getPdfUrl(issue);
-    if (isValidPdfUrl(pdfUrl)) {
+    const issueId = getIssueId(issue);
+    if (issueId) {
+      window.open(buildIssuePdfProxyUrl(issueId), '_blank');
+    } else if (isValidPdfUrl(pdfUrl)) {
       window.open(pdfUrl, '_blank');
     }
   }, []);

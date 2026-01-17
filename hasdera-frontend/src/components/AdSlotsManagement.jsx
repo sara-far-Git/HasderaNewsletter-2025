@@ -560,7 +560,10 @@ export default function AdSlotsManagement() {
       setSidebarOpen(false);
     } catch (e) {
       console.error(e);
-      setError(e?.response?.data?.message || e?.response?.data?.error || 'שגיאה בביצוע הזמנה');
+      const apiMessage = typeof e?.response?.data === 'string'
+        ? e.response.data
+        : (e?.response?.data?.message || e?.response?.data?.error);
+      setError(apiMessage || 'שגיאה בביצוע הזמנה');
     } finally {
       setSubmitting(false);
     }

@@ -1327,7 +1327,10 @@ export default function PlacementBook() {
     });
     } catch (e) {
       console.error(e);
-      setError(e?.response?.data?.message || e?.response?.data?.error || 'שגיאה בהזמנת מקום פרסום');
+      const apiMessage = typeof e?.response?.data === 'string'
+        ? e.response.data
+        : (e?.response?.data?.message || e?.response?.data?.error);
+      setError(apiMessage || 'שגיאה בהזמנת מקום פרסום');
     } finally {
       setSubmitting(false);
     }

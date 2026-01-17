@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import styled, { keyframes, createGlobalStyle } from "styled-components";
 import { CalendarDays, Search, X, Book, ArrowLeft, ChevronLeft } from "lucide-react";
 import { getIssues } from "../Services/issuesService";
+import { api } from "../Services/api.js";
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import hasederaTheme from "../styles/HasederaTheme";
@@ -637,6 +638,13 @@ const pdfOptions = {
   standardFontDataUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
 };
 
+const buildIssuePdfProxyUrl = (issueId) => {
+  if (!issueId) return "";
+  const base = api.defaults.baseURL;
+  if (!base) return `/api/issues/${issueId}/pdf`;
+  return `${base}/issues/${issueId}/pdf`;
+};
+
 function PDFCover({ pdfUrl, title, shouldLoad }) {
   // Memoize options to prevent re-renders
   const memoizedOptions = useMemo(() => pdfOptions, []);
@@ -947,7 +955,7 @@ export default function IssuesList() {
                           <img src={it.coverImage} alt={it.title} />
                         ) : it.pdf_url ? (
                           <PDFCover 
-                            pdfUrl={it.pdf_url} 
+                            pdfUrl={buildIssuePdfProxyUrl(it.issue_id)} 
                             title={it.title}
                             shouldLoad={isVisible}
                           />
