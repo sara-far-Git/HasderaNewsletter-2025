@@ -14,8 +14,8 @@ export async function onRequest({ request, params }) {
   }
 
   const incomingUrl = new URL(request.url);
-  // ב-Cloudflare Pages עם [[path]], הפרמטר הוא string
-  const rest = params?.path || "";
+  const splat = params?.path;
+  const rest = Array.isArray(splat) ? splat.join("/") : (splat ?? "");
 
   const targetUrl = new URL(`/api/${rest}`, BACKEND_ORIGIN);
   targetUrl.search = incomingUrl.search;
@@ -50,4 +50,3 @@ export async function onRequest({ request, params }) {
     headers: responseHeaders,
   });
 }
-

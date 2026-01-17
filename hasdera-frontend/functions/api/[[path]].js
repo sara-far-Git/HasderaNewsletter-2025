@@ -16,9 +16,8 @@ export async function onRequest({ request, params }) {
     }
 
     const incomingUrl = new URL(request.url);
-    // ב-Cloudflare Pages עם [[path]], הפרמטר הוא string
-    // אם הבקשה היא /api/User/google-login, אז params.path = "User/google-login"
-    const rest = params?.path || "";
+    const splat = params?.path;
+    const rest = Array.isArray(splat) ? splat.join("/") : (splat ?? "");
 
     // אם rest כבר מתחיל ב-api/, נסיר את זה כדי לא לכפול
     // אבל בדרך כלל זה לא צריך לקרות כי params.path לא כולל את "api/"
@@ -89,4 +88,3 @@ export async function onRequest({ request, params }) {
     });
   }
 }
-
