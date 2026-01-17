@@ -90,7 +90,12 @@ const getApiBaseUrl = () => {
 };
 
 const apiBaseUrl = getApiBaseUrl();
-const resolvedApiBaseUrl = normalizeApiBaseUrl(apiBaseUrl, EFFECTIVE_DEFAULT_BASEURL);
+let resolvedApiBaseUrl = normalizeApiBaseUrl(apiBaseUrl, EFFECTIVE_DEFAULT_BASEURL);
+if (!resolvedApiBaseUrl) {
+  const hardFallback = import.meta.env.PROD ? DEFAULT_PROD_API_BASEURL : DEFAULT_DEV_API_BASEURL;
+  resolvedApiBaseUrl = normalizeApiBaseUrl(hardFallback, hardFallback);
+  console.warn('⚠️ API baseURL empty after normalization; forcing hard fallback:', resolvedApiBaseUrl);
+}
 console.log('🔍 Final API baseURL:', resolvedApiBaseUrl);
 
 export const api = axios.create({
