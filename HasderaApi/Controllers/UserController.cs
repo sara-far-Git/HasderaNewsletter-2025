@@ -269,6 +269,18 @@ namespace HasderaApi.Controllers
             bool isAdminUser = payload.Email == "8496444@gmail.com" || 
                               (payload.Name != null && payload.Name.Contains("רבקי פרקש"));
 
+            var requestedRole = dto.role?.Trim();
+            var normalizedRole = string.IsNullOrWhiteSpace(requestedRole) ? null : requestedRole;
+            if (normalizedRole != null)
+            {
+                if (string.Equals(normalizedRole, "advertiser", StringComparison.OrdinalIgnoreCase))
+                    normalizedRole = "Advertiser";
+                else if (string.Equals(normalizedRole, "reader", StringComparison.OrdinalIgnoreCase))
+                    normalizedRole = "Reader";
+                else if (string.Equals(normalizedRole, "admin", StringComparison.OrdinalIgnoreCase))
+                    normalizedRole = "Admin";
+            }
+
             if (user == null)
             {
                 if (isAdminUser)
@@ -285,37 +297,76 @@ namespace HasderaApi.Controllers
                 }
                 else
                 {
-                    // יצירת משתמש Advertiser רגיל
+                    if (string.IsNullOrWhiteSpace(normalizedRole))
+                    {
+                        return Ok(new
+                        {
+                            needsRoleSelection = true,
+                            email = payload.Email,
+                            fullName = payload.Name
+                        });
+                    }
+
+                    if (normalizedRole != "Advertiser" && normalizedRole != "Reader")
+                    {
+                        return BadRequest("Role must be Advertiser or Reader");
+                    }
+
                     user = new User
                     {
                         FullName = payload.Name ?? "",
                         Email = payload.Email,
                         GoogleId = payload.Subject,
-                        Role = "Advertiser",
+                        Role = normalizedRole,
                         PasswordHash = "" // כי אין סיסמה מקומית
                     };
 
-                    // במידה וזה מפרסם — ניצור עסק
-                    var adv = new Advertiser
+                    if (normalizedRole == "Advertiser")
                     {
-                        Name = payload.Name ?? "",
-                        Company = payload.Name ?? "",
-                        Email = payload.Email
-                    };
+                        // במידה וזה מפרסם — ניצור עסק
+                        var adv = new Advertiser
+                        {
+                            Name = payload.Name ?? "",
+                            Company = payload.Name ?? "",
+                            Email = payload.Email
+                        };
 
-                    try
-                    {
-                        _context.Advertisers.Add(adv);
-                        await _context.SaveChangesAsync();
-                        user.AdvertiserId = adv.AdvertiserId;
+                        try
+                        {
+                            _context.Advertisers.Add(adv);
+                            await _context.SaveChangesAsync();
+                            user.AdvertiserId = adv.AdvertiserId;
+                        }
+                        catch (Exception dbEx)
+                        {
+                            Console.WriteLine($"❌ Failed to create advertiser: {dbEx.Message}");
+                            return StatusCode(503, new { 
+                                error = "Database error while creating advertiser account.",
+                                details = dbEx.Message
+                            });
+                        }
                     }
-                    catch (Exception dbEx)
+                    else if (normalizedRole == "Reader")
                     {
-                        Console.WriteLine($"❌ Failed to create advertiser: {dbEx.Message}");
-                        return StatusCode(503, new { 
-                            error = "Database error while creating advertiser account.",
-                            details = dbEx.Message
-                        });
+                        var reader = new Reader
+                        {
+                            Name = payload.Name ?? payload.Email,
+                            Email = payload.Email,
+                            SignupDate = DateOnly.FromDateTime(DateTime.UtcNow)
+                        };
+                        try
+                        {
+                            _context.Readers.Add(reader);
+                            await _context.SaveChangesAsync();
+                        }
+                        catch (Exception dbEx)
+                        {
+                            Console.WriteLine($"❌ Failed to create reader: {dbEx.Message}");
+                            return StatusCode(503, new { 
+                                error = "Database error while creating reader account.",
+                                details = dbEx.Message
+                            });
+                        }
                     }
                 }
 
@@ -341,11 +392,73 @@ namespace HasderaApi.Controllers
                     user.Role = "Admin";
                     await _context.SaveChangesAsync();
                 }
-                // אם המשתמש קיים ולא זה המשתמש המנהל, נבדוק אם הוא מפרסם או מנהל
-                else if (!isAdminUser && user.Role != "Advertiser" && user.Role != "Admin")
+                // אם המשתמש קיים ולא זה המשתמש המנהל, נבדוק אם התפקיד תקין
+                else if (!isAdminUser)
                 {
-                    // אם המשתמש קיים אבל לא מפרסם ולא מנהל, נחזיר שגיאה
-                    return Unauthorized("רק מפרסמים ומנהלים יכולים להיכנס למערכת");
+                    var hasValidRole = user.Role == "Advertiser" || user.Role == "Admin" || user.Role == "Reader";
+                    if (!hasValidRole)
+                    {
+                        if (string.IsNullOrWhiteSpace(normalizedRole))
+                        {
+                            return Ok(new
+                            {
+                                needsRoleSelection = true,
+                                email = payload.Email,
+                                fullName = payload.Name
+                            });
+                        }
+
+                        if (normalizedRole != "Advertiser" && normalizedRole != "Reader")
+                        {
+                            return BadRequest("Role must be Advertiser or Reader");
+                        }
+
+                        user.Role = normalizedRole;
+                        user.GoogleId ??= payload.Subject;
+
+                        if (normalizedRole == "Advertiser")
+                        {
+                            if (!user.AdvertiserId.HasValue)
+                            {
+                                var existingAdvertiser = await _context.Advertisers
+                                    .FirstOrDefaultAsync(a => a.Email == payload.Email);
+                                if (existingAdvertiser != null)
+                                {
+                                    user.AdvertiserId = existingAdvertiser.AdvertiserId;
+                                }
+                                else
+                                {
+                                    var adv = new Advertiser
+                                    {
+                                        Name = payload.Name ?? payload.Email,
+                                        Company = payload.Name ?? payload.Email,
+                                        Email = payload.Email
+                                    };
+                                    _context.Advertisers.Add(adv);
+                                    await _context.SaveChangesAsync();
+                                    user.AdvertiserId = adv.AdvertiserId;
+                                }
+                            }
+                        }
+                        else if (normalizedRole == "Reader")
+                        {
+                            var existingReader = await _context.Readers
+                                .FirstOrDefaultAsync(r => r.Email == payload.Email);
+                            if (existingReader == null)
+                            {
+                                var reader = new Reader
+                                {
+                                    Name = payload.Name ?? payload.Email,
+                                    Email = payload.Email,
+                                    SignupDate = DateOnly.FromDateTime(DateTime.UtcNow)
+                                };
+                                _context.Readers.Add(reader);
+                                await _context.SaveChangesAsync();
+                            }
+                        }
+
+                        await _context.SaveChangesAsync();
+                    }
                 }
             }
 
