@@ -118,7 +118,7 @@ const CloseButton = styled.button`
   color: white;
   cursor: pointer;
   padding: 0.5rem;
-  display: none;
+  display: ${props => (props.$show ? 'block' : 'none')};
   transition: all 0.3s ease;
 
   &:hover {
@@ -267,16 +267,12 @@ const MenuButton = styled.button`
 `;
 
 const Overlay = styled.div`
-  display: none;
+  display: ${props => (props.$isOpen ? 'block' : 'none')};
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   z-index: 99;
   backdrop-filter: blur(4px);
-
-  @media (max-width: 968px) {
-    display: ${props => props.$isOpen ? 'block' : 'none'};
-  }
 `;
 
 const modules = [
@@ -367,7 +363,7 @@ export default function AdminLayout({ children, title }) {
         <Sidebar $isOpen={sidebarOpen} $isDashboard={isDashboard}>
           <SidebarHeader>
             <Logo>השדרה - ניהול</Logo>
-            <CloseButton onClick={() => setSidebarOpen(false)}>
+            <CloseButton $show={!isDashboard && sidebarOpen} onClick={() => setSidebarOpen(false)}>
               <X size={24} />
             </CloseButton>
           </SidebarHeader>

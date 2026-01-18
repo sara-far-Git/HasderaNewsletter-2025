@@ -747,6 +747,11 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
             )}
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
+            {!currentIssueId && (
+              <div style={{ marginTop: '1rem', color: 'rgba(255,255,255,0.7)' }}>
+                לאחר העלאת ה‑PDF יופיע כאן אזור המודעות לגיליון.
+              </div>
+            )}
           </>
         )}
 
