@@ -63,6 +63,7 @@ const isIssuePublished = (pdfUrl) => {
  * קבלת ID של גיליון
  */
 const getIssueId = (issue) => {
+  if (!issue) return null;
   return issue.Issue_id || issue.IssueId || issue.issue_id || issue.issueId || issue.id;
 };
 
