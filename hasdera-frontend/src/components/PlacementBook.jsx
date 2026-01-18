@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import AdvertiserChat from "./AdvertiserChat";
 import AdPlacementSelector from "./AdPlacementSelector";
-import AdUpload from "./AdUpload";
 import hasederaTheme from "../styles/HasederaTheme";
 import { getIssues, getIssueSlots, bookIssueSlot } from "../Services/issuesService";
 import { uploadCreative } from "../Services/creativesService";
@@ -786,6 +785,83 @@ const SidebarPanel = styled.div`
   }
 `;
 
+const SidebarTitle = styled.h3`
+  margin: 0 0 0.75rem 0;
+  color: white;
+  font-size: 1.1rem;
+`;
+
+const SidebarSection = styled.div`
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+`;
+
+const Label = styled.div`
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.35rem;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(16, 185, 129, 0.5);
+  }
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+`;
+
+const PrimaryButton = styled.button`
+  flex: 1;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.26);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const SecondaryButton = styled.button`
+  flex: 1;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+`;
+
 // --- Page Components ---
 
 // כריכה קדמית
@@ -986,10 +1062,14 @@ export default function PlacementBook() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [showPlacementSelector, setShowPlacementSelector] = useState(false);
   const [isBookReady, setIsBookReady] = useState(false);
-  const [uploadedCreative, setUploadedCreative] = useState(null);
-  const [showUpload, setShowUpload] = useState(true);
+  const [creativeFile, setCreativeFile] = useState(null);
   const [placementSelection, setPlacementSelection] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [bookStep, setBookStep] = useState('size'); // size -> details
+  const [advName, setAdvName] = useState('');
+  const [advCompany, setAdvCompany] = useState('');
+  const [advEmail, setAdvEmail] = useState('');
+  const [advPhone, setAdvPhone] = useState('');
 
   const slots = useMemo(() => normalizeSlotsPayload(slotsPayload), [slotsPayload]);
   const totalPages = slots.length || 2;
@@ -1262,22 +1342,34 @@ export default function PlacementBook() {
     }
   }, [totalPages, currentPage]);
 
+  const resetBookingForm = useCallback(() => {
+    setCreativeFile(null);
+    setBookStep('size');
+    setPlacementSelection(null);
+    setError(null);
+    setAdvName(user?.name || user?.Name || '');
+    setAdvCompany(user?.company || user?.Company || '');
+    setAdvEmail(user?.email || user?.Email || '');
+    setAdvPhone(user?.phone || user?.Phone || '');
+  }, [user]);
+
   const openBuyModal = useCallback((slot) => {
     if (slot.isOccupied) {
       // אם המקום תפוס, לא ניתן לבחור אותו
       return;
     }
     setSelectedSlot(slot);
+    resetBookingForm();
     setShowPlacementSelector(true);
-  }, []);
+  }, [resetBookingForm]);
 
-  const handlePlacementSelect = useCallback(async (placementData) => {
-    if (!selectedIssueId || !selectedSlot?.slotId || !uploadedCreative) {
+  const handlePlacementSelect = useCallback(async () => {
+    if (!selectedIssueId || !selectedSlot?.slotId || !creativeFile) {
       setError('חסרים נתונים להזמנה');
       return;
     }
 
-    if (!placementData?.size || !Array.isArray(placementData?.quarters) || placementData.quarters.length === 0) {
+    if (!placementSelection?.size || !Array.isArray(placementSelection?.quarters) || placementSelection.quarters.length === 0) {
       setError('אנא בחר גודל ומיקום למודעה');
       return;
     }
@@ -1288,43 +1380,29 @@ export default function PlacementBook() {
     try {
       const payload = {
         advertiserId: user?.advertiserId ? Number(user.advertiserId) : null,
-        name: user?.name || user?.Name || null,
-        company: user?.company || user?.Company || null,
-        email: user?.email || user?.Email || null,
-        phone: user?.phone || user?.Phone || null,
-        size: placementData.size,
-        quarters: placementData.quarters,
-        placementDescription: placementData.description ?? null,
+        name: advName?.trim() || null,
+        company: advCompany?.trim() || null,
+        email: advEmail?.trim() || null,
+        phone: advPhone?.trim() || null,
+        size: placementSelection.size,
+        quarters: placementSelection.quarters,
+        placementDescription: placementSelection.description ?? null,
       };
 
       const booking = await bookIssueSlot(selectedIssueId, selectedSlot.slotId, payload);
-      const advertiserId = booking.advertiserId ?? booking.AdvertiserId ?? payload.advertiserId;
       const orderId = booking.orderId ?? booking.OrderId;
 
-      // העלאת הקובץ
-      await uploadCreative(uploadedCreative, orderId);
+      // העלאת הקובץ לאחר יצירת ההזמנה
+      await uploadCreative(creativeFile, orderId);
 
-      // רענון המקומות הפרסומיים
       const refreshed = await getIssueSlots(selectedIssueId);
       setSlotsPayload(refreshed);
 
       setShowPlacementSelector(false);
       setSelectedSlot(null);
-      setUploadedCreative(null);
-      setShowUpload(true);
+      setCreativeFile(null);
       setPlacementSelection(null);
-
-      // מעבר לדף התשלום
-    navigate('/advertiser/payment', {
-      state: {
-          slot: selectedSlot,
-          slotDisplayName: selectedSlot.name,
-          issueTitle: normalizeIssueTitle(selectedIssue),
-        placement: placementData,
-          creative: uploadedCreative,
-          orderId: orderId
-      }
-    });
+      setBookStep('size');
     } catch (e) {
       console.error(e);
       const apiMessage = typeof e?.response?.data === 'string'
@@ -1334,22 +1412,25 @@ export default function PlacementBook() {
     } finally {
       setSubmitting(false);
     }
-  }, [selectedIssueId, selectedSlot, uploadedCreative, user, navigate, selectedIssue]);
+  }, [
+    advCompany,
+    advEmail,
+    advName,
+    advPhone,
+    creativeFile,
+    placementSelection,
+    selectedIssueId,
+    selectedSlot,
+    user
+  ]);
 
   const handlePlacementCancel = useCallback(() => {
     setShowPlacementSelector(false);
     setSelectedSlot(null);
     setPlacementSelection(null);
+    setCreativeFile(null);
+    setBookStep('size');
   }, []);
-
-  const handleUploadComplete = useCallback((creativeData) => {
-    setUploadedCreative(creativeData);
-    setShowUpload(false);
-  }, []);
-
-  const handleCancelUpload = useCallback(() => {
-    navigate('/advertiser');
-  }, [navigate]);
 
   // Function removed - pages are now dynamically loaded from slots
 
@@ -1415,49 +1496,39 @@ export default function PlacementBook() {
           </BackButton>
 
           <TitleSection>
-            <Title>{showUpload && !uploadedCreative ? 'העלאת מודעה' : (normalizeIssueTitle(selectedIssue) || 'בחירת מיקום פרסומי')}</Title>
+            <Title>{normalizeIssueTitle(selectedIssue) || 'בחירת מיקום פרסומי'}</Title>
             <Subtitle>
-              {showUpload && !uploadedCreative 
-                ? 'העלי את המודעה לפני בחירת המיקום' 
-                : (selectedIssue ? `גיליון ${normalizeIssueDate(selectedIssue) ? new Date(normalizeIssueDate(selectedIssue)).toLocaleDateString('he-IL') : ''}` : 'בחירת עמודים לפרסום')}
+              {selectedIssue ? `גיליון ${normalizeIssueDate(selectedIssue) ? new Date(normalizeIssueDate(selectedIssue)).toLocaleDateString('he-IL') : ''}` : 'בחירת עמודים לפרסום'}
             </Subtitle>
           </TitleSection>
 
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {!showUpload && (
-              <SelectWrapper>
-                <IssueSelect 
-                  value={selectedIssueId ?? ''} 
-                  onChange={handleIssueChange}
-                  disabled={loading || !issues.length}
-                >
-                  {issues.map(issue => {
-                    const id = normalizeIssueId(issue);
-                    const title = normalizeIssueTitle(issue);
-                    const date = normalizeIssueDate(issue);
-                    const label = `${title || 'גיליון'}${date ? ` · ${new Date(date).toLocaleDateString('he-IL')}` : ''}`;
-                    return (
-                      <option key={id} value={id}>{label}</option>
-                    );
-                  })}
-                </IssueSelect>
-                <SelectIconWrapper size={18} />
-              </SelectWrapper>
-            )}
-          <PageCounter>
-            {getRealPageNumber()} / {totalPages}
-          </PageCounter>
+            <SelectWrapper>
+              <IssueSelect 
+                value={selectedIssueId ?? ''} 
+                onChange={handleIssueChange}
+                disabled={loading || !issues.length}
+              >
+                {issues.map(issue => {
+                  const id = normalizeIssueId(issue);
+                  const title = normalizeIssueTitle(issue);
+                  const date = normalizeIssueDate(issue);
+                  const label = `${title || 'גיליון'}${date ? ` · ${new Date(date).toLocaleDateString('he-IL')}` : ''}`;
+                  return (
+                    <option key={id} value={id}>{label}</option>
+                  );
+                })}
+              </IssueSelect>
+              <SelectIconWrapper size={18} />
+            </SelectWrapper>
+            <PageCounter>
+              {getRealPageNumber()} / {totalPages}
+            </PageCounter>
           </div>
         </HeaderContent>
       </Header>
 
       <MainContent $sidebarOpen={showPlacementSelector}>
-        {showUpload && !uploadedCreative ? (
-          <AdUpload 
-            onUploadComplete={handleUploadComplete}
-            onCancel={handleCancelUpload}
-          />
-        ) : (
         <BookSection>
           <NavButton
             onClick={goToPrevPage}
@@ -1555,10 +1626,9 @@ export default function PlacementBook() {
             <ArrowRight size={24} />
           </NavButton>
         </BookSection>
-        )}
+        
       </MainContent>
 
-      {!showUpload && (
       <Footer>
         <FooterContent>
           <FooterButton onClick={goToLastPage}>
@@ -1586,17 +1656,87 @@ export default function PlacementBook() {
           </FooterButton>
         </FooterContent>
       </Footer>
-      )}
 
       {showPlacementSelector && selectedSlot && (
         <>
           <SidebarOverlay onClick={handlePlacementCancel} />
           <SidebarPanel>
-            <AdPlacementSelector
-              onSelect={handlePlacementSelect}
-              onCancel={handlePlacementCancel}
-              previewFile={uploadedCreative}
-            />
+            <SidebarTitle>בחירת מיקום לפרסום</SidebarTitle>
+            <div style={{ color: 'rgba(255,255,255,0.8)' }}>
+              <div style={{ fontWeight: 800 }}>{selectedSlot.name}</div>
+              <div style={{ opacity: 0.75, marginTop: '0.25rem' }}>{selectedSlot.code}</div>
+              {selectedIssue && (
+                <div style={{ opacity: 0.65, marginTop: '0.5rem' }}>
+                  גיליון: {normalizeIssueTitle(selectedIssue)}
+                </div>
+              )}
+            </div>
+
+            <SidebarSection>
+              {bookStep === 'size' ? (
+                <>
+                  <Label>העלאת מודעה (לתצוגה מקדימה)</Label>
+                  <Input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => setCreativeFile(e.target.files?.[0] ?? null)}
+                  />
+                  {creativeFile && <div style={{ marginTop: '0.5rem', opacity: 0.75 }}>{creativeFile.name}</div>}
+                  <div style={{ marginTop: '0.5rem', opacity: 0.65, fontSize: '0.85rem' }}>
+                    תצוגה מקדימה זמינה לתמונות ול-PDF
+                  </div>
+
+                  <AdPlacementSelector
+                    onCancel={handlePlacementCancel}
+                    onSelect={(selection) => {
+                      if (!creativeFile) {
+                        setError('חובה להעלות מודעה');
+                        return;
+                      }
+                      setPlacementSelection(selection);
+                      setBookStep('details');
+                    }}
+                    previewFile={creativeFile}
+                  />
+                </>
+              ) : (
+                <>
+                  <div style={{ marginTop: '0.75rem', color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>
+                    מיקום שנבחר: {placementSelection?.description ?? '—'}
+                  </div>
+
+                  {creativeFile && <div style={{ marginTop: '0.5rem', opacity: 0.7 }}>מודעה: {creativeFile.name}</div>}
+
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <Label>שם</Label>
+                    <Input value={advName} onChange={(e) => setAdvName(e.target.value)} placeholder="שם מפרסם" />
+                  </div>
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <Label>חברה</Label>
+                    <Input value={advCompany} onChange={(e) => setAdvCompany(e.target.value)} placeholder="שם חברה" />
+                  </div>
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <Label>טלפון</Label>
+                    <Input value={advPhone} onChange={(e) => setAdvPhone(e.target.value)} placeholder="טלפון" />
+                  </div>
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <Label>אימייל</Label>
+                    <Input value={advEmail} onChange={(e) => setAdvEmail(e.target.value)} placeholder="אימייל" />
+                  </div>
+                </>
+              )}
+            </SidebarSection>
+
+            {bookStep === 'details' && (
+              <ButtonRow>
+                <SecondaryButton type="button" onClick={() => setBookStep('size')}>
+                  חזרה
+                </SecondaryButton>
+                <PrimaryButton type="button" onClick={handlePlacementSelect} disabled={submitting}>
+                  {submitting ? 'מבצע...' : 'אישור ורכישה'}
+                </PrimaryButton>
+              </ButtonRow>
+            )}
           </SidebarPanel>
         </>
       )}
