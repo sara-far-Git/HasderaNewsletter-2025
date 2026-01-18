@@ -128,6 +128,23 @@ const getIssueTitle = (issue, fallbackId) => {
 };
 
 /**
+ * ערך תאריך למיון (fallback ל-ID אם אין תאריך)
+ */
+const getIssueDateValue = (issue) => {
+  const dateValue =
+    issue?.Issue_date ||
+    issue?.IssueDate ||
+    issue?.issue_date ||
+    issue?.issueDate;
+  if (dateValue) {
+    const time = new Date(dateValue).getTime();
+    if (!Number.isNaN(time)) return time;
+  }
+  const numericId = Number(getIssueId(issue));
+  return Number.isFinite(numericId) ? numericId : 0;
+};
+
+/**
  * פורמט תאריך
  */
 const formatDate = (date) => {
@@ -758,6 +775,12 @@ export default function IssuesManagement() {
     await loadIssues();
   }, [loadIssues]);
 
+  const latestDraftIssue = useMemo(() => {
+    const drafts = issues.filter(issue => !isIssuePublished(getPdfUrl(issue)));
+    if (!drafts.length) return null;
+    return [...drafts].sort((a, b) => getIssueDateValue(b) - getIssueDateValue(a))[0];
+  }, [issues]);
+
   const closeEditor = useCallback(() => {
     setShowEditor(false);
   }, []);
@@ -790,6 +813,14 @@ export default function IssuesManagement() {
               <ActionButton onClick={handleCreateNew}>
                 <Upload size={18} />
                 העלאת גיליון חדש
+              </ActionButton>
+              <ActionButton
+                onClick={() => latestDraftIssue && handleDownloadCreatives(latestDraftIssue)}
+                disabled={!latestDraftIssue || loading}
+                title={latestDraftIssue ? 'הורדת מודעות לגיליון טיוטה אחרון' : 'לא נמצא גיליון טיוטה'}
+              >
+                <Download size={18} />
+                הורדת מודעות (טיוטה אחרונה)
               </ActionButton>
               <SearchInput
                 value={searchQuery}

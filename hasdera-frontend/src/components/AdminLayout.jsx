@@ -179,7 +179,7 @@ const ContentWrapper = styled.div`
   z-index: 1;
   min-height: 100vh;
   padding: 2rem;
-  margin-right: ${props => props.$isDashboard ? '280px' : '0'};
+  margin-right: ${props => (props.$isDashboard || props.$sidebarOpen) ? '280px' : '0'};
   transition: margin-right 0.3s ease;
   
   @media (max-width: 968px) {
@@ -400,7 +400,7 @@ export default function AdminLayout({ children, title }) {
           </NavSection>
         </Sidebar>
 
-        <ContentWrapper $isDashboard={isDashboard}>
+        <ContentWrapper $isDashboard={isDashboard} $sidebarOpen={sidebarOpen && !isDashboard}>
           {!isDashboard && (
             <Header $isDashboard={isDashboard}>
               <MenuButton $isDashboard={isDashboard} onClick={() => setSidebarOpen(true)}>
