@@ -10,7 +10,8 @@ import {
   Home, 
   Plus, 
   Tag,
-  FileText
+  FileText,
+  Upload
 } from "lucide-react";
 import AdvertiserChat from "./AdvertiserChat";
 import AdPlacementSelector from "./AdPlacementSelector";
@@ -862,6 +863,39 @@ const SecondaryButton = styled.button`
   }
 `;
 
+const UploadBox = styled.label`
+  border: 2px dashed rgba(20, 184, 166, 0.5);
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  background: rgba(20, 184, 166, 0.08);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(20, 184, 166, 0.12);
+    border-color: rgba(20, 184, 166, 0.8);
+  }
+`;
+
+const UploadText = styled.div`
+  color: #ffffff;
+  font-weight: 700;
+`;
+
+const UploadHint = styled.div`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
 // --- Page Components ---
 
 // כריכה קדמית
@@ -929,11 +963,13 @@ BlankPage.displayName = 'BlankPage';
 
 // עמוד מקום פרסום (slot)
 const SlotPage = React.forwardRef(({ slot, onClick }, ref) => {
-  const occupied = !!slot.isOccupied;
+  const occupiedCount = Array.isArray(slot.occupiedQuarters) ? slot.occupiedQuarters.length : 0;
+  const fullyOccupied = !!slot.isOccupied || occupiedCount >= 4;
+  const partiallyOccupied = !fullyOccupied && occupiedCount > 0;
   
   return (
   <PageWrapper ref={ref} data-density="soft" $isCover={false}>
-      {!occupied && (
+      {!fullyOccupied && (
     <PageOverlayButton 
           onClick={() => onClick && onClick(slot)} 
           title={`בחר ${slot.name} לפרסום`}
@@ -963,7 +999,7 @@ const SlotPage = React.forwardRef(({ slot, onClick }, ref) => {
           <div style={{ 
             fontSize: '1.2rem', 
             fontWeight: 700, 
-            color: occupied ? '#ef4444' : '#14b8a6',
+            color: fullyOccupied ? '#ef4444' : (partiallyOccupied ? '#f59e0b' : '#14b8a6'),
             textAlign: 'center'
           }}>
             {slot.name}
@@ -989,11 +1025,11 @@ const SlotPage = React.forwardRef(({ slot, onClick }, ref) => {
             alignItems: 'center', 
             gap: '0.5rem',
             marginTop: '0.5rem',
-            color: occupied ? '#ef4444' : '#10b981',
+            color: fullyOccupied ? '#ef4444' : (partiallyOccupied ? '#f59e0b' : '#10b981'),
             fontWeight: 700
           }}>
-            {occupied ? <XCircle size={18} /> : <CheckCircle size={18} />}
-            {occupied ? 'תפוס' : 'זמין'}
+            {fullyOccupied ? <XCircle size={18} /> : <CheckCircle size={18} />}
+            {fullyOccupied ? 'תפוס' : (partiallyOccupied ? 'תפוס חלקית' : 'זמין')}
           </div>
           {occupied && slot.occupiedBy && (
             <div style={{ 
@@ -1037,6 +1073,7 @@ function normalizeSlotsPayload(payload) {
     name: s.name ?? s.Name,
     basePrice: s.basePrice ?? s.BasePrice,
     isOccupied: s.isOccupied ?? s.IsOccupied,
+    occupiedQuarters: s.occupiedQuarters ?? s.OccupiedQuarters ?? [],
     occupiedBy: s.occupiedBy ?? s.OccupiedBy ?? null,
   }));
 }
@@ -1345,15 +1382,20 @@ export default function PlacementBook() {
     setError(null);
   }, [user]);
 
+  const isFullyOccupied = useCallback((slot) => {
+    const occupiedCount = Array.isArray(slot?.occupiedQuarters) ? slot.occupiedQuarters.length : 0;
+    return !!slot?.isOccupied || occupiedCount >= 4;
+  }, []);
+
   const openBuyModal = useCallback((slot) => {
-    if (slot.isOccupied) {
+    if (isFullyOccupied(slot)) {
       // אם המקום תפוס, לא ניתן לבחור אותו
       return;
     }
     setSelectedSlot(slot);
     resetBookingForm();
     setShowPlacementSelector(true);
-  }, [resetBookingForm]);
+  }, [isFullyOccupied, resetBookingForm]);
 
   const handlePlacementSelect = useCallback(async () => {
     if (!selectedIssueId || !selectedSlot?.slotId || !creativeFile) {
@@ -1654,12 +1696,17 @@ export default function PlacementBook() {
               {bookStep === 'size' ? (
                 <>
                   <Label>העלאת מודעה (לתצוגה מקדימה)</Label>
-                  <Input
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={(e) => setCreativeFile(e.target.files?.[0] ?? null)}
-                  />
-                  {creativeFile && <div style={{ marginTop: '0.5rem', opacity: 0.75 }}>{creativeFile.name}</div>}
+                  <UploadBox>
+                    <Upload size={28} />
+                    <UploadText>לחץ להעלאת קובץ</UploadText>
+                    <UploadHint>תמונות (JPG/PNG/WEBP) או PDF · עד 10MB</UploadHint>
+                    <HiddenFileInput
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => setCreativeFile(e.target.files?.[0] ?? null)}
+                    />
+                  </UploadBox>
+                  {creativeFile && <div style={{ marginTop: '0.5rem', opacity: 0.85 }}>{creativeFile.name}</div>}
                   <div style={{ marginTop: '0.5rem', opacity: 0.65, fontSize: '0.85rem' }}>
                     תצוגה מקדימה זמינה לתמונות ול-PDF
                   </div>
@@ -1675,6 +1722,7 @@ export default function PlacementBook() {
                       setBookStep('confirm');
                     }}
                     previewFile={creativeFile}
+                    occupiedQuarters={selectedSlot?.occupiedQuarters}
                   />
                 </>
               ) : (

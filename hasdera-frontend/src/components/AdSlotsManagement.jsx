@@ -304,6 +304,7 @@ function normalizeSlotsPayload(payload) {
     name: s.name ?? s.Name,
     basePrice: s.basePrice ?? s.BasePrice,
     isOccupied: s.isOccupied ?? s.IsOccupied,
+    occupiedQuarters: s.occupiedQuarters ?? s.OccupiedQuarters ?? [],
     occupiedBy: s.occupiedBy ?? s.OccupiedBy ?? null,
   }));
 }
@@ -324,7 +325,9 @@ function paymentStatusLabel(status) {
 }
 
 const SlotPage = forwardRef(function SlotPage({ slot, onClick }, ref) {
-  const occupied = !!slot.isOccupied;
+  const occupiedCount = Array.isArray(slot.occupiedQuarters) ? slot.occupiedQuarters.length : 0;
+  const fullyOccupied = !!slot.isOccupied || occupiedCount >= 4;
+  const partiallyOccupied = !fullyOccupied && occupiedCount > 0;
   const buyer = slot.occupiedBy;
 
   return (
@@ -332,14 +335,14 @@ const SlotPage = forwardRef(function SlotPage({ slot, onClick }, ref) {
       <div>
         <SlotTitle>{slot.name}</SlotTitle>
         <SlotMeta>{slot.code}{slot.basePrice != null ? ` · מחיר בסיס: ${slot.basePrice}` : ''}</SlotMeta>
-        <StatusLine $occupied={occupied}>
-          {occupied ? <XCircle size={18} /> : <CheckCircle size={18} />}
-          {occupied ? 'תפוס' : 'פנוי'}
+        <StatusLine $occupied={fullyOccupied}>
+          {fullyOccupied ? <XCircle size={18} /> : <CheckCircle size={18} />}
+          {fullyOccupied ? 'תפוס' : (partiallyOccupied ? 'תפוס חלקית' : 'פנוי')}
         </StatusLine>
       </div>
 
       <SlotBox onClick={() => onClick(slot)}>
-        {occupied ? (
+        {fullyOccupied ? (
           <div>
             <div style={{ fontWeight: 800, marginBottom: '0.5rem' }}>נקנה ע"י</div>
             <div>{buyer?.advertiserName ?? buyer?.AdvertiserName ?? '—'}</div>
@@ -350,7 +353,9 @@ const SlotPage = forwardRef(function SlotPage({ slot, onClick }, ref) {
         ) : (
           <div>
             <div style={{ fontWeight: 800, marginBottom: '0.5rem' }}>לחץ לרכישה טלפונית</div>
-            <div style={{ opacity: 0.75 }}>פתיחת תהליך: פרטי מפרסם · העלאה · תשלום</div>
+            <div style={{ opacity: 0.75 }}>
+              {partiallyOccupied ? 'יש חלקים תפוסים — בחר את הפנוי' : 'פתיחת תהליך: פרטי מפרסם · העלאה · תשלום'}
+            </div>
           </div>
         )}
       </SlotBox>
@@ -500,10 +505,15 @@ export default function AdSlotsManagement() {
       .sort((a, b) => String(a.code ?? '').localeCompare(String(b.code ?? '')));
   }, [slots, selectedSlot]);
 
+  const isFullyOccupied = useCallback((slot) => {
+    const occupiedCount = Array.isArray(slot?.occupiedQuarters) ? slot.occupiedQuarters.length : 0;
+    return !!slot?.isOccupied || occupiedCount >= 4;
+  }, []);
+
   const onSlotClick = useCallback((slot) => {
-    if (slot.isOccupied) openDetails(slot);
+    if (isFullyOccupied(slot)) openDetails(slot);
     else openBooking(slot);
-  }, [openBooking, openDetails]);
+  }, [isFullyOccupied, openBooking, openDetails]);
 
   const onAdvertiserPick = useCallback((value) => {
     setSelectedAdvertiserId(value);
@@ -771,6 +781,7 @@ export default function AdSlotsManagement() {
                           setBookStep('details');
                         }}
                         previewFile={creativeFile}
+                        occupiedQuarters={selectedSlot?.occupiedQuarters}
                       />
                     </>
                   ) : (

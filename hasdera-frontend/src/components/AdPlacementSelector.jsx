@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import styled from "styled-components";
 import { Check, X } from "lucide-react";
 import { Card, CardTitle, PrimaryButton, SecondaryButton, Flex } from "../styles";
@@ -134,6 +134,20 @@ const FullPage = styled.div`
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
   }
 
+  ${props => props.$disabled && `
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: rgba(148, 163, 184, 0.2);
+    border-color: rgba(148, 163, 184, 0.4);
+    box-shadow: none;
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.2);
+      border-color: rgba(148, 163, 184, 0.4);
+      box-shadow: none;
+    }
+  `}
+
   ${props => props.$selected && `
     background: rgba(102, 126, 234, 0.2) !important;
     border-color: #667eea !important;
@@ -158,6 +172,22 @@ const HalfPage = styled.div`
     z-index: ${props => props.$isHovered ? '10' : '1'};
     box-shadow: ${props => props.$isHovered ? '0 4px 20px rgba(102, 126, 234, 0.3)' : 'none'};
   }
+
+  ${props => props.$disabled && `
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: rgba(148, 163, 184, 0.2);
+    border-color: rgba(148, 163, 184, 0.4);
+    box-shadow: none;
+    transform: none;
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.2);
+      border-color: rgba(148, 163, 184, 0.4);
+      box-shadow: none;
+      transform: none;
+    }
+  `}
 
   ${props => props.$selected && `
     background: rgba(102, 126, 234, 0.2) !important;
@@ -195,6 +225,22 @@ const Quarter = styled.div`
     z-index: ${props => props.$isHovered ? '10' : '1'};
     box-shadow: ${props => props.$isHovered ? '0 4px 20px rgba(102, 126, 234, 0.3)' : 'none'};
   }
+
+  ${props => props.$disabled && `
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: rgba(148, 163, 184, 0.2);
+    border-color: rgba(148, 163, 184, 0.4);
+    box-shadow: none;
+    transform: none;
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.2);
+      border-color: rgba(148, 163, 184, 0.4);
+      box-shadow: none;
+      transform: none;
+    }
+  `}
 
   /* Selected state */
   ${props => props.$selected && `
@@ -362,11 +408,16 @@ const ConfirmButton = styled.button`
 `;
 
 // 🎯 Main Component
-export default function AdPlacementSelector({ onSelect, onCancel, previewFile = null }) {
+export default function AdPlacementSelector({ onSelect, onCancel, previewFile = null, occupiedQuarters = [] }) {
   const [selectedSize, setSelectedSize] = useState(null); // 'full', 'half', 'quarter'
   const [hoveredQuarter, setHoveredQuarter] = useState(null); // מספר הרבע (1-4)
   const [selectedQuarters, setSelectedQuarters] = useState([]); // מערך של רבעים שנבחרו
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  const occupiedSet = useMemo(() => {
+    const normalized = Array.isArray(occupiedQuarters) ? occupiedQuarters : [];
+    return new Set(normalized.filter(q => Number.isFinite(q)));
+  }, [occupiedQuarters]);
 
   useEffect(() => {
     let cancelled = false;
@@ -460,14 +511,16 @@ export default function AdPlacementSelector({ onSelect, onCancel, previewFile = 
     if (!selectedSize) return;
 
     const quarters = getHighlightedQuarters(quarterIndex, selectedSize);
+    if (quarters.some(q => occupiedSet.has(q))) return;
     setSelectedQuarters(quarters);
-  }, [selectedSize, getHighlightedQuarters]);
+  }, [selectedSize, getHighlightedQuarters, occupiedSet]);
 
   const handleFullPageClick = useCallback(() => {
     if (selectedSize === 'full') {
+      if (occupiedSet.size > 0) return;
       setSelectedQuarters([1, 2, 3, 4]);
     }
-  }, [selectedSize]);
+  }, [selectedSize, occupiedSet]);
 
   const handleSizeSelect = useCallback((size) => {
     setSelectedSize(size);
@@ -587,13 +640,17 @@ export default function AdPlacementSelector({ onSelect, onCancel, previewFile = 
           // עמוד מלא - ללא חלוקה
           <FullPage
             $selected={selectedQuarters.length > 0}
+            $disabled={occupiedSet.size > 0}
             onClick={handleFullPageClick}
-            onMouseEnter={() => handleQuarterHover(1)}
+            onMouseEnter={() => {
+              if (occupiedSet.size > 0) return;
+              handleQuarterHover(1);
+            }}
             onMouseLeave={() => setHoveredQuarter(null)}
           >
             {previewUrl && <PreviewLayer style={getPreviewFor('full', 1)} />}
             <QuarterLabel $selected={selectedQuarters.length > 0}>
-              עמוד מלא
+              {occupiedSet.size > 0 ? 'תפוס' : 'עמוד מלא'}
             </QuarterLabel>
           </FullPage>
         ) : selectedSize === 'half' ? (
@@ -605,19 +662,27 @@ export default function AdPlacementSelector({ onSelect, onCancel, previewFile = 
             ].map(({ index, label, quarters }) => {
               const isHovered = highlightedQuarters.some(q => quarters.includes(q));
               const isSelected = selectedQuarters.some(q => quarters.includes(q));
+              const isDisabled = quarters.some(q => occupiedSet.has(q));
               
               return (
                 <HalfPage
                   key={index}
                   $isHovered={isHovered}
                   $selected={isSelected}
-                  onMouseEnter={() => handleQuarterHover(index === 1 ? 1 : 2)}
+                  $disabled={isDisabled}
+                  onMouseEnter={() => {
+                    if (isDisabled) return;
+                    handleQuarterHover(index === 1 ? 1 : 2);
+                  }}
                   onMouseLeave={() => setHoveredQuarter(null)}
-                  onClick={() => handleQuarterClick(index === 1 ? 1 : 2)}
+                  onClick={() => {
+                    if (isDisabled) return;
+                    handleQuarterClick(index === 1 ? 1 : 2);
+                  }}
                 >
                   {previewUrl && <PreviewLayer style={getPreviewFor('half', index)} />}
                   <QuarterLabel $isHovered={isHovered} $selected={isSelected}>
-                    {label}
+                    {isDisabled ? 'תפוס' : label}
                   </QuarterLabel>
                 </HalfPage>
               );
@@ -629,6 +694,7 @@ export default function AdPlacementSelector({ onSelect, onCancel, previewFile = 
             {[1, 2, 3, 4].map((quarterIndex) => {
               const isHovered = highlightedQuarters.includes(quarterIndex);
               const isSelected = selectedQuarters.includes(quarterIndex);
+              const isDisabled = occupiedSet.has(quarterIndex);
               
               return (
                 <Quarter
@@ -636,16 +702,31 @@ export default function AdPlacementSelector({ onSelect, onCancel, previewFile = 
                   $size={selectedSize}
                   $isHovered={isHovered}
                   $selected={isSelected}
-                  onMouseEnter={() => handleQuarterHover(quarterIndex)}
+                  $disabled={isDisabled}
+                  onMouseEnter={() => {
+                    if (isDisabled) return;
+                    handleQuarterHover(quarterIndex);
+                  }}
                   onMouseLeave={() => setHoveredQuarter(null)}
-                  onClick={() => handleQuarterClick(quarterIndex)}
+                  onClick={() => {
+                    if (isDisabled) return;
+                    handleQuarterClick(quarterIndex);
+                  }}
                 >
                   {previewUrl && <PreviewLayer style={getPreviewFor('quarter', quarterIndex)} />}
                   <QuarterLabel $isHovered={isHovered} $selected={isSelected}>
-                    {quarterIndex === 1 && 'רבע עליון שמאלי'}
-                    {quarterIndex === 2 && 'רבע עליון ימני'}
-                    {quarterIndex === 3 && 'רבע תחתון שמאלי'}
-                    {quarterIndex === 4 && 'רבע תחתון ימני'}
+                    {isDisabled
+                      ? 'תפוס'
+                      : (quarterIndex === 1 && 'רבע עליון שמאלי')}
+                    {isDisabled
+                      ? ''
+                      : (quarterIndex === 2 && 'רבע עליון ימני')}
+                    {isDisabled
+                      ? ''
+                      : (quarterIndex === 3 && 'רבע תחתון שמאלי')}
+                    {isDisabled
+                      ? ''
+                      : (quarterIndex === 4 && 'רבע תחתון ימני')}
                   </QuarterLabel>
                 </Quarter>
               );
@@ -664,6 +745,14 @@ export default function AdPlacementSelector({ onSelect, onCancel, previewFile = 
             {selectedSize === 'half' && 'חצי מהעמוד זמין לפרסום'}
             {selectedSize === 'quarter' && 'רבע מהעמוד זמין לפרסום'}
           </SelectionDetails>
+        </SelectionInfo>
+      )}
+
+      {occupiedSet.size > 0 && (
+        <SelectionInfo style={{ marginTop: selectedQuarters.length > 0 ? '0.5rem' : '0' }}>
+          <SelectionText style={{ color: '#f59e0b' }}>
+            חלקים תפוסים: {Array.from(occupiedSet).sort((a, b) => a - b).join(', ')}
+          </SelectionText>
         </SelectionInfo>
       )}
 

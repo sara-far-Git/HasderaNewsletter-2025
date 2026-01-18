@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace HasderaApi.Controllers
 {
@@ -71,6 +72,43 @@ namespace HasderaApi.Controllers
                 public decimal? Amount { get; set; }
                 public string? Method { get; set; }
                 public string? PaymentStatus { get; set; }
+
+                public string? Size { get; set; }
+                public List<int>? Quarters { get; set; }
+                public string? PlacementDescription { get; set; }
+            }
+
+            public class PlacementInfo
+            {
+                public int? SlotId { get; set; }
+                public string? Size { get; set; }
+                public List<int>? Quarters { get; set; }
+                public string? Description { get; set; }
+            }
+
+            private static PlacementInfo? TryParsePlacement(string? placementJson)
+            {
+                if (string.IsNullOrWhiteSpace(placementJson)) return null;
+                try
+                {
+                    return JsonSerializer.Deserialize<PlacementInfo>(placementJson, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
+            private static HashSet<int> NormalizeQuarters(PlacementInfo? placement)
+            {
+                if (placement == null) return new HashSet<int>();
+                var size = placement.Size?.Trim().ToLowerInvariant();
+                if (size == "full") return new HashSet<int> { 1, 2, 3, 4 };
+                var quarters = placement.Quarters ?? new List<int>();
+                return new HashSet<int>(quarters.Where(q => q >= 1 && q <= 4));
             }
 
             public class UpdateSlotBookingRequest
@@ -1763,6 +1801,32 @@ namespace HasderaApi.Controllers
                     && (ap.EndDate == null || issueDate <= ap.EndDate))
                 .ToListAsync();
 
+            // שליפת מיקומים (רבעים) לפי Ads עבור הגיליון
+            var ads = await _context.Ads
+                .Where(ad => ad.IssueId == id && ad.Placement != null)
+                .ToListAsync();
+
+            var occupiedBySlot = new Dictionary<int, HashSet<int>>();
+            foreach (var ad in ads)
+            {
+                var placement = TryParsePlacement(ad.Placement);
+                if (placement?.SlotId == null || placement.SlotId <= 0) continue;
+                var normalized = NormalizeQuarters(placement);
+                if (normalized.Count == 0) continue;
+                if (!occupiedBySlot.TryGetValue(placement.SlotId.Value, out var set))
+                {
+                    set = new HashSet<int>();
+                    occupiedBySlot[placement.SlotId.Value] = set;
+                }
+                foreach (var q in normalized) set.Add(q);
+            }
+
+            var occupiedSlotIds = occupiedPlacements.Select(op => op.SlotId).Distinct().ToHashSet();
+            var slotsWithPlacementData = occupiedBySlot.Keys.ToHashSet();
+            var fullyOccupiedByLegacy = occupiedSlotIds
+                .Where(slotId => !slotsWithPlacementData.Contains(slotId))
+                .ToHashSet();
+
             // יצירת רשימת מקומות עם סטטוס
             var slotsWithStatus = allSlots.Select(slot => new
             {
@@ -1771,7 +1835,13 @@ namespace HasderaApi.Controllers
                 Name = slot.Name,
                 BasePrice = slot.BasePrice,
                 IsExclusive = slot.IsExclusive,
-                IsOccupied = occupiedPlacements.Any(op => op.SlotId == slot.SlotId),
+                OccupiedQuarters = fullyOccupiedByLegacy.Contains(slot.SlotId)
+                    ? new List<int> { 1, 2, 3, 4 }
+                    : (occupiedBySlot.TryGetValue(slot.SlotId, out var quarters)
+                        ? quarters.OrderBy(q => q).ToList()
+                        : new List<int>()),
+                IsOccupied = fullyOccupiedByLegacy.Contains(slot.SlotId)
+                    || (occupiedBySlot.TryGetValue(slot.SlotId, out var quarters) && quarters.Count >= 4),
                 OccupiedBy = occupiedPlacements
                     .Where(op => op.SlotId == slot.SlotId)
                     .OrderBy(op => op.StartDate ?? DateOnly.MinValue)
@@ -1834,14 +1904,50 @@ namespace HasderaApi.Controllers
 
                 var issueDate = DateOnly.FromDateTime(issue.IssueDate);
 
-                var isOccupied = await _context.Adplacements.AnyAsync(ap =>
+                if (string.IsNullOrWhiteSpace(request.Size) || request.Quarters == null || request.Quarters.Count == 0)
+                {
+                    return BadRequest("חובה לבחור מיקום מודעה");
+                }
+
+                var requestedPlacement = new PlacementInfo
+                {
+                    SlotId = slotId,
+                    Size = request.Size,
+                    Quarters = request.Quarters,
+                    Description = request.PlacementDescription
+                };
+
+                var requestedQuarters = NormalizeQuarters(requestedPlacement);
+                if (requestedQuarters.Count == 0)
+                {
+                    return BadRequest("חובה לבחור מיקום מודעה");
+                }
+
+                var fullyOccupiedByLegacy = await _context.Adplacements.AnyAsync(ap =>
                     ap.SlotId == slotId
                     && (ap.StartDate == null || ap.StartDate <= issueDate)
                     && (ap.EndDate == null || issueDate <= ap.EndDate));
 
-                if (isOccupied)
+                if (fullyOccupiedByLegacy)
                 {
                     return BadRequest("המקום כבר תפוס בתאריך הגיליון");
+                }
+
+                var ads = await _context.Ads
+                    .Where(ad => ad.IssueId == id && ad.Placement != null)
+                    .ToListAsync();
+
+                var occupiedQuarters = new HashSet<int>();
+                foreach (var ad in ads)
+                {
+                    var placement = TryParsePlacement(ad.Placement);
+                    if (placement?.SlotId != slotId) continue;
+                    foreach (var q in NormalizeQuarters(placement)) occupiedQuarters.Add(q);
+                }
+
+                if (requestedQuarters.Any(q => occupiedQuarters.Contains(q)))
+                {
+                    return BadRequest("חלק מהמקום כבר תפוס בתאריך הגיליון");
                 }
 
                 Advertiser advertiser;
@@ -1934,6 +2040,18 @@ namespace HasderaApi.Controllers
                     };
                     _context.Payments.Add(payment);
                 }
+
+                // יצירת Ad עם פרטי המיקום כדי לאפשר תפיסה חלקית
+                var placementJson = JsonSerializer.Serialize(requestedPlacement);
+                var ad = new Ad
+                {
+                    AdvertiserId = advertiser.AdvertiserId,
+                    IssueId = id,
+                    PackageId = packageId,
+                    Placement = placementJson,
+                    Status = (request.PaymentStatus ?? "pending").ToLowerInvariant()
+                };
+                _context.Ads.Add(ad);
 
                 await _context.SaveChangesAsync();
 
