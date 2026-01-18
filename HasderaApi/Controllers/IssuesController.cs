@@ -1891,6 +1891,103 @@ namespace HasderaApi.Controllers
         }
             }
 
+        // GET /api/issues/{id}/creatives - הורדת כל המודעות לגיליון (מנהל)
+        [Authorize]
+        [HttpGet("{id}/creatives")]
+        public async Task<IActionResult> GetIssueCreatives(int id)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    return Unauthorized("לא מאומת");
+                }
+
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return NotFound("משתמש לא נמצא");
+                }
+
+                if (user.Role != "Admin" && user.Role != "admin")
+                {
+                    return Forbid("רק מנהל יכול להוריד מודעות");
+                }
+
+                var issue = await _context.Issues.FindAsync(id);
+                if (issue == null)
+                {
+                    return NotFound("גיליון לא נמצא");
+                }
+
+                var issueDate = DateOnly.FromDateTime(issue.IssueDate);
+
+                var adPlacements = await _context.Adplacements
+                    .Include(ap => ap.Order)
+                        .ThenInclude(o => o.Advertiser)
+                    .Include(ap => ap.Order)
+                        .ThenInclude(o => o.Creatives)
+                    .Include(ap => ap.Slot)
+                    .Where(ap =>
+                        (ap.StartDate == null || ap.StartDate <= issueDate)
+                        && (ap.EndDate == null || issueDate <= ap.EndDate))
+                    .ToListAsync();
+
+                var ads = await _context.Ads
+                    .Where(ad => ad.IssueId == id && ad.Placement != null)
+                    .ToListAsync();
+
+                var placementsByAdvertiser = ads
+                    .Select(ad => new
+                    {
+                        ad.AdvertiserId,
+                        Placement = TryParsePlacement(ad.Placement)
+                    })
+                    .Where(x => x.Placement != null)
+                    .ToList();
+
+                var result = new List<object>();
+                foreach (var placement in adPlacements)
+                {
+                    var order = placement.Order;
+                    if (order == null || order.Creatives == null) continue;
+
+                    var placementInfo = placementsByAdvertiser
+                        .FirstOrDefault(x =>
+                            x.AdvertiserId == order.AdvertiserId &&
+                            (x.Placement?.SlotId == null || x.Placement?.SlotId == placement.SlotId))
+                        ?.Placement;
+
+                    foreach (var creative in order.Creatives)
+                    {
+                        if (creative == null) continue;
+                        var fileUrl = GetFileUrl(creative.FileUrl);
+
+                        result.Add(new
+                        {
+                            creativeId = creative.CreativeId,
+                            orderId = order.OrderId,
+                            advertiserId = order.AdvertiserId,
+                            advertiserName = order.Advertiser?.Company ?? order.Advertiser?.Name ?? order.Advertiser?.Email ?? "לא ידוע",
+                            slotId = placement.SlotId,
+                            slotCode = placement.Slot?.Code,
+                            placement = placementInfo,
+                            fileUrl = fileUrl
+                        });
+                    }
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ שגיאה בהורדת מודעות: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { error = "שגיאה פנימית בשרת", details = ex.Message });
+            }
+        }
+
         // POST /api/issues/{id}/slots/{slotId}/book - הזמנה טלפונית (מנהל)
         [Authorize]
         [HttpPost("{id}/slots/{slotId}/book")]
@@ -1931,16 +2028,6 @@ namespace HasderaApi.Controllers
                     return BadRequest("חובה לבחור מיקום מודעה");
                 }
 
-                var fullyOccupiedByLegacy = await _context.Adplacements.AnyAsync(ap =>
-                    ap.SlotId == slotId
-                    && (ap.StartDate == null || ap.StartDate <= issueDate)
-                    && (ap.EndDate == null || issueDate <= ap.EndDate));
-
-                if (fullyOccupiedByLegacy)
-                {
-                    return BadRequest("המקום כבר תפוס בתאריך הגיליון");
-                }
-
                 var ads = await _context.Ads
                     .Where(ad => ad.IssueId == id && ad.Placement != null)
                     .ToListAsync();
@@ -1951,6 +2038,19 @@ namespace HasderaApi.Controllers
                     var placement = TryParsePlacement(ad.Placement);
                     if (placement?.SlotId != slotId) continue;
                     foreach (var q in NormalizeQuarters(placement)) occupiedQuarters.Add(q);
+                }
+
+                if (occupiedQuarters.Count == 0)
+                {
+                    var fullyOccupiedByLegacy = await _context.Adplacements.AnyAsync(ap =>
+                        ap.SlotId == slotId
+                        && (ap.StartDate == null || ap.StartDate <= issueDate)
+                        && (ap.EndDate == null || issueDate <= ap.EndDate));
+
+                    if (fullyOccupiedByLegacy)
+                    {
+                        return BadRequest("המקום כבר תפוס בתאריך הגיליון");
+                    }
                 }
 
                 if (requestedQuarters.Any(q => occupiedQuarters.Contains(q)))

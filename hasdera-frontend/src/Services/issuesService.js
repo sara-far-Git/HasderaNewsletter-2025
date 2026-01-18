@@ -116,6 +116,17 @@ export async function updateIssueMetadata(issueId, data) {
   }
 }
 
+// קבלת כל המודעות לגיליון (מנהל)
+export async function getIssueCreatives(issueId) {
+  try {
+    const res = await api.get(`/Issues/${issueId}/creatives`);
+    return Array.isArray(res.data) ? res.data : [];
+  } catch (err) {
+    console.error("❌ שגיאה ב-GET Issue creatives:", err);
+    throw err;
+  }
+}
+
 // פרסום גיליון
 export async function publishIssue(issueId) {
   try {

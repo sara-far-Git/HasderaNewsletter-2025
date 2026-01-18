@@ -10,7 +10,7 @@ import { Upload, Edit, Eye, Download, FileText, Calendar, Hash, X, CalendarDays,
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import IssueEditor from './IssueEditor';
-import { getIssues, deleteIssue } from '../Services/issuesService';
+import { getIssues, deleteIssue, getIssueCreatives } from '../Services/issuesService';
 import { api } from '../Services/api.js';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
@@ -94,6 +94,29 @@ const hasIssuePdf = (issue) => {
   const pdfUrl = getPdfUrl(issue);
   const fileUrl = getFileUrl(issue);
   return Boolean((typeof pdfUrl === 'string' && pdfUrl.trim()) || (typeof fileUrl === 'string' && fileUrl.trim()));
+};
+
+const downloadCreativeFile = async (item) => {
+  const url = item?.fileUrl;
+  if (!url) return false;
+  const fileName = item.fileName || `creative-${item.creativeId || item.orderId || 'file'}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('download failed');
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    return true;
+  } catch {
+    window.open(url, '_blank');
+    return false;
+  }
 };
 
 /**
@@ -513,6 +536,7 @@ const IssueCardComponent = React.memo(function IssueCardComponent({
   onEdit, 
   onView, 
   onDownload, 
+  onDownloadCreatives,
   onDelete 
 }) {
   const issueId = getIssueId(issue) || `issue-${index}`;
@@ -565,6 +589,10 @@ const IssueCardComponent = React.memo(function IssueCardComponent({
         >
           <Download size={16} />
           הורדה
+        </CardButton>
+        <CardButton onClick={() => onDownloadCreatives(issue)}>
+          <FileText size={16} />
+          מודעות
         </CardButton>
         <DeleteButton onClick={() => onDelete(issue)}>
           <Trash2 size={16} />
@@ -634,6 +662,29 @@ export default function IssuesManagement() {
       window.open(buildIssuePdfProxyUrl(issueId), '_blank');
     } else if (isValidPdfUrl(pdfUrl)) {
       window.open(pdfUrl, '_blank');
+    }
+  }, []);
+
+  const handleDownloadCreatives = useCallback(async (issue) => {
+    const issueId = getIssueId(issue);
+    if (!issueId) {
+      alert('שגיאה: לא נמצא מזהה גיליון');
+      return;
+    }
+    try {
+      const items = await getIssueCreatives(issueId);
+      if (!items.length) {
+        alert('לא נמצאו מודעות לגיליון זה');
+        return;
+      }
+      const confirmMsg = `נמצאו ${items.length} מודעות. להוריד את כולן עכשיו?`;
+      if (!confirm(confirmMsg)) return;
+      for (const item of items) {
+        await downloadCreativeFile(item);
+      }
+    } catch (error) {
+      console.error('שגיאה בהורדת מודעות:', error);
+      alert(error.response?.data?.error || 'שגיאה בהורדת מודעות');
     }
   }, []);
 
@@ -724,6 +775,7 @@ export default function IssuesManagement() {
                     onEdit={handleEdit}
                     onView={handleView}
                     onDownload={handleDownload}
+                    onDownloadCreatives={handleDownloadCreatives}
                     onDelete={handleDelete}
                   />
                 ))}
