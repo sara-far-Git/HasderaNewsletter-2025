@@ -1065,11 +1065,7 @@ export default function PlacementBook() {
   const [creativeFile, setCreativeFile] = useState(null);
   const [placementSelection, setPlacementSelection] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [bookStep, setBookStep] = useState('size'); // size -> details
-  const [advName, setAdvName] = useState('');
-  const [advCompany, setAdvCompany] = useState('');
-  const [advEmail, setAdvEmail] = useState('');
-  const [advPhone, setAdvPhone] = useState('');
+  const [bookStep, setBookStep] = useState('size'); // size -> confirm
 
   const slots = useMemo(() => normalizeSlotsPayload(slotsPayload), [slotsPayload]);
   const totalPages = slots.length || 2;
@@ -1347,10 +1343,6 @@ export default function PlacementBook() {
     setBookStep('size');
     setPlacementSelection(null);
     setError(null);
-    setAdvName(user?.name || user?.Name || '');
-    setAdvCompany(user?.company || user?.Company || '');
-    setAdvEmail(user?.email || user?.Email || '');
-    setAdvPhone(user?.phone || user?.Phone || '');
   }, [user]);
 
   const openBuyModal = useCallback((slot) => {
@@ -1380,10 +1372,6 @@ export default function PlacementBook() {
     try {
       const payload = {
         advertiserId: user?.advertiserId ? Number(user.advertiserId) : null,
-        name: advName?.trim() || null,
-        company: advCompany?.trim() || null,
-        email: advEmail?.trim() || null,
-        phone: advPhone?.trim() || null,
         size: placementSelection.size,
         quarters: placementSelection.quarters,
         placementDescription: placementSelection.description ?? null,
@@ -1412,17 +1400,7 @@ export default function PlacementBook() {
     } finally {
       setSubmitting(false);
     }
-  }, [
-    advCompany,
-    advEmail,
-    advName,
-    advPhone,
-    creativeFile,
-    placementSelection,
-    selectedIssueId,
-    selectedSlot,
-    user
-  ]);
+  }, [creativeFile, placementSelection, selectedIssueId, selectedSlot, user]);
 
   const handlePlacementCancel = useCallback(() => {
     setShowPlacementSelector(false);
@@ -1694,7 +1672,7 @@ export default function PlacementBook() {
                         return;
                       }
                       setPlacementSelection(selection);
-                      setBookStep('details');
+                      setBookStep('confirm');
                     }}
                     previewFile={creativeFile}
                   />
@@ -1706,28 +1684,11 @@ export default function PlacementBook() {
                   </div>
 
                   {creativeFile && <div style={{ marginTop: '0.5rem', opacity: 0.7 }}>מודעה: {creativeFile.name}</div>}
-
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <Label>שם</Label>
-                    <Input value={advName} onChange={(e) => setAdvName(e.target.value)} placeholder="שם מפרסם" />
-                  </div>
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <Label>חברה</Label>
-                    <Input value={advCompany} onChange={(e) => setAdvCompany(e.target.value)} placeholder="שם חברה" />
-                  </div>
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <Label>טלפון</Label>
-                    <Input value={advPhone} onChange={(e) => setAdvPhone(e.target.value)} placeholder="טלפון" />
-                  </div>
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <Label>אימייל</Label>
-                    <Input value={advEmail} onChange={(e) => setAdvEmail(e.target.value)} placeholder="אימייל" />
-                  </div>
                 </>
               )}
             </SidebarSection>
 
-            {bookStep === 'details' && (
+            {bookStep === 'confirm' && (
               <ButtonRow>
                 <SecondaryButton type="button" onClick={() => setBookStep('size')}>
                   חזרה
