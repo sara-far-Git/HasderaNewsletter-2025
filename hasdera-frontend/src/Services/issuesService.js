@@ -10,7 +10,9 @@ export async function getIssues(page = 1, pageSize = 100, publishedOnly = false)
     if (publishedOnly) {
       params.append('publishedOnly', 'true');
     }
-    const res = await api.get(`/Issues?${params.toString()}`);
+    const res = await api.get(`/Issues?${params.toString()}`, {
+      timeout: 30000,
+    });
     
     // בדיקה אם התשובה היא HTML במקום JSON (שגיאה)
     if (typeof res.data === 'string') {
