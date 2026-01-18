@@ -764,6 +764,7 @@ export default function AdSlotsManagement() {
             </div>
 
             {sidebarMode === 'details' && (
+              <>
               <SidebarSection>
                 <Label>נקנה ע"י</Label>
                 <div style={{ color: 'white', fontWeight: 800 }}>
@@ -858,6 +859,7 @@ export default function AdSlotsManagement() {
                   </PrimaryButton>
                 </ButtonRow>
               </SidebarSection>
+              </>
             )}
 
             {sidebarMode === 'book' && (
