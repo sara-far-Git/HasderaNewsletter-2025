@@ -178,3 +178,14 @@ export async function updateIssueSlotBooking(issueId, slotId, payload) {
     throw err;
   }
 }
+
+// עדכון חלוקת מיקום (מנהל)
+export async function updateIssueSlotPlacement(issueId, slotId, payload) {
+  try {
+    const res = await api.put(`/Issues/${issueId}/slots/${slotId}/placement`, payload);
+    return res.data;
+  } catch (err) {
+    console.error("❌ שגיאה ב-PUT Issue Slot placement:", err);
+    throw err;
+  }
+}

@@ -10,7 +10,7 @@ import styled, { keyframes } from 'styled-components';
 import HTMLFlipBook from 'react-pageflip';
 import { FileText, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
 import AdminLayout from './AdminLayout';
-import { getIssues, getIssueSlots, bookIssueSlot, updateIssueSlotBooking } from '../Services/issuesService';
+import { getIssues, getIssueSlots, bookIssueSlot, updateIssueSlotBooking, updateIssueSlotPlacement } from '../Services/issuesService';
 import { getAdvertisers } from '../Services/advertisersService';
 import { adminUploadCreative } from '../Services/creativesService';
 import AdPlacementSelector from './AdPlacementSelector';
@@ -396,6 +396,8 @@ export default function AdSlotsManagement() {
   const [editMode, setEditMode] = useState(false);
   const [editTargetSlotId, setEditTargetSlotId] = useState('');
   const [editPaymentStatus, setEditPaymentStatus] = useState('');
+  const [placementEditSize, setPlacementEditSize] = useState('quarter');
+  const [placementEditQuarters, setPlacementEditQuarters] = useState([]);
 
   const [bookStep, setBookStep] = useState('size'); // size -> details
   const [placementSelection, setPlacementSelection] = useState(null); // { size, quarters, description }
@@ -487,6 +489,9 @@ export default function AdSlotsManagement() {
     setEditMode(false);
     setEditTargetSlotId('');
     setEditPaymentStatus(normalizeOrderStatus(slot.occupiedBy) ?? '');
+    const occupied = Array.isArray(slot.occupiedQuarters) ? slot.occupiedQuarters : [];
+    setPlacementEditQuarters(occupied.length ? occupied : [1, 2, 3, 4]);
+    setPlacementEditSize(occupied.length === 4 ? 'full' : (occupied.length === 2 ? 'half' : 'quarter'));
     setSidebarOpen(true);
   }, []);
 
@@ -611,6 +616,57 @@ export default function AdSlotsManagement() {
       setSubmitting(false);
     }
   }, [editPaymentStatus, editTargetSlotId, selectedIssueId, selectedSlot, submitting]);
+
+  const togglePlacementQuarter = useCallback((quarter) => {
+    setPlacementEditQuarters((prev) => {
+      const set = new Set(prev);
+      if (set.has(quarter)) {
+        set.delete(quarter);
+      } else {
+        set.add(quarter);
+      }
+      return Array.from(set).sort((a, b) => a - b);
+    });
+  }, []);
+
+  const savePlacementEdits = useCallback(async () => {
+    if (!selectedIssueId || !selectedSlot?.slotId) return;
+    const orderId = selectedSlot.occupiedBy?.orderId ?? selectedSlot.occupiedBy?.OrderId;
+    if (!orderId) {
+      setError('לא נמצא מזהה הזמנה לשמירה');
+      return;
+    }
+    if (!placementEditQuarters.length) {
+      setError('חובה לבחור לפחות רבע אחד');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const payload = {
+        orderId: Number(orderId),
+        size: placementEditSize,
+        quarters: placementEditQuarters,
+        description: placementEditSize === 'full'
+          ? 'עמוד מלא'
+          : placementEditSize === 'half'
+            ? 'חצי עמוד'
+            : 'רבע עמוד',
+      };
+      await updateIssueSlotPlacement(selectedIssueId, selectedSlot.slotId, payload);
+      const refreshed = await getIssueSlots(selectedIssueId);
+      setSlotsPayload(refreshed);
+    } catch (e) {
+      console.error(e);
+      const apiMessage = typeof e?.response?.data === 'string'
+        ? e.response.data
+        : (e?.response?.data?.message || e?.response?.data?.error);
+      setError(apiMessage || 'שגיאה בעדכון חלוקת מיקום');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [placementEditQuarters, placementEditSize, selectedIssueId, selectedSlot, submitting]);
 
   const handleIssueChange = (e) => {
     const issueId = Number(e.target.value);
@@ -759,6 +815,48 @@ export default function AdSlotsManagement() {
                     </SelectWrapper>
                   </div>
                 )}
+              </SidebarSection>
+
+              <SidebarSection>
+                <Label>חלוקת מיקום (לתיקון הזמנות ישנות)</Label>
+                <SelectWrapper style={{ maxWidth: '100%' }}>
+                  <SidebarSelect value={placementEditSize} onChange={(e) => setPlacementEditSize(e.target.value)}>
+                    <option value="quarter">רבע עמוד</option>
+                    <option value="half">חצי עמוד</option>
+                    <option value="full">עמוד מלא</option>
+                  </SidebarSelect>
+                  <SelectIcon size={20} />
+                </SelectWrapper>
+
+                <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {[1, 2, 3, 4].map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => togglePlacementQuarter(q)}
+                      style={{
+                        padding: '0.4rem 0.6rem',
+                        borderRadius: 8,
+                        border: placementEditQuarters.includes(q)
+                          ? '1px solid rgba(16,185,129,0.6)'
+                          : '1px solid rgba(255,255,255,0.15)',
+                        background: placementEditQuarters.includes(q)
+                          ? 'rgba(16,185,129,0.15)'
+                          : 'rgba(255,255,255,0.05)',
+                        color: 'white',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      רבע {q}
+                    </button>
+                  ))}
+                </div>
+
+                <ButtonRow>
+                  <PrimaryButton type="button" onClick={savePlacementEdits} disabled={submitting}>
+                    {submitting ? 'שומר...' : 'שמירת חלוקה'}
+                  </PrimaryButton>
+                </ButtonRow>
               </SidebarSection>
             )}
 

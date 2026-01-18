@@ -117,6 +117,14 @@ namespace HasderaApi.Controllers
                 public string? PaymentStatus { get; set; }
             }
 
+            public class UpdateSlotPlacementRequest
+            {
+                public int OrderId { get; set; }
+                public string? Size { get; set; }
+                public List<int>? Quarters { get; set; }
+                public string? Description { get; set; }
+            }
+
         // GET /api/issues?q=...&page=1&pageSize=20&publishedOnly=true
         [HttpGet]
         public async Task<ActionResult<PagedResult<IssueDto>>> Get(
@@ -2153,6 +2161,106 @@ namespace HasderaApi.Controllers
             catch (Exception ex)
             {
                 Console.WriteLine($"❌ שגיאה בעריכת הזמנה: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { error = "שגיאה פנימית בשרת", details = ex.Message });
+            }
+        }
+
+        // PUT /api/issues/{id}/slots/{slotId}/placement - עדכון חלוקת מיקום (מנהל)
+        [Authorize]
+        [HttpPut("{id}/slots/{slotId}/placement")]
+        public async Task<IActionResult> UpdateSlotPlacementForIssue(int id, int slotId, [FromBody] UpdateSlotPlacementRequest request)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    return Unauthorized("לא מאומת");
+                }
+
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return NotFound("משתמש לא נמצא");
+                }
+
+                if (user.Role != "Admin" && user.Role != "admin")
+                {
+                    return Forbid("רק מנהל יכול לעדכן חלוקת מיקום");
+                }
+
+                if (request.OrderId <= 0)
+                {
+                    return BadRequest("חובה להזין מזהה הזמנה תקין");
+                }
+
+                var issue = await _context.Issues.FindAsync(id);
+                if (issue == null)
+                {
+                    return NotFound("גיליון לא נמצא");
+                }
+
+                var slot = await _context.Slots.FindAsync(slotId);
+                if (slot == null)
+                {
+                    return NotFound("מקום פרסום לא נמצא");
+                }
+
+                var order = await _context.AdOrders.FindAsync(request.OrderId);
+                if (order == null)
+                {
+                    return NotFound("הזמנה לא נמצאה");
+                }
+
+                if (string.IsNullOrWhiteSpace(request.Size) || request.Quarters == null || request.Quarters.Count == 0)
+                {
+                    return BadRequest("חובה לבחור מיקום מודעה");
+                }
+
+                var placement = new PlacementInfo
+                {
+                    SlotId = slotId,
+                    Size = request.Size,
+                    Quarters = request.Quarters,
+                    Description = request.Description
+                };
+
+                var normalized = NormalizeQuarters(placement);
+                if (normalized.Count == 0)
+                {
+                    return BadRequest("חובה לבחור מיקום מודעה");
+                }
+
+                var placementJson = JsonSerializer.Serialize(placement);
+
+                var existingAd = await _context.Ads
+                    .FirstOrDefaultAsync(ad => ad.IssueId == id && ad.AdvertiserId == order.AdvertiserId);
+
+                if (existingAd == null)
+                {
+                    var ad = new Ad
+                    {
+                        AdvertiserId = order.AdvertiserId,
+                        IssueId = id,
+                        PackageId = order.PackageId,
+                        Placement = placementJson,
+                        Status = order.Status ?? "approved"
+                    };
+                    _context.Ads.Add(ad);
+                }
+                else
+                {
+                    existingAd.Placement = placementJson;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "חלוקת מיקום עודכנה בהצלחה" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ שגיאה בעדכון חלוקת מיקום: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return StatusCode(500, new { error = "שגיאה פנימית בשרת", details = ex.Message });
             }
