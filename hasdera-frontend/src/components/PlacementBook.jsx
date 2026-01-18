@@ -1031,7 +1031,7 @@ const SlotPage = React.forwardRef(({ slot, onClick }, ref) => {
             {fullyOccupied ? <XCircle size={18} /> : <CheckCircle size={18} />}
             {fullyOccupied ? 'תפוס' : (partiallyOccupied ? 'תפוס חלקית' : 'זמין')}
           </div>
-          {occupied && slot.occupiedBy && (
+          {fullyOccupied && slot.occupiedBy && (
             <div style={{ 
               fontSize: '0.75rem', 
               color: '#64748b',
