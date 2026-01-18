@@ -1,5 +1,8 @@
 // src/Services/Login.js
 import { api } from "./api";
+import axios from "axios";
+
+const DIRECT_API_BASEURL = "https://hasderanewsletter-2025.onrender.com/api";
 
 export async function login(email, password) {
   const res = await api.post("/User/login", { email, password });
@@ -16,13 +19,23 @@ export async function register(fullName, email, password, role) {
   return res.data;
 }
 
-export async function loginWithGoogle(idToken) {
+export async function loginWithGoogle(idToken, role = null) {
   if (!idToken || typeof idToken !== 'string') {
     throw new Error('Invalid Google token provided');
   }
-  
-  const res = await api.post("/User/google-login", { idToken });
-  return res.data;
+
+  const payload = role ? { idToken, role } : { idToken };
+  try {
+    const res = await api.post("/User/google-login", payload);
+    return res.data;
+  } catch (err) {
+    // Fallback: if Pages Functions path is missing, call backend directly.
+    if (err?.response?.status === 404) {
+      const direct = await axios.post(`${DIRECT_API_BASEURL}/User/google-login`, payload);
+      return direct.data;
+    }
+    throw err;
+  }
 }
 
 export async function fetchMe() {
