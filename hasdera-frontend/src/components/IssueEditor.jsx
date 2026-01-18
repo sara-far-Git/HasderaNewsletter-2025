@@ -3,11 +3,11 @@
  * עורך גליונות - העלאת PDF, הוספת קישורים ואנימציות, תצוגה מקדימה ופרסום
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { Upload, X, FileText, Eye, Save, Send, ChevronLeft, Loader } from 'lucide-react';
-import { uploadIssuePdf, updateIssueMetadata, publishIssue, getIssueById } from '../Services/issuesService';
+import { Upload, X, FileText, Eye, Save, Send, ChevronLeft, Loader, Download } from 'lucide-react';
+import { uploadIssuePdf, updateIssueMetadata, publishIssue, getIssueById, getIssueCreatives } from '../Services/issuesService';
 
 // 🎬 אנימציות
 const fadeIn = keyframes`
@@ -351,6 +351,49 @@ const SuccessMessage = styled.div`
   font-size: 0.95rem;
 `;
 
+const CreativesPanel = styled.div`
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+`;
+
+const CreativesHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  color: white;
+`;
+
+const CreativesList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+`;
+
+const CreativeRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+`;
+
+const CreativeMeta = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+`;
+
 const LoadingOverlay = styled.div`
   display: flex;
   align-items: center;
@@ -396,6 +439,9 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
   const [publishing, setPublishing] = useState(false);
   const [currentIssueId, setCurrentIssueId] = useState(issueId);
   const [error, setError] = useState(null);
+  const [creatives, setCreatives] = useState([]);
+  const [creativesLoading, setCreativesLoading] = useState(false);
+  const [creativesError, setCreativesError] = useState(null);
   
   const fileInputRef = useRef(null);
 
@@ -575,6 +621,42 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
     }
   };
 
+  const loadCreatives = useCallback(async () => {
+    if (!currentIssueId) return;
+    setCreativesLoading(true);
+    setCreativesError(null);
+    try {
+      const items = await getIssueCreatives(currentIssueId);
+      setCreatives(items);
+    } catch (err) {
+      console.error('שגיאה בטעינת מודעות:', err);
+      setCreativesError('שגיאה בטעינת מודעות');
+    } finally {
+      setCreativesLoading(false);
+    }
+  }, [currentIssueId]);
+
+  const downloadCreativeFile = async (item) => {
+    const url = item?.fileUrl;
+    if (!url) return;
+    const fileName = item.fileName || `creative-${item.creativeId || item.orderId || 'file'}`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('download failed');
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      window.open(url, '_blank');
+    }
+  };
+
   const canProceedToNextStep = () => {
     switch (currentStep) {
       case 1:
@@ -698,6 +780,68 @@ export default function IssueEditor({ issueId, onClose, onSave }) {
                 </div>
               </div>
             </EditorSection>
+
+            <CreativesPanel>
+              <CreativesHeader>
+                <div style={{ fontWeight: 700 }}>מודעות שהועלו לגיליון</div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <SecondaryActionButton
+                    type="button"
+                    onClick={loadCreatives}
+                    disabled={!currentIssueId || creativesLoading}
+                  >
+                    {creativesLoading ? 'טוען...' : 'רענון'}
+                  </SecondaryActionButton>
+                  <PrimaryActionButton
+                    type="button"
+                    onClick={async () => {
+                      if (!creatives.length) return;
+                      for (const item of creatives) {
+                        await downloadCreativeFile(item);
+                      }
+                    }}
+                    disabled={!creatives.length}
+                  >
+                    <Download size={16} />
+                    הורדת הכל
+                  </PrimaryActionButton>
+                </div>
+              </CreativesHeader>
+
+              {!currentIssueId && (
+                <div style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  יש להעלות PDF כדי לקבל מזהה גיליון.
+                </div>
+              )}
+
+              {creativesError && (
+                <ErrorMessage>{creativesError}</ErrorMessage>
+              )}
+
+              {currentIssueId && !creativesLoading && creatives.length === 0 && (
+                <div style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  לא נמצאו מודעות לגיליון זה עדיין.
+                </div>
+              )}
+
+              {creatives.length > 0 && (
+                <CreativesList>
+                  {creatives.map((item) => (
+                    <CreativeRow key={`${item.creativeId}-${item.orderId}`}>
+                      <CreativeMeta>
+                        <div>{item.advertiserName || 'מפרסם לא ידוע'}</div>
+                        <div style={{ opacity: 0.7 }}>
+                          מקום: {item.slotCode || '—'}
+                        </div>
+                      </CreativeMeta>
+                      <SecondaryActionButton type="button" onClick={() => downloadCreativeFile(item)}>
+                        הורדה
+                      </SecondaryActionButton>
+                    </CreativeRow>
+                  ))}
+                </CreativesList>
+              )}
+            </CreativesPanel>
           </>
         )}
 

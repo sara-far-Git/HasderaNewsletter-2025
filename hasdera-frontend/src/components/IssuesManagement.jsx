@@ -468,6 +468,30 @@ const EmptyState = styled.div`
   }
 `;
 
+const SearchInput = styled.input`
+  flex: 1;
+  min-width: 220px;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(16, 185, 129, 0.5);
+  }
+`;
+
+const SkeletonCard = styled.div`
+  height: 360px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  animation: ${fadeIn} 0.6s ease-out;
+`;
+
 // ============================================
 // PDF Cover Component
 // ============================================
@@ -610,22 +634,35 @@ export default function IssuesManagement() {
   const navigate = useNavigate();
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [editingIssue, setEditingIssue] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadIssues = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getIssues(1, 100);
       // לא מציגים גליונות ריקים (ללא PDF) כדי לא ליצור "טיוטה" שלא ניתן לצפות בה
       const visible = (data || []).filter(hasIssuePdf);
       setIssues(visible);
     } catch (error) {
       console.error('שגיאה בטעינת גליונות:', error);
+      setError('לא ניתן לטעון גליונות');
     } finally {
       setLoading(false);
     }
   }, []);
+  const filteredIssues = useMemo(() => {
+    if (!searchQuery.trim()) return issues;
+    const term = searchQuery.trim().toLowerCase();
+    return issues.filter((issue) => {
+      const id = String(getIssueId(issue) ?? '');
+      const title = String(issue.Title || issue.title || '');
+      return id.includes(term) || title.toLowerCase().includes(term);
+    });
+  }, [issues, searchQuery]);
 
   useEffect(() => {
     loadIssues();
@@ -753,21 +790,35 @@ export default function IssuesManagement() {
                 <Upload size={18} />
                 העלאת גיליון חדש
               </ActionButton>
+              <SearchInput
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="חיפוש לפי כותרת או מזהה..."
+              />
             </ActionsBar>
 
             {loading ? (
+              <IssuesGrid>
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <SkeletonCard key={idx} />
+                ))}
+              </IssuesGrid>
+            ) : error ? (
               <EmptyState>
                 <FileText size={64} />
-                <p>טוען גליונות...</p>
+                <p>{error}</p>
+                <ActionButton onClick={loadIssues} style={{ marginTop: '1rem' }}>
+                  ניסיון חוזר
+                </ActionButton>
               </EmptyState>
-            ) : issues.length === 0 ? (
+            ) : filteredIssues.length === 0 ? (
               <EmptyState>
                 <FileText size={64} />
-                <p>אין גליונות עדיין. לחץ על "העלאת גיליון חדש" כדי להתחיל</p>
+                <p>לא נמצאו גליונות תואמים לחיפוש</p>
               </EmptyState>
             ) : (
               <IssuesGrid>
-                {issues.map((issue, index) => (
+                {filteredIssues.map((issue, index) => (
                   <IssueCardComponent
                     key={getIssueId(issue) || `issue-${index}`}
                     issue={issue}
