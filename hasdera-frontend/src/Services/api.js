@@ -7,7 +7,7 @@ const DEFAULT_DEV_API_BASEURL = "http://localhost:5055/api";
 
 // Version stamp to verify which bundle is running in production.
 // Keep this in sync with the latest deployment commit when debugging.
-export const API_CLIENT_VERSION = "1b3e51b";
+export const API_CLIENT_VERSION = "9b63c05";
 try {
   // Expose for quick checks in DevTools: window.__HASDERA_API_CLIENT_VERSION
   window.__HASDERA_API_CLIENT_VERSION = API_CLIENT_VERSION;
@@ -62,8 +62,8 @@ const getApiBaseUrl = () => {
       const isPagesOrigin = currentHost.endsWith(".pages.dev");
       const isSameHost = envHost === currentHost;
 
-      if (isPagesOrigin && isSameHost) {
-        console.warn('⚠️ VITE_API_URL points to the Pages origin; ignoring to avoid /api 404.');
+      if (isSameHost) {
+        console.warn('⚠️ VITE_API_URL points to the frontend origin; ignoring to avoid /api issues.');
       } else {
         console.log('✅ Using VITE_API_URL:', normalizedEnvUrl);
         return normalizedEnvUrl;
