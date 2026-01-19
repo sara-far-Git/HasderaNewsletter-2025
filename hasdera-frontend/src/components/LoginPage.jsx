@@ -421,6 +421,8 @@ export default function LoginPage() {
   const [msgType, setMsgType] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [userName, setUserName] = useState("");
+  const [pendingGoogleToken, setPendingGoogleToken] = useState(null);
+  const [pendingGoogleProfile, setPendingGoogleProfile] = useState(null);
 
   // אם כבר מחובר, ניתוב לפי Role
   useEffect(() => {
@@ -441,6 +443,9 @@ export default function LoginPage() {
     } else if (userRole === 'Advertiser') {
       // מפרסמים מועברים לדף הבית
       navigate('/');
+    } else if (userRole === 'Reader') {
+      // קוראים מועברים לדף הגליונות
+      navigate('/issues');
     } else {
       // משתמשים אחרים מועברים לדף הבית
       navigate('/');
@@ -545,15 +550,18 @@ export default function LoginPage() {
       const idToken = credentialResponse.credential;
       console.log("Google token received, length:", idToken.length);
       
-      const { token, user } = await loginWithGoogle(idToken);
-      
-      // בדיקה שהמשתמש הוא מפרסם או מנהל
-      if (user.role !== 'Advertiser' && user.role !== 'Admin' && user.role !== 'admin') {
-        setMsg("רק מפרסמים ומנהלים יכולים להיכנס למערכת");
-        setMsgType("error");
+      const response = await loginWithGoogle(idToken);
+
+      if (response?.needsRoleSelection) {
+        setPendingGoogleToken(idToken);
+        setPendingGoogleProfile({ email: response.email, fullName: response.fullName });
+        setMsg("בחרי סוג חשבון כדי להמשיך");
+        setMsgType("info");
         setIsLoading(false);
         return;
       }
+
+      const { token, user } = response;
       
       // הצגת הודעה אישית
       setUserName(user.fullName || user.email?.split('@')[0] || "משתמש");
@@ -604,6 +612,34 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleRoleSelect = async (selectedRole) => {
+    if (!pendingGoogleToken) return;
+    setIsLoading(true);
+    setMsg("");
+    setMsgType("");
+    setShowSuccess(false);
+    try {
+      const { token, user } = await loginWithGoogle(pendingGoogleToken, selectedRole);
+      setUserName(user.fullName || user.email?.split('@')[0] || "משתמש");
+      setShowSuccess(true);
+      setMsgType("success");
+      setPendingGoogleToken(null);
+      setPendingGoogleProfile(null);
+      authLogin(token, user);
+      setTimeout(() => {
+        redirectByRole(user.role);
+      }, 1500);
+    } catch (err) {
+      let errorMsg = "שגיאה בהשלמת ההתחברות";
+      if (err.response?.data?.error) {
+        errorMsg = err.response.data.error;
+      }
+      setMsg(errorMsg);
+      setMsgType("error");
+      setIsLoading(false);
+    }
+  };
+
   // כניסה מהירה לפיתוח - לא ממלא את השדות, רק מתחבר ישירות
   const handleDevLogin = async (credType) => {
     const creds = DEV_CREDENTIALS[credType];
@@ -646,6 +682,27 @@ export default function LoginPage() {
             </LogoIcon>
             <LogoText>השדרה</LogoText>
           </Logo>
+
+          {pendingGoogleToken && (
+            <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+              <div style={{ color: 'white', fontWeight: 700, marginBottom: '0.5rem' }}>
+                בחרי סוג חשבון כדי להמשיך
+              </div>
+              {pendingGoogleProfile?.email && (
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                  {pendingGoogleProfile.email}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <SubmitButton type="button" onClick={() => handleGoogleRoleSelect('Advertiser')} disabled={isLoading}>
+                  מפרסמת
+                </SubmitButton>
+                <SubmitButton type="button" onClick={() => handleGoogleRoleSelect('Reader')} disabled={isLoading}>
+                  קוראת
+                </SubmitButton>
+              </div>
+            </div>
+          )}
 
           <Tabs>
             <Tab 

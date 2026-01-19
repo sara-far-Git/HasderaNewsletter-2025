@@ -25,10 +25,20 @@ export default function PublicRoute({ children }) {
     );
   }
 
-  // אם כבר מחובר כמפרסם, ניתוב לדף הבית
-  if (isAuthenticated && user && user.role === 'Advertiser') {
-    console.log('🔓 PublicRoute - user authenticated, redirecting to /');
-    return <Navigate to="/" replace />;
+  // אם כבר מחובר, ניתוב לפי role
+  if (isAuthenticated && user) {
+    if (user.role === 'Advertiser') {
+      console.log('🔓 PublicRoute - advertiser authenticated, redirecting to /');
+      return <Navigate to="/" replace />;
+    }
+    if (user.role === 'Reader') {
+      console.log('🔓 PublicRoute - reader authenticated, redirecting to /issues');
+      return <Navigate to="/issues" replace />;
+    }
+    if (user.role === 'Admin' || user.role === 'admin') {
+      console.log('🔓 PublicRoute - admin authenticated, redirecting to /admin');
+      return <Navigate to="/admin" replace />;
+    }
   }
 
   console.log('🔓 PublicRoute - showing login page');

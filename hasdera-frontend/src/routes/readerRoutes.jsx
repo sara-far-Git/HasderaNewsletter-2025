@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import FlipCanvasViewer from "../components/FlipCanvasViewer";
 import FlipIssue from "../components/FlipIssue";
 import IssuesList from "../components/IssuesList";
-import ProtectedRoute from "../components/ProtectedRoute";
+import ReaderProtectedRoute from "../components/ReaderProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
 import { useAuth } from "../contexts/AuthContext";
@@ -113,33 +113,33 @@ export const readerRoutes = [
   { 
     path: "/issues", 
     element: (
-      <ProtectedRoute>
+      <ReaderProtectedRoute>
         <IssuesList />
-      </ProtectedRoute>
+      </ReaderProtectedRoute>
     ) 
   },
   { 
     path: "/issues/:id", 
     element: (
-      <ProtectedRoute>
+      <ReaderProtectedRoute>
         <IssueViewer />
-      </ProtectedRoute>
+      </ReaderProtectedRoute>
     ) 
   },
   { 
     path: "/viewer", 
     element: (
-      <ProtectedRoute>
+      <ReaderProtectedRoute>
         <FlipCanvasViewer />
-      </ProtectedRoute>
+      </ReaderProtectedRoute>
     ) 
   },
   { 
     path: "/viewer/:id", 
     element: (
-      <ProtectedRoute>
+      <ReaderProtectedRoute>
         <FlipIssue />
-      </ProtectedRoute>
+      </ReaderProtectedRoute>
     ) 
   },
 ];

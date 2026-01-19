@@ -6,5 +6,8 @@ namespace HasderaApi.Models
     {
         [JsonPropertyName("idToken")]
         public required string idToken { get; set; }
+
+        [JsonPropertyName("role")]
+        public string? role { get; set; }
     }
 }
