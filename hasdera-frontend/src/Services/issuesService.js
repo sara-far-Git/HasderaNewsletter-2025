@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { getCreativesByOrder } from "./creativesService.js";
 
 // 📚 קבלת כל הגיליונות האחרונים
 export async function getIssues(page = 1, pageSize = 100, publishedOnly = false) {
@@ -122,6 +123,36 @@ export async function getIssueCreatives(issueId) {
     const res = await api.get(`/Issues/${issueId}/creatives`);
     return Array.isArray(res.data) ? res.data : [];
   } catch (err) {
+    const status = err.response?.status;
+    if (status === 404) {
+      try {
+        const slotsPayload = await getIssueSlots(issueId);
+        const slots = Array.isArray(slotsPayload?.slots) ? slotsPayload.slots : [];
+        const orderIds = Array.from(new Set(
+          slots
+            .flatMap(slot => Array.isArray(slot?.OccupiedBy) ? slot.OccupiedBy : [])
+            .map(entry => entry?.OrderId ?? entry?.orderId)
+            .filter(id => Number.isFinite(Number(id)))
+            .map(id => Number(id))
+        ));
+
+        if (!orderIds.length) return [];
+
+        const creativesLists = await Promise.all(orderIds.map(id => getCreativesByOrder(id)));
+        const merged = creativesLists.flat().filter(Boolean);
+        const byId = new Map();
+        for (const creative of merged) {
+          const key = creative?.CreativeId ?? creative?.creativeId ?? creative?.id;
+          if (key != null && !byId.has(key)) {
+            byId.set(key, creative);
+          }
+        }
+        return Array.from(byId.values());
+      } catch (fallbackError) {
+        console.error("❌ שגיאה ב-fallback ל-GET Issue creatives:", fallbackError);
+        throw err;
+      }
+    }
     console.error("❌ שגיאה ב-GET Issue creatives:", err);
     throw err;
   }
