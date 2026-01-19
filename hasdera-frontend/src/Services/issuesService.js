@@ -127,11 +127,19 @@ export async function getIssueCreatives(issueId) {
     if (status === 404) {
       try {
         const slotsPayload = await getIssueSlots(issueId);
-        const slots = Array.isArray(slotsPayload?.slots) ? slotsPayload.slots : [];
+        const slots = Array.isArray(slotsPayload?.slots)
+          ? slotsPayload.slots
+          : Array.isArray(slotsPayload?.Slots)
+            ? slotsPayload.Slots
+            : [];
         const orderIds = Array.from(new Set(
           slots
-            .flatMap(slot => Array.isArray(slot?.OccupiedBy) ? slot.OccupiedBy : [])
-            .map(entry => entry?.OrderId ?? entry?.orderId)
+            .flatMap(slot => Array.isArray(slot?.OccupiedBy)
+              ? slot.OccupiedBy
+              : Array.isArray(slot?.occupiedBy)
+                ? slot.occupiedBy
+                : [])
+            .map(entry => entry?.OrderId ?? entry?.orderId ?? entry?.orderID)
             .filter(id => Number.isFinite(Number(id)))
             .map(id => Number(id))
         ));
