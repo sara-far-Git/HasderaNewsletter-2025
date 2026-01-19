@@ -17,12 +17,10 @@ function AppRoutes() {
   let appMode = String(import.meta.env.VITE_APP_MODE || "all").toLowerCase();
   const host = typeof window !== "undefined" ? window.location.hostname : "";
 
-  if (appMode === "all") {
-    if (host.includes("hasdera-magazine.co.il") || host.includes("hasderanewsletter-2025.pages.dev")) {
-      appMode = "reader";
-    } else if (host.includes("hasdera-advertiser.pages.dev")) {
-      appMode = "advertiser";
-    }
+  if (host.includes("hasdera-magazine.co.il") || host.includes("hasderanewsletter-2025.pages.dev")) {
+    appMode = "reader";
+  } else if (host.includes("hasdera-advertiser.pages.dev")) {
+    appMode = "advertiser";
   }
   const loginRoute = readerRoutes.filter(route => route.path === "/login");
 
