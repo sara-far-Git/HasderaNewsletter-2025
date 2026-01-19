@@ -357,6 +357,7 @@ namespace HasderaApi.Controllers
                 }
 
                 var from = _configuration["Smtp:From"] ?? recipientsRaw.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+                var fromName = _configuration["Smtp:FromName"];
                 if (string.IsNullOrWhiteSpace(from))
                 {
                     return;
@@ -397,6 +398,10 @@ namespace HasderaApi.Controllers
                 foreach (var recipient in recipients)
                 {
                     using var message = new MailMessage(from, recipient, subject, body);
+                    if (!string.IsNullOrWhiteSpace(fromName))
+                    {
+                        message.From = new MailAddress(from, fromName);
+                    }
                     await client.SendMailAsync(message);
                 }
             }
