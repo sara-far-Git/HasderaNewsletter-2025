@@ -398,6 +398,9 @@ app.Use(async (context, next) =>
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/", () => Results.Ok(new { status = "ok", service = "HasderaApi" }));
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
 app.MapControllers();
 
 // הגדרת פורט מ-environment variable (ל-Render) או שימוש בברירת מחדל
