@@ -1845,11 +1845,11 @@ namespace HasderaApi.Controllers
                 IsExclusive = slot.IsExclusive,
                 OccupiedQuarters = fullyOccupiedByLegacy.Contains(slot.SlotId)
                     ? new List<int> { 1, 2, 3, 4 }
-                    : (occupiedBySlot.TryGetValue(slot.SlotId, out var quarters)
-                        ? quarters.OrderBy(q => q).ToList()
+                    : (occupiedBySlot.TryGetValue(slot.SlotId, out var slotQuarters)
+                        ? slotQuarters.OrderBy(q => q).ToList()
                         : new List<int>()),
                 IsOccupied = fullyOccupiedByLegacy.Contains(slot.SlotId)
-                    || (occupiedBySlot.TryGetValue(slot.SlotId, out var quarters) && quarters.Count >= 4),
+                    || (occupiedBySlot.TryGetValue(slot.SlotId, out var occupiedQuartersForSlot) && occupiedQuartersForSlot.Count >= 4),
                 OccupiedBy = occupiedPlacements
                     .Where(op => op.SlotId == slot.SlotId)
                     .OrderBy(op => op.StartDate ?? DateOnly.MinValue)
@@ -2094,11 +2094,11 @@ namespace HasderaApi.Controllers
                     .ToListAsync();
 
                 var occupiedQuarters = new HashSet<int>();
-                foreach (var ad in ads)
+                foreach (var existingAd in ads)
                 {
-                    var placement = TryParsePlacement(ad.Placement);
-                    if (placement?.SlotId != slotId) continue;
-                    foreach (var q in NormalizeQuarters(placement)) occupiedQuarters.Add(q);
+                    var parsedPlacement = TryParsePlacement(existingAd.Placement);
+                    if (parsedPlacement?.SlotId != slotId) continue;
+                    foreach (var q in NormalizeQuarters(parsedPlacement)) occupiedQuarters.Add(q);
                 }
 
                 if (occupiedQuarters.Count == 0)
