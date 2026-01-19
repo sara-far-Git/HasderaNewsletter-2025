@@ -10,7 +10,7 @@ import { Upload, Edit, Eye, Download, FileText, Calendar, Hash, X, CalendarDays,
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import IssueEditor from './IssueEditor';
-import { getIssues, deleteIssue, getIssueCreatives } from '../Services/issuesService';
+import { getIssues, deleteIssue, getIssueCreatives, getLatestDraftCreatives } from '../Services/issuesService';
 import { api } from '../Services/api.js';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
@@ -743,6 +743,24 @@ export default function IssuesManagement() {
     }
   }, []);
 
+  const handleDownloadLatestDraftCreatives = useCallback(async () => {
+    try {
+      const items = await getLatestDraftCreatives();
+      if (!items.length) {
+        alert('לא נמצאו מודעות לגיליון טיוטה אחרון');
+        return;
+      }
+      const confirmMsg = `נמצאו ${items.length} מודעות. להוריד את כולן עכשיו?`;
+      if (!confirm(confirmMsg)) return;
+      for (const item of items) {
+        await downloadCreativeFile(item);
+      }
+    } catch (error) {
+      console.error('שגיאה בהורדת מודעות מהטיוטה האחרונה:', error);
+      alert(error.response?.data?.error || 'שגיאה בהורדת מודעות מהטיוטה האחרונה');
+    }
+  }, []);
+
   const handleDelete = useCallback(async (issue) => {
     const issueId = getIssueId(issue);
     if (!issueId) {
@@ -815,7 +833,7 @@ export default function IssuesManagement() {
                 העלאת גיליון חדש
               </ActionButton>
               <ActionButton
-                onClick={() => latestDraftIssue && handleDownloadCreatives(latestDraftIssue)}
+                onClick={handleDownloadLatestDraftCreatives}
                 disabled={!latestDraftIssue || loading}
                 title={latestDraftIssue ? 'הורדת מודעות לגיליון טיוטה אחרון' : 'לא נמצא גיליון טיוטה'}
               >

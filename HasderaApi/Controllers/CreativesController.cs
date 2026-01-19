@@ -7,6 +7,10 @@ using Amazon.S3.Model;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using System.IO;
+using System.Net;
+using System.Net.Mail;
+using System;
+using System.Linq;
 
 namespace HasderaApi.Controllers
 {
@@ -179,6 +183,8 @@ namespace HasderaApi.Controllers
                 _context.Creatives.Add(creative);
                 await _context.SaveChangesAsync();
 
+                await TrySendCreativeNotificationAsync(order, creative, file);
+
                 return Ok(new
                 {
                     creativeId = creative.CreativeId,
@@ -322,6 +328,8 @@ namespace HasderaApi.Controllers
                 _context.Creatives.Add(creative);
                 await _context.SaveChangesAsync();
 
+                await TrySendCreativeNotificationAsync(order, creative, file);
+
                 return Ok(new
                 {
                     creativeId = creative.CreativeId,
@@ -334,6 +342,67 @@ namespace HasderaApi.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { error = "שגיאה בהעלאת הקובץ", details = ex.Message });
+            }
+        }
+
+        private async Task TrySendCreativeNotificationAsync(Adorder order, Creative creative, IFormFile file)
+        {
+            try
+            {
+                var smtpHost = _configuration["Smtp:Host"];
+                var recipientsRaw = _configuration["Smtp:To"];
+                if (string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(recipientsRaw))
+                {
+                    return;
+                }
+
+                var from = _configuration["Smtp:From"] ?? recipientsRaw.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+                if (string.IsNullOrWhiteSpace(from))
+                {
+                    return;
+                }
+
+                var port = int.TryParse(_configuration["Smtp:Port"], out var parsedPort) ? parsedPort : 587;
+                var enableSsl = _configuration.GetValue("Smtp:EnableSsl", true);
+                var user = _configuration["Smtp:User"];
+                var pass = _configuration["Smtp:Pass"];
+
+                using var client = new SmtpClient(smtpHost, port)
+                {
+                    EnableSsl = enableSsl
+                };
+                if (!string.IsNullOrWhiteSpace(user))
+                {
+                    client.Credentials = new NetworkCredential(user, pass);
+                }
+
+                var advertiserName = order.Advertiser?.Company ?? order.Advertiser?.Name ?? order.Advertiser?.Email ?? "לא ידוע";
+                var subject = $"מודעה חדשה התקבלה - הזמנה {order.OrderId}";
+                var body = string.Join("\n", new[]
+                {
+                    "מודעה חדשה הועלתה למערכת.",
+                    $"מפרסם: {advertiserName}",
+                    $"Order ID: {order.OrderId}",
+                    $"Creative ID: {creative.CreativeId}",
+                    $"קובץ: {file?.FileName ?? "לא ידוע"}",
+                    $"קישור: {creative.FileUrl ?? "לא זמין"}"
+                });
+
+                var recipients = recipientsRaw
+                    .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(r => r.Trim())
+                    .Where(r => !string.IsNullOrWhiteSpace(r))
+                    .ToList();
+
+                foreach (var recipient in recipients)
+                {
+                    using var message = new MailMessage(from, recipient, subject, body);
+                    await client.SendMailAsync(message);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Failed to send creative notification email: {ex.Message}");
             }
         }
 

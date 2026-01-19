@@ -166,6 +166,17 @@ export async function getIssueCreatives(issueId) {
   }
 }
 
+// קבלת כל המודעות לגיליון הטיוטה האחרון (מנהל)
+export async function getLatestDraftCreatives() {
+  try {
+    const res = await api.get(`/Issues/latest-draft/creatives`);
+    return Array.isArray(res.data) ? res.data : [];
+  } catch (err) {
+    console.error("❌ שגיאה ב-GET latest draft creatives:", err);
+    throw err;
+  }
+}
+
 // פרסום גיליון
 export async function publishIssue(issueId) {
   try {
