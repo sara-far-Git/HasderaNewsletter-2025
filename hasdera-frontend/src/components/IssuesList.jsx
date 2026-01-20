@@ -714,7 +714,7 @@ function PDFCover({ pdfUrl, title, shouldLoad }) {
 }
 
 // 🔹 Main Component
-export default function IssuesList() {
+export default function IssuesList({ showAdvertiserActions = true }) {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -864,10 +864,12 @@ export default function IssuesList() {
           {/* Header */}
           <Header>
             <Logo onClick={() => navigate('/')}>השדרה</Logo>
-            <BackButton onClick={() => navigate('/dashboard')}>
-              <ArrowLeft size={18} />
-              חזרה לאזור המפרסמים
-            </BackButton>
+            {showAdvertiserActions && (
+              <BackButton onClick={() => navigate('/dashboard')}>
+                <ArrowLeft size={18} />
+                חזרה לאזור המפרסמים
+              </BackButton>
+            )}
           </Header>
 
           {/* Title */}
@@ -990,14 +992,16 @@ export default function IssuesList() {
           )}
 
           {/* Footer */}
-          <Footer>
-            <FooterButton onClick={() => navigate("/dashboard")}>
-              חזרה לאזור המפרסמים
-            </FooterButton>
-            <PrimaryButton onClick={() => navigate("/advertiser/placement")}>
-              הזמנת מיקום חדש
-            </PrimaryButton>
-          </Footer>
+          {showAdvertiserActions && (
+            <Footer>
+              <FooterButton onClick={() => navigate("/dashboard")}>
+                חזרה לאזור המפרסמים
+              </FooterButton>
+              <PrimaryButton onClick={() => navigate("/advertiser/placement")}>
+                הזמנת מיקום חדש
+              </PrimaryButton>
+            </Footer>
+          )}
         </ContentWrapper>
       </PageWrapper>
     </>

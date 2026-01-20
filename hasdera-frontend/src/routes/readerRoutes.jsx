@@ -94,7 +94,7 @@ function HomePageWrapper() {
   
   // אם המשתמש מחובר, נציג את דף הגליונות
   console.log('🏠 HomePageWrapper (reader) - user authenticated, showing issues list');
-  return <IssuesList />;
+  return <IssuesList showAdvertiserActions={false} />;
 }
 
 export const readerRoutes = [
@@ -114,7 +114,7 @@ export const readerRoutes = [
     path: "/issues", 
     element: (
       <ReaderProtectedRoute>
-        <IssuesList />
+        <IssuesList showAdvertiserActions={false} />
       </ReaderProtectedRoute>
     ) 
   },
