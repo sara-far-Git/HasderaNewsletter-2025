@@ -11,6 +11,7 @@ import { api } from "../Services/api.js";
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import hasederaTheme from "../styles/HasederaTheme";
+import ReaderNav from "./ReaderNav";
 
 // 🎯 PDF Worker - גרסה יציבה
 if (typeof window !== 'undefined') {
@@ -714,7 +715,7 @@ function PDFCover({ pdfUrl, title, shouldLoad }) {
 }
 
 // 🔹 Main Component
-export default function IssuesList({ showAdvertiserActions = true }) {
+export default function IssuesList({ showAdvertiserActions = true, showReaderNav = false }) {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -872,6 +873,8 @@ export default function IssuesList({ showAdvertiserActions = true }) {
             )}
           </Header>
 
+          {showReaderNav && <ReaderNav />}
+
           {/* Title */}
           <TitleSection>
             <IconBox>
@@ -879,7 +882,7 @@ export default function IssuesList({ showAdvertiserActions = true }) {
             </IconBox>
             <PageTitle>גליונות <span>המגזין</span></PageTitle>
             <PageSubtitle>
-              עלעלי בגליונות, בחרי מיקום לפרסום
+              {showAdvertiserActions ? "עלעלי בגליונות, בחרי מיקום לפרסום" : "עייני בארכיון הגליונות"}
             </PageSubtitle>
           </TitleSection>
 

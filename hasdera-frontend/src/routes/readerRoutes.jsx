@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import FlipCanvasViewer from "../components/FlipCanvasViewer";
 import FlipIssue from "../components/FlipIssue";
 import IssuesList from "../components/IssuesList";
+import ReaderHome from "../components/ReaderHome";
 import ReaderProtectedRoute from "../components/ReaderProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
@@ -92,9 +93,9 @@ function HomePageWrapper() {
     return <Navigate to="/" replace />;
   }
   
-  // אם המשתמש מחובר, נציג את דף הגליונות
-  console.log('🏠 HomePageWrapper (reader) - user authenticated, showing issues list');
-  return <IssuesList showAdvertiserActions={false} />;
+  // אם המשתמש מחובר, נציג את דף הבית
+  console.log('🏠 HomePageWrapper (reader) - user authenticated, showing reader home');
+  return <ReaderHome />;
 }
 
 export const readerRoutes = [
@@ -114,7 +115,15 @@ export const readerRoutes = [
     path: "/issues", 
     element: (
       <ReaderProtectedRoute>
-        <IssuesList showAdvertiserActions={false} />
+        <IssuesList showAdvertiserActions={false} showReaderNav={true} />
+      </ReaderProtectedRoute>
+    ) 
+  },
+  { 
+    path: "/archive", 
+    element: (
+      <ReaderProtectedRoute>
+        <IssuesList showAdvertiserActions={false} showReaderNav={true} />
       </ReaderProtectedRoute>
     ) 
   },
