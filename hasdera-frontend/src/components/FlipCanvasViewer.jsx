@@ -969,6 +969,13 @@ export default function FlipCanvasViewer({ issue, onClose }) {
         loadPagesF: 3,
         loadPagesB: 2,
         viewMode: 'webgl',
+        // 🔧 הגדרות לטעינה ישירה מ-S3 ללא שרת PHP
+        pdfServiceUrl: null,
+        usePdfjsLib: true,
+        pdfBrowserViewerIfMobile: false,
+        pdfDisableAutoFetch: false,
+        pdfDisableStream: false,
+        pdfDisableRange: false,
         pageFlipDuration: 0.6,
         lights: true,
         lightIntensity: 0.6,
