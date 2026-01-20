@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate, Navigate, useParams } from "react-router-dom";
-import FlipCanvasViewer from "../components/FlipCanvasViewer";
+ import { useLocation, useNavigate, Navigate, useParams } from "react-router-dom";
+import FlipbookViewer from "../components/FlipbookViewer";
 import IssuesList from "../components/IssuesList";
 import ReaderHome from "../components/ReaderHome";
 import ReaderProfile from "../components/ReaderProfile";
@@ -10,7 +10,7 @@ import LoginPage from "../components/LoginPage";
 import { useAuth } from "../contexts/AuthContext";
 import { getIssueById } from "../Services/issuesService";
 
-// ✨ קומפוננט Wrapper לצפייה בגיליון - משתמש ב-FlipCanvasViewer (Real3D)
+// ✨ קומפוננט Wrapper לצפייה בגיליון - משתמש ב-FlipbookViewer (Client-side)
 function IssueViewer() {
   const { state } = useLocation();
   const { id } = useParams();
@@ -125,15 +125,62 @@ function IssueViewer() {
   }
   
   // יצירת אובייקט issue בפורמט שהקומפוננטה מצפה לו
-  const issue = {
-    pdf_url: issueData.pdf_url || issueData.pdfUrl || issueData.fileUrl || issueData.file_url,
-    title: issueData.title,
-    issue_id: issueData.issue_id || issueData.issueId || Number(id),
-    issueDate: issueData.issueDate || issueData.issue_date,
-    Summary: summary
-  };
+  const pdfUrl = issueData.pdf_url || issueData.pdfUrl || issueData.fileUrl || issueData.file_url;
+
+  if (!pdfUrl) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        fontSize: '1.1rem',
+        color: '#94a3b8'
+      }}>
+        לא נמצא קובץ PDF לגיליון זה
+      </div>
+    );
+  }
   
-  return <FlipCanvasViewer issue={issue} onClose={handleClose} />;
+  return (
+    <div style={{ minHeight: '100vh', background: '#0f172a' }}>
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0.75rem 1rem',
+        background: 'rgba(15, 23, 42, 0.95)',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        color: '#f8fafc'
+      }}>
+        <button
+          onClick={handleClose}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            border: 'none',
+            borderRadius: '10px',
+            padding: '0.5rem 0.9rem',
+            cursor: 'pointer',
+            background: 'rgba(255,255,255,0.1)',
+            color: '#f8fafc',
+            fontFamily: 'inherit'
+          }}
+        >
+          חזרה לארכיון
+        </button>
+        <div style={{ fontWeight: 600 }}>
+          {issueData.title || "גיליון"}
+        </div>
+        <div style={{ width: 90 }} />
+      </div>
+      <FlipbookViewer fileUrl={pdfUrl} />
+    </div>
+  );
 }
 
 // 🏠 קומפוננט Wrapper לדף הבית - מעביר לדף התחברות אם לא מחובר
