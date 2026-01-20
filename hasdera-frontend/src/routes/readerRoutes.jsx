@@ -4,6 +4,7 @@ import FlipCanvasViewer from "../components/FlipCanvasViewer";
 import FlipIssue from "../components/FlipIssue";
 import IssuesList from "../components/IssuesList";
 import ReaderHome from "../components/ReaderHome";
+import ReaderProfile from "../components/ReaderProfile";
 import ReaderProtectedRoute from "../components/ReaderProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
@@ -143,6 +144,14 @@ export const readerRoutes = [
     element: (
       <ReaderProtectedRoute>
         <FlipIssue />
+      </ReaderProtectedRoute>
+    ) 
+  },
+  { 
+    path: "/me", 
+    element: (
+      <ReaderProtectedRoute>
+        <ReaderProfile />
       </ReaderProtectedRoute>
     ) 
   },
