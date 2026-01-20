@@ -7,7 +7,7 @@ const DEFAULT_DEV_API_BASEURL = "http://localhost:5055/api";
 
 // Version stamp to verify which bundle is running in production.
 // Keep this in sync with the latest deployment commit when debugging.
-export const API_CLIENT_VERSION = "reader-4";
+export const API_CLIENT_VERSION = "reader-5";
 try {
   // Expose for quick checks in DevTools: window.__HASDERA_API_CLIENT_VERSION
   window.__HASDERA_API_CLIENT_VERSION = API_CLIENT_VERSION;
@@ -101,7 +101,7 @@ export const api = axios.create({
   },
   // Default off; enable explicitly only when using cookie auth.
   withCredentials,
-  timeout: Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000),
+  timeout: Number(import.meta.env.VITE_API_TIMEOUT_MS || 30000),
 });
 
 try {
