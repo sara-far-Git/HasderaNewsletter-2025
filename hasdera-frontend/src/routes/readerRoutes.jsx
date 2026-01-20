@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import styled from "styled-components";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import FlipbookViewer from "../components/FlipbookViewer";
-import FlipIssue from "../components/FlipIssue";
 import IssuesList from "../components/IssuesList";
 import ReaderHome from "../components/ReaderHome";
 import ReaderProfile from "../components/ReaderProfile";
@@ -11,7 +10,6 @@ import ReaderProtectedRoute from "../components/ReaderProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
 import { useAuth } from "../contexts/AuthContext";
-import { getIssueById } from "../Services/issuesService";
 
 /* ============ Styled Components for IssueViewer ============ */
 const ViewerWrapper = styled.div`
@@ -195,19 +193,11 @@ export const readerRoutes = [
   },
   { 
     path: "/viewer", 
-    element: (
-      <ReaderProtectedRoute>
-        <FlipCanvasViewer />
-      </ReaderProtectedRoute>
-    ) 
+    element: <Navigate to="/issues" replace />
   },
   { 
     path: "/viewer/:id", 
-    element: (
-      <ReaderProtectedRoute>
-        <FlipIssue />
-      </ReaderProtectedRoute>
-    ) 
+    element: <Navigate to="/issues" replace />
   },
   { 
     path: "/me", 
