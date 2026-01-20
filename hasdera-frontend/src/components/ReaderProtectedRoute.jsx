@@ -5,6 +5,8 @@ import { useAuth } from "../contexts/AuthContext";
 export default function ReaderProtectedRoute({ children }) {
   const { isAuthenticated, user, loading } = useAuth();
 
+  console.log('🛡️ ReaderProtectedRoute - loading:', loading, 'isAuthenticated:', isAuthenticated);
+
   if (loading) {
     return (
       <div style={{
@@ -20,14 +22,21 @@ export default function ReaderProtectedRoute({ children }) {
     );
   }
 
+  // אם לא מחובר - לדף ההתחברות
   if (!isAuthenticated || !user) {
+    console.log('🛡️ ReaderProtectedRoute - not authenticated, redirecting to /login');
     return <Navigate to="/login" replace />;
   }
 
-  if (user.role !== 'Reader' && user.role !== 'Admin' && user.role !== 'admin') {
-    return <Navigate to="/" replace />;
+  // אם Admin - לאזור הניהול
+  const role = (user.role || '').toLowerCase();
+  if (role === 'admin') {
+    console.log('🛡️ ReaderProtectedRoute - admin detected, redirecting to /admin');
+    return <Navigate to="/admin" replace />;
   }
 
+  // כל שאר המשתמשים (reader/advertiser) יכולים לצפות בתכנים
+  console.log('🛡️ ReaderProtectedRoute - user authorized, showing content');
   return children;
 }
 

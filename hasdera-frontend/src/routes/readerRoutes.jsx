@@ -82,18 +82,13 @@ function HomePageWrapper() {
   }
   
   // אם המשתמש הוא Admin, נפנה אותו לאזור הניהול
-  if (user && user.role && (user.role.toLowerCase() === 'admin')) {
+  const role = (user?.role || '').toLowerCase();
+  if (role === 'admin') {
     console.log('🏠 HomePageWrapper (reader) - user is Admin, redirecting to /admin');
     return <Navigate to="/admin" replace />;
   }
   
-  // אם המשתמש הוא Advertiser, נפנה אותו לדשבורד של המפרסם
-  if (user && user.role && (user.role.toLowerCase() === 'advertiser' || user.role === 'מפרסם')) {
-    console.log('🏠 HomePageWrapper (reader) - user is Advertiser, redirecting to /');
-    return <Navigate to="/" replace />;
-  }
-  
-  // אם המשתמש מחובר, נציג את דף הבית
+  // כל שאר המשתמשים (reader/advertiser) רואים את דף הבית של הקוראים
   console.log('🏠 HomePageWrapper (reader) - user authenticated, showing reader home');
   return <ReaderHome />;
 }

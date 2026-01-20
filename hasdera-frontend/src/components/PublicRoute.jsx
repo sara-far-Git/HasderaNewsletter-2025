@@ -27,18 +27,16 @@ export default function PublicRoute({ children }) {
 
   // אם כבר מחובר, ניתוב לפי role
   if (isAuthenticated && user) {
-    if (user.role === 'Advertiser') {
-      console.log('🔓 PublicRoute - advertiser authenticated, redirecting to /');
-      return <Navigate to="/" replace />;
-    }
-    if (user.role === 'Reader') {
-      console.log('🔓 PublicRoute - reader authenticated, redirecting to /issues');
-      return <Navigate to="/issues" replace />;
-    }
-    if (user.role === 'Admin' || user.role === 'admin') {
+    const role = (user.role || '').toLowerCase();
+    
+    if (role === 'admin') {
       console.log('🔓 PublicRoute - admin authenticated, redirecting to /admin');
       return <Navigate to="/admin" replace />;
     }
+    
+    // כל משתמש מחובר אחר (reader/advertiser) הולך לדף הבית
+    console.log('🔓 PublicRoute - user authenticated, redirecting to home');
+    return <Navigate to="/" replace />;
   }
 
   console.log('🔓 PublicRoute - showing login page');
