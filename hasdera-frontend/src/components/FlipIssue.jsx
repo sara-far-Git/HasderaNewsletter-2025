@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getIssueById } from "../Services/issuesService";
 import FlipCanvasViewer from "./FlipCanvasViewer";
 import styled from "styled-components";
@@ -49,12 +49,27 @@ const BackButton = styled.button`
 function FlipIssue() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { state } = useLocation();
   const [issue, setIssue] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const loadIssue = async () => {
+      if (state) {
+        const formattedFromState = {
+          pdf_url: state.pdf_url || state.pdfUrl || state.fileUrl || state.file_url,
+          title: state.title,
+          issue_id: state.issue_id || state.issueId,
+          issueDate: state.issueDate || state.issue_date,
+          Summary: state.Summary || state.summary
+        };
+
+        setIssue(formattedFromState);
+        setLoading(false);
+        return;
+      }
+
       if (!id) {
         setError("לא נמצא מזהה גיליון");
         setLoading(false);
@@ -90,7 +105,7 @@ function FlipIssue() {
     };
 
     loadIssue();
-  }, [id]);
+  }, [id, state]);
 
   const handleClose = () => {
     navigate(-1); // חזרה לדף הקודם
