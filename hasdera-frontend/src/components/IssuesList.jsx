@@ -646,6 +646,26 @@ const buildIssuePdfProxyUrl = (issueId) => {
   return `${base}/issues/${issueId}/pdf`;
 };
 
+const resolveIssuePdfUrl = (issue) => {
+  if (!issue) return "";
+  const url =
+    issue.pdf_url ||
+    issue.pdfUrl ||
+    issue.file_url ||
+    issue.fileUrl ||
+    "";
+
+  if (!url) return "";
+  if (url.startsWith("pending-upload-")) return "";
+  if (url.startsWith("/uploads/")) return "";
+  if (url.startsWith("/api/issues/draft-file/")) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+
+  // fallback to proxy when URL is relative but we have an issue id
+  const issueId = issue.issue_id || issue.issueId || issue.id;
+  return buildIssuePdfProxyUrl(issueId);
+};
+
 function PDFCover({ pdfUrl, title, shouldLoad }) {
   // Memoize options to prevent re-renders
   const memoizedOptions = useMemo(() => pdfOptions, []);
@@ -958,9 +978,9 @@ export default function IssuesList({ showAdvertiserActions = true, showReaderNav
                       <CardImage>
                         {it.coverImage ? (
                           <img src={it.coverImage} alt={it.title} />
-                        ) : it.pdf_url ? (
+                        ) : resolveIssuePdfUrl(it) ? (
                           <PDFCover 
-                            pdfUrl={buildIssuePdfProxyUrl(it.issue_id)} 
+                            pdfUrl={resolveIssuePdfUrl(it)} 
                             title={it.title}
                             shouldLoad={isVisible}
                           />
