@@ -7,7 +7,7 @@ const DEFAULT_DEV_API_BASEURL = "http://localhost:5055/api";
 
 // Version stamp to verify which bundle is running in production.
 // Keep this in sync with the latest deployment commit when debugging.
-export const API_CLIENT_VERSION = "reader-12";
+export const API_CLIENT_VERSION = "reader-13";
 try {
   // Expose for quick checks in DevTools: window.__HASDERA_API_CLIENT_VERSION
   window.__HASDERA_API_CLIENT_VERSION = API_CLIENT_VERSION;

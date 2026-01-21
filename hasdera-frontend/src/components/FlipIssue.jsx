@@ -73,10 +73,10 @@ function FlipIssue() {
 
         // המרת הנתונים לפורמט שהקומפוננטה מצפה לו
         const formattedIssue = {
-          pdf_url: issueData.PdfUrl || issueData.pdf_url,
+          pdf_url: issueData.PdfUrl || issueData.pdfUrl || issueData.fileUrl || issueData.pdf_url || issueData.file_url,
           title: issueData.Title || issueData.title,
-          issue_id: issueData.IssueId || issueData.issue_id,
-          issueDate: issueData.IssueDate || issueData.issueDate,
+          issue_id: issueData.IssueId || issueData.issueId || issueData.issue_id,
+          issueDate: issueData.IssueDate || issueData.issueDate || issueData.issue_date,
           Summary: issueData.Summary || issueData.summary
         };
 
