@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
- import { useLocation, useNavigate, Navigate, useParams } from "react-router-dom";
-import FlipbookViewer from "../components/FlipbookViewer";
+import React from "react";
+import { Navigate } from "react-router-dom";
 import IssuesList from "../components/IssuesList";
 import ReaderHome from "../components/ReaderHome";
 import ReaderProfile from "../components/ReaderProfile";
@@ -8,180 +7,8 @@ import ReaderProtectedRoute from "../components/ReaderProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
 import { useAuth } from "../contexts/AuthContext";
-import { getIssueById } from "../Services/issuesService";
+import FlipIssue from "../components/FlipIssue";
 
-// ✨ קומפוננט Wrapper לצפייה בגיליון - משתמש ב-FlipbookViewer (Client-side)
-function IssueViewer() {
-  const { state } = useLocation();
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [issueData, setIssueData] = useState(state || null);
-  const [summary, setSummary] = useState(state?.Summary || state?.summary || null);
-  const [loading, setLoading] = useState(!state);
-  const [error, setError] = useState("");
-  
-  console.log("📖 IssueViewer - received state:", state);
-  
-  const handleClose = () => {
-    navigate("/issues");
-  };
-  
-  // אם אין state, ננסה להביא את הגיליון לפי הפרמטר ב-URL
-  useEffect(() => {
-    let isActive = true;
-
-    if (state) {
-      setIssueData(state);
-      setLoading(false);
-      return undefined;
-    }
-
-    if (!id) {
-      setLoading(false);
-      return undefined;
-    }
-
-    (async () => {
-      try {
-        setLoading(true);
-        const fullIssue = await getIssueById(id);
-        if (!isActive) return;
-        setIssueData(fullIssue);
-        setSummary(fullIssue.Summary || fullIssue.summary || null);
-      } catch (e) {
-        if (!isActive) return;
-        console.error("❌ Error loading issue by id:", e);
-        setError("שגיאה בטעינת הגיליון");
-      } finally {
-        if (isActive) setLoading(false);
-      }
-    })();
-
-    return () => {
-      isActive = false;
-    };
-  }, [state, id]);
-
-  // טוען Summary מלא מהשרת כדי לאפשר קישורים על גבי העיתון
-  useEffect(() => {
-    const issueId = issueData?.issue_id || issueData?.issueId || id;
-    if (!summary && issueId) {
-      (async () => {
-        try {
-          const fullIssue = await getIssueById(issueId);
-          setSummary(fullIssue.Summary || fullIssue.summary || null);
-        } catch (e) {
-          console.error("❌ Error loading full issue for links:", e);
-        }
-      })();
-    }
-  }, [summary, issueData, id]);
-
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        fontSize: '1.1rem',
-        color: '#94a3b8'
-      }}>
-        טוען גיליון...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        fontSize: '1.1rem',
-        color: '#ef4444',
-        gap: '1rem'
-      }}>
-        {error}
-        <button
-          onClick={handleClose}
-          style={{
-            padding: '0.6rem 1rem',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          חזרה לארכיון
-        </button>
-      </div>
-    );
-  }
-
-  if (!issueData) {
-    return <Navigate to="/issues" replace />;
-  }
-  
-  // יצירת אובייקט issue בפורמט שהקומפוננטה מצפה לו
-  const pdfUrl = issueData.pdf_url || issueData.pdfUrl || issueData.fileUrl || issueData.file_url;
-
-  if (!pdfUrl) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        fontSize: '1.1rem',
-        color: '#94a3b8'
-      }}>
-        לא נמצא קובץ PDF לגיליון זה
-      </div>
-    );
-  }
-  
-  return (
-    <div style={{ minHeight: '100vh', background: '#0f172a' }}>
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0.75rem 1rem',
-        background: 'rgba(15, 23, 42, 0.95)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-        color: '#f8fafc'
-      }}>
-        <button
-          onClick={handleClose}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            border: 'none',
-            borderRadius: '10px',
-            padding: '0.5rem 0.9rem',
-            cursor: 'pointer',
-            background: 'rgba(255,255,255,0.1)',
-            color: '#f8fafc',
-            fontFamily: 'inherit'
-          }}
-        >
-          חזרה לארכיון
-        </button>
-        <div style={{ fontWeight: 600 }}>
-          {issueData.title || "גיליון"}
-        </div>
-        <div style={{ width: 90 }} />
-      </div>
-      <FlipbookViewer fileUrl={pdfUrl} />
-    </div>
-  );
-}
 
 // 🏠 קומפוננט Wrapper לדף הבית - מעביר לדף התחברות אם לא מחובר
 function HomePageWrapper() {
@@ -255,7 +82,7 @@ export const readerRoutes = [
     path: "/issues/:id", 
     element: (
       <ReaderProtectedRoute>
-        <IssueViewer />
+        <FlipIssue />
       </ReaderProtectedRoute>
     ) 
   },
