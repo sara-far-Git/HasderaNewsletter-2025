@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useParams, useNavigate } from "react-router-dom";
 import IssuesList from "../components/IssuesList";
 import ReaderHome from "../components/ReaderHome";
 import ReaderProfile from "../components/ReaderProfile";
@@ -7,32 +7,28 @@ import ReaderProtectedRoute from "../components/ReaderProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
 import { useAuth } from "../contexts/AuthContext";
-import FlipCanvasViewer from "../components/FlipCanvasViewer";
+import AdminFlipbookViewer from "../components/AdminFlipbookViewer";
 
-// ✨ קומפוננט Wrapper לצפייה בגיליון (זהה ללוגיקה במפרסמים)
-function IssueViewer() {
-  const { state } = useLocation();
+// ✨ קומפוננט Wrapper לצפייה בגיליון (לוגיקה מהאדמין, read-only)
+function ReaderFlipbookViewerWrapper() {
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const handleClose = () => {
     navigate("/issues");
   };
 
-  // אם אין state, נחזיר למסך הגליונות
-  if (!state) {
-    handleClose();
-    return null;
+  if (!id) {
+    return <Navigate to="/issues" replace />;
   }
 
-  // יצירת אובייקט issue בפורמט שהקומפוננטה מצפה לו
-  const issue = {
-    pdf_url: state.pdf_url || state.fileUrl || state.file_url,
-    title: state.title,
-    issue_id: state.issue_id,
-    issueDate: state.issueDate
-  };
-
-  return <FlipCanvasViewer issue={issue} onClose={handleClose} />;
+  return (
+    <AdminFlipbookViewer
+      issueId={Number(id)}
+      onClose={handleClose}
+      readOnly={true}
+    />
+  );
 }
 
 
@@ -108,7 +104,7 @@ export const readerRoutes = [
     path: "/issues/:id", 
     element: (
       <ReaderProtectedRoute>
-        <IssueViewer />
+        <ReaderFlipbookViewerWrapper />
       </ReaderProtectedRoute>
     ) 
   },

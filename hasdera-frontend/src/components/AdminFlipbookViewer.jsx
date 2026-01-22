@@ -796,7 +796,7 @@ const ButtonGroup = styled.div`
 // ============================================
 // 🔹 Main Component
 // ============================================
-export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue, slots: propSlots, showSlotsManagement = false }) {
+export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue, slots: propSlots, showSlotsManagement = false, readOnly = false }) {
   const navigate = useNavigate();
   const flipbookContainerRef = useRef(null);
   const flipbookInstanceRef = useRef(null);
@@ -2152,24 +2152,30 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       <Header>
         <HeaderTitle>
           {issue?.Title || issue?.title || 'גיליון'}
-          <PublishStatusBadge $isPublished={isPublished}>
-            {isPublished ? 'פורסם' : 'טיוטה'}
-          </PublishStatusBadge>
+          {!readOnly && (
+            <PublishStatusBadge $isPublished={isPublished}>
+              {isPublished ? 'פורסם' : 'טיוטה'}
+            </PublishStatusBadge>
+          )}
         </HeaderTitle>
         
         <HeaderActions>
-          <ActionButton onClick={handleAddLink} $variant="primary">
-            <Plus size={18} />
-            הוסף קישור
-          </ActionButton>
-          <ActionButton onClick={handleSaveDraft} disabled={isSaving} $variant="primary">
-            <Save size={18} />
-            {isSaving ? 'שמור טיוטה' : 'שמור טיוטה'}
-          </ActionButton>
-          <ActionButton onClick={handlePublish} disabled={isPublishing} $variant="success">
-            <Send size={18} />
-            {isPublishing ? 'מפרסם...' : 'פרסם'}
-          </ActionButton>
+          {!readOnly && (
+            <>
+              <ActionButton onClick={handleAddLink} $variant="primary">
+                <Plus size={18} />
+                הוסף קישור
+              </ActionButton>
+              <ActionButton onClick={handleSaveDraft} disabled={isSaving} $variant="primary">
+                <Save size={18} />
+                {isSaving ? 'שמור טיוטה' : 'שמור טיוטה'}
+              </ActionButton>
+              <ActionButton onClick={handlePublish} disabled={isPublishing} $variant="success">
+                <Send size={18} />
+                {isPublishing ? 'מפרסם...' : 'פרסם'}
+              </ActionButton>
+            </>
+          )}
           <IconButton onClick={() => flipbookInstanceRef.current?.zoomOut?.()} title="הקטן">
             <ZoomOutIcon />
           </IconButton>
@@ -2179,9 +2185,11 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
           <IconButton onClick={toggleFullscreen} title="מסך מלא">
             <MaximizeIcon />
           </IconButton>
-          <IconButton onClick={() => navigate('/admin/issues')} title="חזרה לניהול גליונות">
-            <HomeIcon />
-          </IconButton>
+          {!readOnly && (
+            <IconButton onClick={() => navigate('/admin/issues')} title="חזרה לניהול גליונות">
+              <HomeIcon />
+            </IconButton>
+          )}
           <CloseButton onClick={handleClose} title="סגור (ESC)">
             <CloseIcon />
           </CloseButton>
@@ -2237,7 +2245,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       )}
 
       {/* Cursor Icon when placing link */}
-      {isPlacingLink && (
+      {!readOnly && isPlacingLink && (
         <CursorIcon style={{ left: mousePosition.x, top: mousePosition.y }}>
           <Link size={32} />
         </CursorIcon>
@@ -2247,9 +2255,9 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       {!error && (
         <FlipbookWrapper 
           ref={flipbookWrapperRef}
-          onClick={handlePlaceLinkOnPage}
-          onMouseMove={handleMouseMoveOnPage}
-          style={{ cursor: isPlacingLink ? 'crosshair' : 'default' }}
+          onClick={readOnly ? undefined : handlePlaceLinkOnPage}
+          onMouseMove={readOnly ? undefined : handleMouseMoveOnPage}
+          style={{ cursor: !readOnly && isPlacingLink ? 'crosshair' : 'default' }}
         >
           <FlipbookContainer ref={flipbookContainerRef} />
           
@@ -2258,15 +2266,15 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
             <LinksContainer
               links={filteredLinks}
               isPublished={isPublished}
-              editingLinkId={editingLink?.id}
-              onEditLink={handleEditLink}
-              onDeleteLink={handleDeleteLink}
+              editingLinkId={readOnly ? null : editingLink?.id}
+              onEditLink={readOnly ? undefined : handleEditLink}
+              onDeleteLink={readOnly ? undefined : handleDeleteLink}
               onClickLink={handleLinkClick}
             />
           )}
           
           {/* הודעת מיקום קישור */}
-          {isPlacingLink && (
+          {!readOnly && isPlacingLink && (
             <div style={{
               position: 'absolute',
               top: '20px',
@@ -2288,7 +2296,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       )}
 
       {/* Link Modal */}
-      {showLinkModal && (
+      {!readOnly && showLinkModal && (
         <LinkModal onClick={() => setShowLinkModal(false)}>
           <LinkModalContent onClick={(e) => e.stopPropagation()}>
             <ModalTitle>{isAddingLink ? 'הוסף קישור' : 'ערוך קישור'}</ModalTitle>
