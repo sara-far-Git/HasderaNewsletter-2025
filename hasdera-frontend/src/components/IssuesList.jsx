@@ -696,6 +696,7 @@ const resolveIssuePdfUrl = (issue) => {
 
 const normalizeIssueForViewer = (issue) => {
   if (!issue) return issue;
+  const issueId = issue.issue_id || issue.issueId || issue.id;
   const pdfCandidate =
     issue.pdf_url ||
     issue.pdfUrl ||
@@ -703,7 +704,9 @@ const normalizeIssueForViewer = (issue) => {
     issue.fileUrl ||
     "";
   const resolvedPdf =
-    pdfCandidate && !isPresignedExpired(pdfCandidate) ? pdfCandidate : issue.file_url || issue.fileUrl || "";
+    pdfCandidate && !isPresignedExpired(pdfCandidate)
+      ? pdfCandidate
+      : (issueId ? buildIssuePdfProxyUrl(issueId) : issue.file_url || issue.fileUrl || "");
 
   return {
     ...issue,

@@ -934,6 +934,19 @@ export default function FlipCanvasViewer({ issue, onClose }) {
         console.log('🔧 Added token to draft-file URL');
       }
     }
+
+    // ✅ הוספת token גם ל-issues/{id}/pdf אם צריך
+    if (pdfUrl.includes('/api/issues/') && pdfUrl.includes('/pdf')) {
+      const token = localStorage.getItem('hasdera_token');
+      if (token) {
+        const urlObj = new URL(pdfUrl, window.location.origin);
+        if (!urlObj.searchParams.has('token')) {
+          urlObj.searchParams.set('token', token);
+          pdfUrl = urlObj.toString();
+          console.log('🔧 Added token to issues pdf URL');
+        }
+      }
+    }
     
     if (flipbookInstanceRef.current) {
       try {
