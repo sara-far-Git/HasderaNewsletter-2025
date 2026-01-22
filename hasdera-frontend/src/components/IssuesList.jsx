@@ -666,6 +666,20 @@ const resolveIssuePdfUrl = (issue) => {
   return buildIssuePdfProxyUrl(issueId);
 };
 
+const normalizeIssueForViewer = (issue) => {
+  if (!issue) return issue;
+  return {
+    ...issue,
+    pdf_url:
+      issue.pdf_url ||
+      issue.pdfUrl ||
+      issue.file_url ||
+      issue.fileUrl ||
+      "",
+    fileUrl: issue.fileUrl || issue.file_url || issue.pdfUrl || issue.pdf_url || "",
+  };
+};
+
 function PDFCover({ pdfUrl, title, shouldLoad }) {
   // Memoize options to prevent re-renders
   const memoizedOptions = useMemo(() => pdfOptions, []);
@@ -872,7 +886,7 @@ export default function IssuesList({ showAdvertiserActions = true, showReaderNav
 
   const openIssue = (it) => {
     console.log("🧪 issue clicked:", it);
-    navigate(`/issues/${it.issue_id}`, { state: it });
+    navigate(`/issues/${it.issue_id}`, { state: normalizeIssueForViewer(it) });
   };
 
   return (

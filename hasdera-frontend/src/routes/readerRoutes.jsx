@@ -26,7 +26,7 @@ function IssueViewer() {
 
   // יצירת אובייקט issue בפורמט שהקומפוננטה מצפה לו
   const issue = {
-    pdf_url: state.pdf_url || state.fileUrl,
+    pdf_url: state.pdf_url || state.fileUrl || state.file_url,
     title: state.title,
     issue_id: state.issue_id,
     issueDate: state.issueDate
