@@ -646,6 +646,30 @@ const buildIssuePdfProxyUrl = (issueId) => {
   return `${base}/issues/${issueId}/pdf`;
 };
 
+const isPresignedExpired = (url) => {
+  try {
+    const parsed = new URL(url);
+    const amzDate = parsed.searchParams.get("X-Amz-Date");
+    const amzExpires = parsed.searchParams.get("X-Amz-Expires");
+    if (!amzDate || !amzExpires) return false;
+
+    const yyyy = Number(amzDate.slice(0, 4));
+    const mm = Number(amzDate.slice(4, 6)) - 1;
+    const dd = Number(amzDate.slice(6, 8));
+    const hh = Number(amzDate.slice(9, 11));
+    const min = Number(amzDate.slice(11, 13));
+    const ss = Number(amzDate.slice(13, 15));
+    const issuedAt = new Date(Date.UTC(yyyy, mm, dd, hh, min, ss));
+    const expiresSeconds = Number(amzExpires || 0);
+    if (!issuedAt.getTime() || !expiresSeconds) return false;
+
+    const expiresAt = new Date(issuedAt.getTime() + expiresSeconds * 1000);
+    return Date.now() > expiresAt.getTime();
+  } catch {
+    return false;
+  }
+};
+
 const resolveIssuePdfUrl = (issue) => {
   if (!issue) return "";
   const url =
@@ -659,23 +683,31 @@ const resolveIssuePdfUrl = (issue) => {
   if (url.startsWith("pending-upload-")) return "";
   if (url.startsWith("/uploads/")) return "";
   if (url.startsWith("/api/issues/draft-file/")) return "";
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    if (isPresignedExpired(url)) return "";
+    return url;
+  }
 
   // fallback to proxy when URL is relative but we have an issue id
   const issueId = issue.issue_id || issue.issueId || issue.id;
   return buildIssuePdfProxyUrl(issueId);
 };
 
+
 const normalizeIssueForViewer = (issue) => {
   if (!issue) return issue;
+  const pdfCandidate =
+    issue.pdf_url ||
+    issue.pdfUrl ||
+    issue.file_url ||
+    issue.fileUrl ||
+    "";
+  const resolvedPdf =
+    pdfCandidate && !isPresignedExpired(pdfCandidate) ? pdfCandidate : issue.file_url || issue.fileUrl || "";
+
   return {
     ...issue,
-    pdf_url:
-      issue.pdf_url ||
-      issue.pdfUrl ||
-      issue.file_url ||
-      issue.fileUrl ||
-      "",
+    pdf_url: resolvedPdf,
     fileUrl: issue.fileUrl || issue.file_url || issue.pdfUrl || issue.pdf_url || "",
   };
 };
