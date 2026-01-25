@@ -1,0 +1,196 @@
+.reader-street-bg {
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #e0f7fa 0%, #fff 100%);
+  overflow-x: hidden;
+  font-family: 'Varela Round', sans-serif;
+}
+
+.street-path {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4vw;
+  margin: 120px 0 0 0;
+  padding-bottom: 60px;
+  position: relative;
+  z-index: 2;
+}
+
+.station {
+  background: rgba(255,255,255,0.85);
+  border-radius: 24px 24px 32px 32px;
+  box-shadow: 0 8px 32px 0 rgba(60,60,60,0.12);
+  padding: 32px 24px 24px 24px;
+  min-width: 120px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  border: 2px solid #b2dfdb;
+}
+.station:hover {
+  transform: scale(1.08) rotate(-2deg);
+  box-shadow: 0 16px 48px 0 #b2dfdb99;
+  z-index: 10;
+}
+.station-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+  animation: bounce 2s infinite;
+}
+.station-label {
+  font-weight: bold;
+  color: #00796b;
+  margin-bottom: 4px;
+}
+.station-action {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 8px;
+}
+.station-door {
+  width: 36px;
+  height: 48px;
+  background: #ffe082;
+  border-radius: 8px 8px 12px 12px;
+  margin-top: 8px;
+  box-shadow: 0 2px 8px #ffecb3;
+  transition: background 0.3s;
+}
+.station:hover .station-door {
+  background: #ffd54f;
+}
+
+/* אובייקטים חיים */
+.pigeon {
+  position: absolute;
+  top: 40px;
+  width: 48px;
+  height: 32px;
+  background: url('/pigeon.svg') no-repeat center/contain;
+  animation: fly 8s linear infinite;
+  z-index: 3;
+}
+.pigeon-1 { left: 10vw; animation-delay: 0s; }
+.pigeon-2 { left: 60vw; animation-delay: 4s; }
+
+@keyframes fly {
+  0% { transform: translateY(0) scaleX(1); }
+  50% { transform: translateY(-30px) scaleX(-1); }
+  100% { transform: translateY(0) scaleX(1); }
+}
+
+.swing-sign {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: #fffde7;
+  color: #ff9800;
+  font-size: 2rem;
+  font-weight: bold;
+  padding: 12px 36px;
+  border-radius: 24px;
+  box-shadow: 0 4px 16px #ffe0b2;
+  animation: swing 2.5s infinite ease-in-out;
+  z-index: 4;
+}
+@keyframes swing {
+  0%, 100% { transform: translateX(-50%) rotate(-3deg); }
+  50% { transform: translateX(-50%) rotate(5deg); }
+}
+
+.window {
+  position: absolute;
+  right: 12vw;
+  top: 80px;
+  width: 44px;
+  height: 44px;
+  background: #b3e5fc;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px #81d4fa;
+  transition: background 0.5s;
+}
+@media (prefers-color-scheme: dark) {
+  .window { background: #ffd600; box-shadow: 0 2px 12px #ffea00; }
+}
+
+.tree {
+  position: absolute;
+  left: 18vw;
+  bottom: 80px;
+  width: 60px;
+  height: 80px;
+  background: url('/tree.svg') no-repeat center/contain;
+  cursor: pointer;
+  z-index: 2;
+}
+.bench {
+  position: absolute;
+  left: 40vw;
+  bottom: 60px;
+  width: 70px;
+  height: 32px;
+  background: url('/bench.svg') no-repeat center/contain;
+  cursor: pointer;
+  z-index: 2;
+}
+.cat {
+  position: absolute;
+  left: 55vw;
+  bottom: 70px;
+  width: 40px;
+  height: 32px;
+  background: url('/cat.svg') no-repeat center/contain;
+  cursor: pointer;
+  z-index: 2;
+}
+.newspaper {
+  position: absolute;
+  left: 30vw;
+  bottom: 120px;
+  width: 40px;
+  height: 24px;
+  background: url('/newspaper.svg') no-repeat center/contain;
+  animation: roll 6s linear infinite;
+  z-index: 2;
+}
+@keyframes roll {
+  0% { transform: translateX(0) rotate(0deg); }
+  50% { transform: translateX(60px) rotate(30deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+
+.easter-egg-popup {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff8e1;
+  color: #ff9800;
+  font-size: 1.2rem;
+  padding: 18px 36px;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px #ffe0b2;
+  z-index: 1000;
+  animation: fadeInEgg 0.4s;
+}
+@keyframes fadeInEgg {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@media (max-width: 900px) {
+  .street-path { flex-direction: column; gap: 32px; align-items: center; }
+  .station { min-width: 180px; }
+}

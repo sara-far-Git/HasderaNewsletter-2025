@@ -3,6 +3,7 @@ import { Navigate, useParams, useNavigate } from "react-router-dom";
 import IssuesList from "../components/IssuesList";
 import ReaderHome from "../components/ReaderHome";
 import ReaderProfile from "../components/ReaderProfile";
+import SectionPage from "../components/SectionPage";
 import ReaderProtectedRoute from "../components/ReaderProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
@@ -130,6 +131,14 @@ export const readerRoutes = [
     element: (
       <ReaderProtectedRoute>
         <ShederaStreet />
+      </ReaderProtectedRoute>
+    ) 
+  },
+  { 
+    path: "/sections/:sectionId", 
+    element: (
+      <ReaderProtectedRoute>
+        <SectionPage />
       </ReaderProtectedRoute>
     ) 
   },

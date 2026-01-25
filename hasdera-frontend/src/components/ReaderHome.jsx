@@ -589,6 +589,7 @@ export default function ReaderHome() {
     <PageWrapper>
       <BackgroundImage />
       <ReaderNav />
+      
       <Container>
         <HeroSection>
           <HeroBadge>
