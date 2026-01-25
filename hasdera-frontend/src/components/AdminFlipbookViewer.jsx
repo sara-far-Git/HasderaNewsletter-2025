@@ -807,6 +807,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFlipping, setIsFlipping] = useState(false);
   const [slots, setSlots] = useState(propSlots || null);
   
   const resolveTotalPages = useCallback((flipbook) => {
@@ -1792,13 +1793,23 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
   // 🔧 פונקציות ניווט - עדכון ידני של visiblePages כי ה-pagechange event לא תמיד עובד
   const attemptFlip = useCallback((direction) => {
     const flipbook = flipbookInstanceRef.current;
-    if (!flipbook) return;
-    const before = getFlipbookCurrentPage();
+    if (!flipbook || isFlipping) return;
+
+    const effectiveTotalPages = resolveTotalPages(flipbook) || totalPages;
+    const current = getFlipbookCurrentPage() || currentPage;
+
+    if (direction === 'next' && effectiveTotalPages && current >= effectiveTotalPages) return;
+    if (direction === 'prev' && current <= 1) return;
+
+    setIsFlipping(true);
+    const before = current;
+
     if (direction === 'prev') {
       flipbook.nextPage?.(); // RTL: nextPage = שמאלה = "קודם" בעברית
     } else {
       flipbook.prevPage?.(); // RTL: prevPage = ימינה = "הבא" בעברית
     }
+
     setTimeout(() => {
       const after = getFlipbookCurrentPage();
       if (after === before || after == null) {
@@ -1811,11 +1822,17 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
           flipbook.Book?.prev?.();
         }
       }
+
       const page = getFlipbookCurrentPage();
-      if (page) updateVisiblePages(page);
+      if (effectiveTotalPages && page > effectiveTotalPages) {
+        updateVisiblePages(effectiveTotalPages);
+      } else if (page) {
+        updateVisiblePages(page);
+      }
       refreshFlipbookDisplay();
-    }, 180);
-  }, [updateVisiblePages, getFlipbookCurrentPage, refreshFlipbookDisplay]);
+      setIsFlipping(false);
+    }, 200);
+  }, [isFlipping, resolveTotalPages, totalPages, currentPage, updateVisiblePages, getFlipbookCurrentPage, refreshFlipbookDisplay]);
 
   const goToPrevPage = useCallback(() => {
     console.log('⬅️ goToPrevPage called');
