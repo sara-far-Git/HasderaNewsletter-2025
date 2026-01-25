@@ -57,17 +57,26 @@ const scrollHint = keyframes`
 
 const birdFly = keyframes`
   0% { 
-    transform: translate(0, 0) scaleX(-1); 
+    transform: translate(0, 0); 
     opacity: 0;
   }
-  5% { opacity: 0.7; }
+  5% { opacity: 0.8; }
   50% { 
-    transform: translate(50vw, -30px) scaleX(-1); 
+    transform: translate(50vw, -40px); 
   }
-  95% { opacity: 0.7; }
+  95% { opacity: 0.8; }
   100% { 
-    transform: translate(100vw, 10px) scaleX(-1); 
+    transform: translate(100vw, 10px); 
     opacity: 0;
+  }
+`;
+
+const wingFlap = keyframes`
+  0%, 100% { 
+    transform: rotateX(0deg) scaleY(1);
+  }
+  50% { 
+    transform: rotateX(60deg) scaleY(0.6);
   }
 `;
 
@@ -137,63 +146,150 @@ const FixedBackground = styled.div`
 
 // ===== 3D ELEMENTS =====
 
-const Bird = styled.div`
+// Animated Bird with flapping wings
+const BirdContainer = styled.div.attrs(props => ({
+  style: {
+    top: `${props.$top || 15}%`,
+    animationDuration: `${props.$duration || 20}s`,
+    animationDelay: `${props.$delay || 0}s`,
+  }
+}))`
   position: fixed;
-  font-size: ${props => props.$size || 2}rem;
+  left: -80px;
   z-index: 60;
-  animation: ${birdFly} ${props => props.$duration || 20}s linear infinite;
-  animation-delay: ${props => props.$delay || 0}s;
-  top: ${props => props.$top || 15}%;
-  left: -60px;
   pointer-events: none;
+  animation: ${birdFly} linear infinite;
 `;
 
-const Leaf = styled.div`
+const BirdBody = styled.div`
+  position: relative;
+  width: 30px;
+  height: 12px;
+  background: #1e293b;
+  border-radius: 50% 20% 20% 50%;
+  
+  /* Head */
+  &::before {
+    content: '';
+    position: absolute;
+    right: -8px;
+    top: -2px;
+    width: 14px;
+    height: 14px;
+    background: #1e293b;
+    border-radius: 50%;
+  }
+  
+  /* Beak */
+  &::after {
+    content: '';
+    position: absolute;
+    right: -16px;
+    top: 4px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid #f59e0b;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+`;
+
+const BirdWing = styled.div`
+  position: absolute;
+  top: -8px;
+  left: 8px;
+  width: 20px;
+  height: 16px;
+  background: #334155;
+  border-radius: 50% 50% 0 0;
+  transform-origin: bottom center;
+  animation: ${wingFlap} 0.15s ease-in-out infinite;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 4px;
+    width: 14px;
+    height: 12px;
+    background: #475569;
+    border-radius: 50% 50% 0 0;
+  }
+`;
+
+const BirdTail = styled.div`
+  position: absolute;
+  left: -12px;
+  top: 2px;
+  width: 0;
+  height: 0;
+  border-right: 15px solid #1e293b;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+`;
+
+const Leaf = styled.div.attrs(props => ({
+  style: {
+    left: `${props.$left || 50}%`,
+    fontSize: `${props.$size || 1.5}rem`,
+    animationDuration: `${props.$duration || 15}s`,
+    animationDelay: `${props.$delay || 0}s`,
+  }
+}))`
   position: fixed;
-  font-size: ${props => props.$size || 1.5}rem;
   z-index: 55;
-  animation: ${leafFall} ${props => props.$duration || 15}s linear infinite;
-  animation-delay: ${props => props.$delay || 0}s;
-  left: ${props => props.$left || 50}%;
+  animation: ${leafFall} linear infinite;
   top: -50px;
   pointer-events: none;
 `;
 
-const FloatingTree = styled.div`
+const FloatingTree = styled.div.attrs(props => ({
+  style: {
+    left: props.$left || 'auto',
+    right: props.$right || 'auto',
+    top: props.$top || '20%',
+    fontSize: props.$size || '4rem',
+    opacity: props.$opacity || 0.3,
+    animationDuration: `${props.$duration || 8}s`,
+    filter: props.$blur ? `blur(${props.$blur}px)` : 'none',
+  }
+}))`
   position: fixed;
-  font-size: ${props => props.$size || 4}rem;
-  opacity: ${props => props.$opacity || 0.3};
   z-index: 5;
-  animation: ${sway} ${props => props.$duration || 8}s ease-in-out infinite;
-  ${props => props.$left ? `left: ${props.$left};` : ''}
-  ${props => props.$right ? `right: ${props.$right};` : ''}
-  top: ${props => props.$top || '20%'};
+  animation: ${sway} ease-in-out infinite;
   pointer-events: none;
-  filter: blur(${props => props.$blur || 0}px);
 `;
 
-const Sparkle = styled.div`
+const Sparkle = styled.div.attrs(props => ({
+  style: {
+    top: props.$top,
+    left: props.$left,
+    animationDuration: `${props.$duration || 3}s`,
+    animationDelay: `${props.$delay || 0}s`,
+  }
+}))`
   position: fixed;
   font-size: 1.2rem;
   z-index: 50;
-  animation: ${twinkle} ${props => props.$duration || 3}s ease-in-out infinite;
-  animation-delay: ${props => props.$delay || 0}s;
-  top: ${props => props.$top};
-  left: ${props => props.$left};
+  animation: ${twinkle} ease-in-out infinite;
   pointer-events: none;
   opacity: 0.6;
 `;
 
-const FloatingElement = styled.div`
+const FloatingElement = styled.div.attrs(props => ({
+  style: {
+    left: props.$left || 'auto',
+    right: props.$right || 'auto',
+    top: props.$top,
+    fontSize: props.$size || '2rem',
+    opacity: props.$opacity || 0.5,
+    animationDuration: `${props.$duration || 10}s`,
+    animationDelay: `${props.$delay || 0}s`,
+  }
+}))`
   position: fixed;
-  font-size: ${props => props.$size || 2}rem;
   z-index: 45;
-  animation: ${floatSlow} ${props => props.$duration || 10}s ease-in-out infinite;
-  animation-delay: ${props => props.$delay || 0}s;
-  ${props => props.$left ? `left: ${props.$left};` : ''}
-  ${props => props.$right ? `right: ${props.$right};` : ''}
-  top: ${props => props.$top};
-  opacity: ${props => props.$opacity || 0.5};
+  animation: ${floatSlow} ease-in-out infinite;
   pointer-events: none;
 `;
 
@@ -602,11 +698,31 @@ export default function ShederaStreet() {
     <PageContainer>
       <FixedBackground />
       
-      {/* 3D Elements - Birds */}
-      <Bird $top={8} $duration={25} $delay={0} $size={2}>🕊️</Bird>
-      <Bird $top={18} $duration={35} $delay={8} $size={1.8}>🐦</Bird>
-      <Bird $top={5} $duration={30} $delay={18} $size={2.2}>🕊️</Bird>
-      <Bird $top={25} $duration={28} $delay={25} $size={1.6}>🐦</Bird>
+      {/* 3D Elements - Animated Birds with flapping wings */}
+      <BirdContainer $top={8} $duration={22} $delay={0}>
+        <BirdBody>
+          <BirdWing />
+          <BirdTail />
+        </BirdBody>
+      </BirdContainer>
+      <BirdContainer $top={18} $duration={30} $delay={7}>
+        <BirdBody>
+          <BirdWing />
+          <BirdTail />
+        </BirdBody>
+      </BirdContainer>
+      <BirdContainer $top={5} $duration={26} $delay={15}>
+        <BirdBody>
+          <BirdWing />
+          <BirdTail />
+        </BirdBody>
+      </BirdContainer>
+      <BirdContainer $top={25} $duration={35} $delay={22}>
+        <BirdBody>
+          <BirdWing />
+          <BirdTail />
+        </BirdBody>
+      </BirdContainer>
       
       {/* 3D Elements - Falling Leaves */}
       {[...Array(10)].map((_, i) => (
