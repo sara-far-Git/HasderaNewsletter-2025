@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 import { 
   Book, Utensils, Gift, Coffee, Puzzle, ShoppingBag, 
   Sparkles, ChevronDown, ArrowRight, Newspaper, TreePine
@@ -320,11 +320,18 @@ const SectionCard = styled.div`
   transform: ${props => props.$side === 'left' ? 'translateX(-200px)' : 'translateX(200px)'} scale(0.5);
   
   /* When visible - animate in */
-  ${props => props.$visible && `
+  ${props => props.$visible && props.$side === 'left' && css`
     visibility: visible;
     opacity: 1;
     transform: translateX(0) scale(1);
-    animation: ${props.$side === 'left' ? popInLeft : popInRight} 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: ${popInLeft} 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  `}
+  
+  ${props => props.$visible && props.$side === 'right' && css`
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    animation: ${popInRight} 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   `}
   
   &::before {
