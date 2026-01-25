@@ -2267,41 +2267,6 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         </HeaderActions>
       </Header>
 
-      {/* 🔧 חצי ניווט */}
-      {!isLoading && !error && (
-        <>
-          {/* חץ שמאל - עמוד קודם */}
-          <NavigationArrow 
-            $side="left" 
-            $disabled={!canGoPrev}
-            onClick={(e) => {
-              console.log('🖱️ Left arrow clicked! canGoPrev:', canGoPrev);
-              e.stopPropagation();
-              goToPrevPage();
-            }}
-            title="עמוד קודם"
-            aria-label="עמוד קודם"
-          >
-            <ChevronLeftIcon />
-          </NavigationArrow>
-          
-          {/* חץ ימין - עמוד הבא */}
-          <NavigationArrow 
-            $side="right" 
-            $disabled={!canGoNext}
-            onClick={(e) => {
-              console.log('🖱️ Right arrow clicked! canGoNext:', canGoNext);
-              e.stopPropagation();
-              goToNextPage();
-            }}
-            title="עמוד הבא"
-            aria-label="עמוד הבא"
-          >
-            <ChevronRightIcon />
-          </NavigationArrow>
-        </>
-      )}
-
       {/* Loading */}
       {isLoading && !error && (
         <LoadingOverlay>
@@ -2370,6 +2335,41 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
             </div>
           )}
         </FlipbookWrapper>
+      )}
+
+      {/* 🔧 חצי ניווט - אחרי ה-FlipbookWrapper כדי להיות מעל */}
+      {!isLoading && !error && (
+        <>
+          {/* חץ שמאל - עמוד קודם */}
+          <NavigationArrow 
+            $side="left" 
+            $disabled={!canGoPrev}
+            onClick={(e) => {
+              console.log('🖱️ Left arrow clicked! canGoPrev:', canGoPrev);
+              e.stopPropagation();
+              goToPrevPage();
+            }}
+            title="עמוד קודם"
+            aria-label="עמוד קודם"
+          >
+            <ChevronLeftIcon />
+          </NavigationArrow>
+          
+          {/* חץ ימין - עמוד הבא */}
+          <NavigationArrow 
+            $side="right" 
+            $disabled={!canGoNext}
+            onClick={(e) => {
+              console.log('🖱️ Right arrow clicked! canGoNext:', canGoNext);
+              e.stopPropagation();
+              goToNextPage();
+            }}
+            title="עמוד הבא"
+            aria-label="עמוד הבא"
+          >
+            <ChevronRightIcon />
+          </NavigationArrow>
+        </>
       )}
 
       {/* Link Modal */}
