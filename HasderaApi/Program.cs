@@ -93,15 +93,20 @@ builder.Services.AddCors(options =>
                 if (origin.StartsWith("http://localhost:") || origin.StartsWith("https://localhost:"))
                     return true;
                 
-                // Allow Cloudflare Pages domains (כל תת-דומיינים)
-                if (origin.EndsWith(".hasdera-advertiser.pages.dev") || 
-                    origin == "https://hasdera-advertiser.pages.dev")
+                // Allow all Cloudflare Pages domains (advertiser, reader, admin, etc.)
+                if (origin.EndsWith(".pages.dev") || origin == "https://hasdera-advertiser.pages.dev")
                     return true;
                 
-                // Allow hasdera-magazine.co.il domain
+                // Allow hasdera-magazine.co.il domain (main site + subdomains)
                 if (origin == "https://hasdera-magazine.co.il" || 
                     origin == "https://www.hasdera-magazine.co.il" ||
                     origin.EndsWith(".hasdera-magazine.co.il"))
+                    return true;
+                
+                // Allow hasdera.co.il if used
+                if (origin == "https://hasdera.co.il" || 
+                    origin == "https://www.hasdera.co.il" ||
+                    origin.EndsWith(".hasdera.co.il"))
                     return true;
                 
                 return false;
