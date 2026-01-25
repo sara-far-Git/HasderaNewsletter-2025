@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { User, Mail, Calendar, BookOpen, Heart, Settings, LogOut, ChevronLeft } from "lucide-react";
+import { 
+  User, Mail, Calendar, BookOpen, Heart, Settings, LogOut, ChevronLeft,
+  Bell, Clock, Star, Eye, Bookmark, Edit2, Moon, Sun
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { getIssues } from "../Services/issuesService";
 import ReaderNav from "./ReaderNav";
 
 /* ======================== Animations ======================== */
@@ -197,14 +201,162 @@ const ComingSoon = styled.span`
   font-weight: 600;
 `;
 
+/* ============ Reading History ============ */
+const HistorySection = styled.section`
+  margin-top: 2rem;
+  animation: ${fadeInUp} 0.6s ease-out 0.3s both;
+`;
+
+const HistoryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
+const HistoryCard = styled.div`
+  background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+
+  &:hover {
+    transform: translateY(-4px);
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  }
+`;
+
+const HistoryCover = styled.div`
+  width: 100%;
+  aspect-ratio: 3/4;
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+  background: ${props => props.$gradient || 'linear-gradient(135deg, #374151 0%, #1f2937 100%)'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.6);
+`;
+
+const HistoryTitle = styled.div`
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const HistoryDate = styled.div`
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+`;
+
+/* ============ Toggle ============ */
+const ToggleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ToggleLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #f8fafc;
+  
+  svg {
+    color: #10b981;
+  }
+`;
+
+const Toggle = styled.button`
+  width: 48px;
+  height: 26px;
+  border-radius: 13px;
+  border: none;
+  background: ${props => props.$active ? '#10b981' : 'rgba(255,255,255,0.15)'};
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: ${props => props.$active ? '25px' : '3px'};
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    transition: all 0.3s ease;
+  }
+`;
+
+const EmptyHistory = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #64748b;
+  
+  svg {
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+  }
+`;
+
 /* ======================== Component ======================== */
+const GRADIENTS = [
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+];
+
 export default function ReaderProfile() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [recentIssues, setRecentIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState({
+    notifications: true,
+    newsletter: true,
+    darkMode: true
+  });
+
+  // טעינת גיליונות אחרונים
+  useEffect(() => {
+    const loadIssues = async () => {
+      try {
+        const data = await getIssues(1, 5, true);
+        setRecentIssues(data || []);
+      } catch (e) {
+        console.error("Failed to load issues:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadIssues();
+  }, []);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const toggleSetting = (key) => {
+    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const getInitials = (name) => {
@@ -264,27 +416,97 @@ export default function ReaderProfile() {
           </StatsGrid>
         </ProfileCard>
 
-        <MenuSection>
-          <SectionTitle>תפריט מהיר</SectionTitle>
+        {/* היסטוריית קריאה */}
+        <HistorySection>
+          <SectionTitle>
+            <Clock size={18} style={{ marginLeft: '0.5rem', verticalAlign: 'middle' }} />
+            נקראו לאחרונה
+          </SectionTitle>
+          {loading ? (
+            <EmptyHistory>טוען...</EmptyHistory>
+          ) : recentIssues.length === 0 ? (
+            <EmptyHistory>
+              <BookOpen size={32} />
+              <div>עדיין לא קראת גיליונות</div>
+            </EmptyHistory>
+          ) : (
+            <HistoryGrid>
+              {recentIssues.slice(0, 4).map((issue, idx) => (
+                <HistoryCard 
+                  key={issue.issue_id || issue.issueId}
+                  onClick={() => navigate(`/issues/${issue.issue_id || issue.issueId}`)}
+                >
+                  <HistoryCover $gradient={GRADIENTS[idx % GRADIENTS.length]}>
+                    <BookOpen size={28} />
+                  </HistoryCover>
+                  <HistoryTitle>{issue.title || `גיליון ${issue.issue_id || issue.issueId}`}</HistoryTitle>
+                  <HistoryDate>{formatDate(issue.issueDate)}</HistoryDate>
+                </HistoryCard>
+              ))}
+            </HistoryGrid>
+          )}
+        </HistorySection>
+
+        {/* ניווט מהיר */}
+        <MenuSection style={{ marginTop: '2rem' }}>
+          <SectionTitle>ניווט מהיר</SectionTitle>
           <MenuCard>
             <MenuItem onClick={() => navigate("/issues")}>
               <BookOpen size={20} />
-              <MenuItemText>הגיליונות שלי</MenuItemText>
+              <MenuItemText>ארכיון גיליונות</MenuItemText>
+              <MenuItemArrow size={18} />
+            </MenuItem>
+            <MenuItem onClick={() => navigate("/")}>
+              <Star size={20} />
+              <MenuItemText>גיליון אחרון</MenuItemText>
               <MenuItemArrow size={18} />
             </MenuItem>
             <MenuItem onClick={() => {}}>
-              <Heart size={20} />
-              <MenuItemText>כתבות שמורות</MenuItemText>
-              <ComingSoon>בקרוב</ComingSoon>
-            </MenuItem>
-            <MenuItem onClick={() => {}}>
-              <Settings size={20} />
-              <MenuItemText>הגדרות</MenuItemText>
+              <Bookmark size={20} />
+              <MenuItemText>שמורים</MenuItemText>
               <ComingSoon>בקרוב</ComingSoon>
             </MenuItem>
           </MenuCard>
         </MenuSection>
 
+        {/* הגדרות */}
+        <MenuSection style={{ marginTop: '1.5rem' }}>
+          <SectionTitle>הגדרות</SectionTitle>
+          <MenuCard>
+            <ToggleRow>
+              <ToggleLabel>
+                <Bell size={20} />
+                התראות על גיליונות חדשים
+              </ToggleLabel>
+              <Toggle 
+                $active={settings.notifications} 
+                onClick={() => toggleSetting('notifications')}
+              />
+            </ToggleRow>
+            <ToggleRow>
+              <ToggleLabel>
+                <Mail size={20} />
+                ניוזלטר שבועי
+              </ToggleLabel>
+              <Toggle 
+                $active={settings.newsletter} 
+                onClick={() => toggleSetting('newsletter')}
+              />
+            </ToggleRow>
+            <ToggleRow>
+              <ToggleLabel>
+                <Moon size={20} />
+                מצב כהה
+              </ToggleLabel>
+              <Toggle 
+                $active={settings.darkMode} 
+                onClick={() => toggleSetting('darkMode')}
+              />
+            </ToggleRow>
+          </MenuCard>
+        </MenuSection>
+
+        {/* יציאה */}
         <MenuSection style={{ marginTop: '1.5rem' }}>
           <MenuCard>
             <LogoutButton onClick={handleLogout}>
