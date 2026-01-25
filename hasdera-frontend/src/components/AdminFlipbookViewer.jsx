@@ -1793,22 +1793,46 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
   // 🔧 פונקציות ניווט - שימוש בשיטות המקוריות של הספריה
   const goToPrevPage = useCallback(() => {
     const flipbook = flipbookInstanceRef.current;
+    console.log('⬅️ goToPrevPage called, flipbook:', !!flipbook);
     if (!flipbook) return;
-    console.log('⬅️ goToPrevPage called');
-    flipbook.prevPage?.();
+    
+    // נסה כמה דרכים שונות
+    if (typeof flipbook.prevPage === 'function') {
+      console.log('  Using flipbook.prevPage()');
+      flipbook.prevPage();
+    } else if (flipbook.Book?.prevPage) {
+      console.log('  Using flipbook.Book.prevPage()');
+      flipbook.Book.prevPage();
+    } else {
+      console.log('  No prevPage method found!');
+    }
+    
     setTimeout(() => {
       const page = getFlipbookCurrentPage();
+      console.log('  After prev, page:', page);
       if (page) updateVisiblePages(page);
     }, 300);
   }, [getFlipbookCurrentPage, updateVisiblePages]);
 
   const goToNextPage = useCallback(() => {
     const flipbook = flipbookInstanceRef.current;
+    console.log('➡️ goToNextPage called, flipbook:', !!flipbook);
     if (!flipbook) return;
-    console.log('➡️ goToNextPage called');
-    flipbook.nextPage?.();
+    
+    // נסה כמה דרכים שונות
+    if (typeof flipbook.nextPage === 'function') {
+      console.log('  Using flipbook.nextPage()');
+      flipbook.nextPage();
+    } else if (flipbook.Book?.nextPage) {
+      console.log('  Using flipbook.Book.nextPage()');
+      flipbook.Book.nextPage();
+    } else {
+      console.log('  No nextPage method found!');
+    }
+    
     setTimeout(() => {
       const page = getFlipbookCurrentPage();
+      console.log('  After next, page:', page);
       if (page) updateVisiblePages(page);
     }, 300);
   }, [getFlipbookCurrentPage, updateVisiblePages]);
@@ -2233,17 +2257,16 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         </HeaderActions>
       </Header>
 
-      {/* 🔧 חצי ניווט - הספריה מטפלת ב-RTL */}
+      {/* 🔧 חצי ניווט */}
       {!isLoading && !error && (
         <>
           {/* חץ שמאל - עמוד קודם */}
           <NavigationArrow 
             $side="left" 
             $disabled={!canGoPrev}
-            onClick={canGoPrev ? goToPrevPage : undefined}
-            title={canGoPrev ? "עמוד קודם" : "אין עמוד קודם"}
-            aria-label={canGoPrev ? "עמוד קודם" : "אין עמוד קודם"}
-            disabled={!canGoPrev}
+            onClick={goToPrevPage}
+            title="עמוד קודם"
+            aria-label="עמוד קודם"
           >
             <ChevronLeftIcon />
           </NavigationArrow>
@@ -2252,10 +2275,9 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
           <NavigationArrow 
             $side="right" 
             $disabled={!canGoNext}
-            onClick={canGoNext ? goToNextPage : undefined}
-            title={canGoNext ? "עמוד הבא" : "אין עמוד הבא"}
-            aria-label={canGoNext ? "עמוד הבא" : "אין עמוד הבא"}
-            disabled={!canGoNext}
+            onClick={goToNextPage}
+            title="עמוד הבא"
+            aria-label="עמוד הבא"
           >
             <ChevronRightIcon />
           </NavigationArrow>
