@@ -2472,17 +2472,17 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         </div>
         
         {/* Center - Page indicator with slider for readers */}
-        {readOnly && totalPages > 0 && (
+        {readOnly && effectiveTotalPages > 0 && (
           <PageCounter>
             <span>עמוד</span>
-            <span style={{ color: '#10b981', fontWeight: 600 }}>{currentPage}</span>
+            <span style={{ color: '#10b981', fontWeight: 600 }}>{Math.min(currentPage, effectiveTotalPages)}</span>
             <span>מתוך</span>
-            <span>{totalPages}</span>
+            <span>{effectiveTotalPages}</span>
             <PageSlider
               type="range"
               min={1}
-              max={totalPages}
-              value={currentPage}
+              max={effectiveTotalPages}
+              value={Math.min(currentPage, effectiveTotalPages)}
               onChange={handlePageSliderChange}
             />
           </PageCounter>
