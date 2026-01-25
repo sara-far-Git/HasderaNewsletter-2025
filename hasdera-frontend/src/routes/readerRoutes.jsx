@@ -7,9 +7,9 @@ import ReaderProtectedRoute from "../components/ReaderProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
 import { useAuth } from "../contexts/AuthContext";
-import AdminFlipbookViewer from "../components/AdminFlipbookViewer";
+import ReaderFlipbookViewer from "../components/ReaderFlipbookViewer";
 
-// ✨ קומפוננט Wrapper לצפייה בגיליון (לוגיקה מהאדמין, read-only)
+// ✨ קומפוננט Wrapper לצפייה בגיליון עם UX משופר
 function ReaderFlipbookViewerWrapper() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -23,10 +23,9 @@ function ReaderFlipbookViewerWrapper() {
   }
 
   return (
-    <AdminFlipbookViewer
+    <ReaderFlipbookViewer
       issueId={Number(id)}
       onClose={handleClose}
-      readOnly={true}
     />
   );
 }
