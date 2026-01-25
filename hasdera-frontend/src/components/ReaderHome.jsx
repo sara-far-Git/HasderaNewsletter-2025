@@ -6,7 +6,7 @@ import { getIssues } from "../Services/issuesService";
 import ReaderNav from "./ReaderNav";
 import AnnouncementsBanner from "./AnnouncementsBanner";
 import ReaderFooter from "./ReaderFooter";
-import { LatestIssueSkeleton, IssuesGridSkeleton, SectionsGridSkeleton } from "./SkeletonLoader";
+import { LatestIssueSkeleton, IssuesGridSkeleton } from "./SkeletonLoader";
 import { ShareButtonsInline } from "./ShareButtons";
 import { getInProgressIssues, getFavorites } from "../Services/readingHistoryService";
 
@@ -678,12 +678,6 @@ export default function ReaderHome() {
             <LatestSection>
               <LatestIssueSkeleton />
             </LatestSection>
-            <SectionsSection>
-              <SectionHeader>
-                <SectionTitle>מדורים</SectionTitle>
-              </SectionHeader>
-              <SectionsGridSkeleton count={6} />
-            </SectionsSection>
             <ArchiveSection>
               <SectionHeader>
                 <SectionTitle>גיליונות קודמים</SectionTitle>
@@ -724,34 +718,6 @@ export default function ReaderHome() {
                 </LatestCard>
               </LatestSection>
             )}
-
-            {/* 📚 מדורים קבועים */}
-            <SectionsSection>
-              <SectionHeader>
-                <SectionTitle>מדורים</SectionTitle>
-              </SectionHeader>
-              <SectionsGrid>
-                {SECTIONS.map((section) => {
-                  const IconComponent = section.icon;
-                  return (
-                    <SectionCard 
-                      key={section.id} 
-                      $color={section.color}
-                      onClick={() => navigate(`/sections/${section.id}`)}
-                    >
-                      <SectionIcon 
-                        className="icon-wrapper"
-                        $color={section.bgColor} 
-                        $iconColor={section.color}
-                      >
-                        <IconComponent size={26} />
-                      </SectionIcon>
-                      <SectionName>{section.name}</SectionName>
-                    </SectionCard>
-                  );
-                })}
-              </SectionsGrid>
-            </SectionsSection>
 
             {/* Archive Grid */}
             {archiveIssues.length > 0 && (
