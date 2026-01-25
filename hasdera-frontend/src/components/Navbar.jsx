@@ -758,7 +758,7 @@ export default function Navbar() {
         <ContentWrapper>
           {/* Header */}
           <Header>
-            <Logo onClick={() => navigate('/')}>השדרה</Logo>
+            <Logo onClick={() => navigate('/')}><img src="/logo.png" alt="השדרה" style={{ height: '40px', width: 'auto' }} /></Logo>
             <BackButton onClick={() => navigate('/')}>
               <ArrowLeft size={18} />
               חזרה לדף הבית

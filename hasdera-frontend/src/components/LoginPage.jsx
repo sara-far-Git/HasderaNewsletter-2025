@@ -677,10 +677,7 @@ export default function LoginPage() {
       <PageContainer>
         <Card>
           <Logo>
-            <LogoIcon>
-              <BookOpen size={32} color="white" />
-            </LogoIcon>
-            <LogoText>השדרה</LogoText>
+            <img src="/logo.png" alt="השדרה" style={{ height: '60px', width: 'auto' }} />
           </Logo>
 
           {pendingGoogleToken && (

@@ -18,14 +18,41 @@ const fadeInUp = keyframes`
 /* ======================== Styled Components ======================== */
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  position: relative;
   color: #f8fafc;
+`;
+
+const BackgroundImage = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("/image/ChatGPT Image Nov 16, 2025, 08_56_06 PM.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  z-index: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(15, 23, 42, 0.92) 0%,
+      rgba(30, 41, 59, 0.85) 50%,
+      rgba(15, 23, 42, 0.92) 100%
+    );
+  }
 `;
 
 const Container = styled.div`
   max-width: 900px;
   margin: 0 auto;
   padding: 0 1.5rem 3rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const PageTitle = styled.h1`
@@ -377,6 +404,7 @@ export default function ReaderProfile() {
 
   return (
     <PageWrapper>
+      <BackgroundImage />
       <Container>
         <ReaderNav />
         

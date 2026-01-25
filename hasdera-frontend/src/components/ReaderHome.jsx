@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, BookOpen, ChevronLeft, Sparkles, ArrowLeft, Utensils, Heart, Users, Home, Lightbulb, Palette } from "lucide-react";
+import { CalendarDays, BookOpen, ChevronLeft, Sparkles, ArrowLeft, Utensils, Heart, Users, Home, Lightbulb, Palette, Share2, Clock, Star, Play } from "lucide-react";
 import { getIssues } from "../Services/issuesService";
-import hasederaTheme from "../styles/HasederaTheme";
 import ReaderNav from "./ReaderNav";
 import AnnouncementsBanner from "./AnnouncementsBanner";
+import ReaderFooter from "./ReaderFooter";
+import { LatestIssueSkeleton, IssuesGridSkeleton, SectionsGridSkeleton } from "./SkeletonLoader";
+import { ShareButtonsInline } from "./ShareButtons";
+import { getInProgressIssues, getFavorites } from "../Services/readingHistoryService";
 
 /* ======================== Animations ======================== */
 const fadeInUp = keyframes`
@@ -24,15 +27,42 @@ const float = keyframes`
 /* ======================== Styled Components ======================== */
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  position: relative;
   color: #f8fafc;
   overflow-x: hidden;
+`;
+
+const BackgroundImage = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("/image/ChatGPT Image Nov 16, 2025, 08_56_06 PM.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  z-index: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(15, 23, 42, 0.92) 0%,
+      rgba(30, 41, 59, 0.85) 50%,
+      rgba(15, 23, 42, 0.92) 100%
+    );
+  }
 `;
 
 const Container = styled.div`
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 1.5rem 3rem;
+  position: relative;
+  z-index: 1;
 `;
 
 /* ============ Hero Section ============ */
@@ -160,6 +190,17 @@ const LatestDate = styled.div`
   color: #94a3b8;
   font-size: 1rem;
   margin-bottom: 1.5rem;
+`;
+
+const ButtonsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    justify-content: center;
+  }
 `;
 
 const ReadButton = styled.button`
@@ -300,6 +341,120 @@ const EmptyState = styled.div`
   color: #64748b;
 `;
 
+/* ============ Continue Reading / Favorites ============ */
+const QuickAccessSection = styled.section`
+  margin-top: 2rem;
+  animation: ${fadeInUp} 0.8s ease-out 0.15s both;
+`;
+
+const QuickAccessGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+`;
+
+const QuickAccessCard = styled.div`
+  background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 1.5rem;
+`;
+
+const QuickAccessHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+`;
+
+const QuickAccessIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: ${props => props.$bg || 'rgba(16, 185, 129, 0.2)'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${props => props.$color || '#10b981'};
+`;
+
+const QuickAccessTitle = styled.h3`
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0;
+`;
+
+const QuickAccessList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const QuickAccessItem = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  width: 100%;
+  text-align: right;
+
+  &:hover {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: translateX(-4px);
+  }
+`;
+
+const QuickAccessItemInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const QuickAccessItemTitle = styled.div`
+  color: #f8fafc;
+  font-weight: 500;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const QuickAccessItemMeta = styled.div`
+  color: #64748b;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+`;
+
+const ProgressBar = styled.div`
+  width: 60px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div`
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 3px;
+  width: ${props => props.$percent || 0}%;
+`;
+
+const EmptyQuickAccess = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #64748b;
+  font-size: 0.9rem;
+`;
+
 /* ============ Sections (מדורים) ============ */
 const SectionsSection = styled.section`
   margin-top: 3rem;
@@ -359,12 +514,12 @@ const SectionName = styled.h4`
 
 /* ======================== Component ======================== */
 const GRADIENTS = [
-  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-  'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+  'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+  'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+  'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+  'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+  'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+  'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
 ];
 
 // מדורים קבועים
@@ -373,7 +528,7 @@ const SECTIONS = [
   { id: 'health', name: 'בריאות', icon: Heart, color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.2)' },
   { id: 'community', name: 'קהילה', icon: Users, color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.2)' },
   { id: 'home', name: 'בית ומשפחה', icon: Home, color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.2)' },
-  { id: 'tips', name: 'טיפים', icon: Lightbulb, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.2)' },
+  { id: 'tips', name: 'טיפים', icon: Lightbulb, color: '#14b8a6', bgColor: 'rgba(20, 184, 166, 0.2)' },
   { id: 'culture', name: 'תרבות', icon: Palette, color: '#ec4899', bgColor: 'rgba(236, 72, 153, 0.2)' },
 ];
 
@@ -381,12 +536,18 @@ export default function ReaderHome() {
   const navigate = useNavigate();
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [inProgressIssues, setInProgressIssues] = useState([]);
+  const [favorites, setFavorites] = useState([]);
 
   useEffect(() => {
     (async () => {
       try {
         const rows = await getIssues(1, 50, true);
         setIssues(rows || []);
+        
+        // טען מועדפים והמשך קריאה
+        setInProgressIssues(getInProgressIssues());
+        setFavorites(getFavorites().slice(0, 5));
       } catch (e) {
         console.error("Failed to fetch issues", e);
       } finally {
@@ -421,6 +582,7 @@ export default function ReaderHome() {
 
   return (
     <PageWrapper>
+      <BackgroundImage />
       <Container>
         <ReaderNav />
 
@@ -438,8 +600,92 @@ export default function ReaderHome() {
         {/* 🎉 הודעות חגיגיות/מבצעים */}
         <AnnouncementsBanner />
 
+        {/* ⚡ גישה מהירה - המשך קריאה ומועדפים */}
+        {!loading && (inProgressIssues.length > 0 || favorites.length > 0) && (
+          <QuickAccessSection>
+            <QuickAccessGrid>
+              {/* המשך קריאה */}
+              {inProgressIssues.length > 0 && (
+                <QuickAccessCard>
+                  <QuickAccessHeader>
+                    <QuickAccessIcon $bg="rgba(16, 185, 129, 0.2)" $color="#10b981">
+                      <Clock size={20} />
+                    </QuickAccessIcon>
+                    <QuickAccessTitle>המשך קריאה</QuickAccessTitle>
+                  </QuickAccessHeader>
+                  <QuickAccessList>
+                    {inProgressIssues.map((item) => (
+                      <QuickAccessItem 
+                        key={item.issueId} 
+                        onClick={() => openIssue({ issue_id: item.issueId, title: item.title })}
+                      >
+                        <Play size={16} color="#10b981" />
+                        <QuickAccessItemInfo>
+                          <QuickAccessItemTitle>{item.title || "גיליון"}</QuickAccessItemTitle>
+                          <QuickAccessItemMeta>
+                            עמוד {item.progress?.page} מתוך {item.progress?.totalPages}
+                          </QuickAccessItemMeta>
+                        </QuickAccessItemInfo>
+                        <ProgressBar>
+                          <ProgressFill $percent={item.progress?.percentage || 0} />
+                        </ProgressBar>
+                      </QuickAccessItem>
+                    ))}
+                  </QuickAccessList>
+                </QuickAccessCard>
+              )}
+
+              {/* מועדפים */}
+              {favorites.length > 0 && (
+                <QuickAccessCard>
+                  <QuickAccessHeader>
+                    <QuickAccessIcon $bg="rgba(245, 158, 11, 0.2)" $color="#f59e0b">
+                      <Star size={20} />
+                    </QuickAccessIcon>
+                    <QuickAccessTitle>המועדפים שלי</QuickAccessTitle>
+                  </QuickAccessHeader>
+                  <QuickAccessList>
+                    {favorites.map((item) => (
+                      <QuickAccessItem 
+                        key={item.issueId} 
+                        onClick={() => openIssue({ issue_id: item.issueId, title: item.title })}
+                      >
+                        <Star size={16} color="#f59e0b" fill="#f59e0b" />
+                        <QuickAccessItemInfo>
+                          <QuickAccessItemTitle>{item.title || "גיליון"}</QuickAccessItemTitle>
+                          <QuickAccessItemMeta>
+                            <CalendarDays size={12} />
+                            {formatDate(item.issueDate)}
+                          </QuickAccessItemMeta>
+                        </QuickAccessItemInfo>
+                        <ChevronLeft size={16} color="#64748b" />
+                      </QuickAccessItem>
+                    ))}
+                  </QuickAccessList>
+                </QuickAccessCard>
+              )}
+            </QuickAccessGrid>
+          </QuickAccessSection>
+        )}
+
         {loading ? (
-          <EmptyState>טוען גיליונות...</EmptyState>
+          <>
+            <LatestSection>
+              <LatestIssueSkeleton />
+            </LatestSection>
+            <SectionsSection>
+              <SectionHeader>
+                <SectionTitle>מדורים</SectionTitle>
+              </SectionHeader>
+              <SectionsGridSkeleton count={6} />
+            </SectionsSection>
+            <ArchiveSection>
+              <SectionHeader>
+                <SectionTitle>גיליונות קודמים</SectionTitle>
+              </SectionHeader>
+              <IssuesGridSkeleton count={6} />
+            </ArchiveSection>
+          </>
         ) : !issues.length ? (
           <EmptyState>אין גיליונות זמינים כרגע</EmptyState>
         ) : (
@@ -462,10 +708,13 @@ export default function ReaderHome() {
                       <CalendarDays size={18} />
                       {formatDate(latestIssue.issueDate)}
                     </LatestDate>
-                    <ReadButton onClick={() => openIssue(latestIssue)}>
-                      פתח לקריאה
-                      <ArrowLeft size={20} />
-                    </ReadButton>
+                    <ButtonsRow>
+                      <ReadButton onClick={() => openIssue(latestIssue)}>
+                        פתח לקריאה
+                        <ArrowLeft size={20} />
+                      </ReadButton>
+                      <ShareButtonsInline title={latestIssue.title || "גיליון חדש"} />
+                    </ButtonsRow>
                   </LatestInfo>
                 </LatestCard>
               </LatestSection>
@@ -527,6 +776,9 @@ export default function ReaderHome() {
             )}
           </>
         )}
+
+        {/* Footer */}
+        <ReaderFooter />
       </Container>
     </PageWrapper>
   );

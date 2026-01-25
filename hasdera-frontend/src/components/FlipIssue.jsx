@@ -33,7 +33,7 @@ const ErrorTitle = styled.h2`
 
 const BackButton = styled.button`
   padding: 0.75rem 1.5rem;
-  background: #3b82f6;
+  background: #10b981;
   color: white;
   border: none;
   border-radius: 0.5rem;
