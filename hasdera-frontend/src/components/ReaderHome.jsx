@@ -583,9 +583,8 @@ export default function ReaderHome() {
   return (
     <PageWrapper>
       <BackgroundImage />
+      <ReaderNav />
       <Container>
-        <ReaderNav />
-
         <HeroSection>
           <HeroBadge>
             <Sparkles size={16} />
@@ -777,9 +776,9 @@ export default function ReaderHome() {
           </>
         )}
 
-        {/* Footer */}
-        <ReaderFooter />
       </Container>
+      {/* Footer */}
+      <ReaderFooter />
     </PageWrapper>
   );
 }

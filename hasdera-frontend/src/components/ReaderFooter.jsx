@@ -14,8 +14,7 @@ import {
 /* ======================== Styled Components ======================== */
 const FooterWrapper = styled.footer`
   margin-top: 4rem;
-  width: 100vw;
-  margin-left: calc(-50vw + 50%);
+  width: 100%;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.5) 100%);
 `;

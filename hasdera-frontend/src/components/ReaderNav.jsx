@@ -24,8 +24,7 @@ const NavWrapper = styled.header`
   backdrop-filter: blur(20px);
   background: rgba(15, 23, 42, 0.95);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  width: 100vw;
-  margin-left: calc(-50vw + 50%);
+  width: 100%;
   padding: 0.75rem 2rem;
   animation: ${fadeIn} 0.4s ease-out;
 `;

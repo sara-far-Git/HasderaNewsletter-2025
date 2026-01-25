@@ -405,9 +405,8 @@ export default function ReaderProfile() {
   return (
     <PageWrapper>
       <BackgroundImage />
+      <ReaderNav />
       <Container>
-        <ReaderNav />
-        
         <PageTitle>אזור אישי</PageTitle>
 
         <ProfileCard>
