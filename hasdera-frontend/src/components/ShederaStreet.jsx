@@ -1,6 +1,6 @@
 /**
  * ShederaStreet.jsx
- * 🌳 "מדורים" - ריבועים עם פרלקס, רקע קבוע
+ * 🌳 "מדורים" - ריבועים בזיגזג שמופיעים בגלילה
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -8,35 +8,46 @@ import { useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { 
   Book, Utensils, Gift, Coffee, Puzzle, ShoppingBag, 
-  Star, Sparkles, ChevronDown, ArrowRight, Newspaper,
-  TreePine
+  Sparkles, ChevronDown, ArrowRight, Newspaper, TreePine
 } from "lucide-react";
 
 // ================ ANIMATIONS ================
 
-const fadeInUp = keyframes`
-  from { opacity: 0; transform: translateY(60px); }
-  to { opacity: 1; transform: translateY(0); }
+const fadeInLeft = keyframes`
+  from { 
+    opacity: 0; 
+    transform: translateX(-120px) rotate(-3deg); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0) rotate(0deg); 
+  }
+`;
+
+const fadeInRight = keyframes`
+  from { 
+    opacity: 0; 
+    transform: translateX(120px) rotate(3deg); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0) rotate(0deg); 
+  }
 `;
 
 const float = keyframes`
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-8px); }
 `;
 
 const scrollHint = keyframes`
   0%, 100% { transform: translateY(0); opacity: 1; }
-  50% { transform: translateY(10px); opacity: 0.5; }
-`;
-
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  50% { transform: translateY(12px); opacity: 0.5; }
 `;
 
 const pulse = keyframes`
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
+  50% { transform: scale(1.03); }
 `;
 
 // ================ STYLED COMPONENTS ================
@@ -47,7 +58,7 @@ const PageContainer = styled.div`
   overflow-x: hidden;
 `;
 
-// Background - completely fixed, no scroll
+// Fixed Background
 const FixedBackground = styled.div`
   position: fixed;
   top: 0;
@@ -68,12 +79,11 @@ const FixedBackground = styled.div`
       180deg,
       rgba(15, 23, 42, 0.5) 0%,
       rgba(20, 30, 48, 0.4) 50%,
-      rgba(15, 23, 42, 0.6) 100%
+      rgba(15, 23, 42, 0.55) 100%
     );
   }
 `;
 
-// Content wrapper
 const Content = styled.div`
   position: relative;
   z-index: 10;
@@ -151,63 +161,57 @@ const ScrollHint = styled.div`
   }
 `;
 
-// ===== SECTIONS AREA =====
+// ===== ZIGZAG SECTIONS =====
 
 const SectionsArea = styled.section`
-  padding: 100px 2rem 200px;
-  min-height: 100vh;
+  padding: 0 2rem 200px;
 `;
 
-const SectionsTitle = styled.div`
-  text-align: center;
-  margin-bottom: 4rem;
-  
-  h2 {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: clamp(2rem, 5vw, 3rem);
-    color: #f8fafc;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
-  }
-  
-  p {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 1.1rem;
-  }
-`;
-
-const SectionsGrid = styled.div`
-  max-width: 1200px;
+// Zigzag container - each card takes full width but aligns left/right
+const ZigzagContainer = styled.div`
+  max-width: 1000px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 120px; /* Big gap between cards */
 `;
 
-// Each section card with parallax
+// Card wrapper for zigzag alignment
+const CardWrapper = styled.div`
+  display: flex;
+  justify-content: ${props => props.$side === 'left' ? 'flex-start' : 'flex-end'};
+  
+  @media (max-width: 768px) {
+    justify-content: center;
+  }
+`;
+
+// The card itself
 const SectionCard = styled.div`
+  width: 100%;
+  max-width: 450px;
   background: linear-gradient(
     145deg,
     rgba(255, 255, 255, 0.12) 0%,
     rgba(255, 255, 255, 0.04) 100%
   );
-  border-radius: 24px;
-  padding: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  padding: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   cursor: pointer;
   backdrop-filter: blur(20px);
   position: relative;
   overflow: hidden;
   
-  /* Parallax transform based on scroll */
-  transform: translateY(${props => props.$offset}px);
-  transition: transform 0.1s ease-out, box-shadow 0.4s ease, border-color 0.4s ease;
-  
-  /* Entrance animation */
+  /* Animation based on visibility and side */
   opacity: ${props => props.$visible ? 1 : 0};
-  animation: ${props => props.$visible ? fadeInUp : 'none'} 0.8s ease-out;
-  animation-delay: ${props => props.$delay || 0}s;
-  animation-fill-mode: both;
+  transform: ${props => {
+    if (!props.$visible) {
+      return props.$side === 'left' ? 'translateX(-100px)' : 'translateX(100px)';
+    }
+    return 'translateX(0)';
+  }};
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   
   &::before {
     content: '';
@@ -215,9 +219,9 @@ const SectionCard = styled.div`
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    height: 5px;
     background: ${props => props.$gradient};
-    border-radius: 24px 24px 0 0;
+    border-radius: 28px 28px 0 0;
     transition: height 0.3s ease;
   }
   
@@ -228,7 +232,7 @@ const SectionCard = styled.div`
     background: linear-gradient(
       135deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.1) 50%,
       transparent 100%
     );
     opacity: 0;
@@ -236,14 +240,14 @@ const SectionCard = styled.div`
   }
   
   &:hover {
-    transform: translateY(${props => props.$offset - 10}px) scale(1.02);
+    transform: translateX(0) scale(1.03) translateY(-5px);
     border-color: ${props => props.$color}50;
     box-shadow: 
-      0 25px 50px rgba(0, 0, 0, 0.3),
-      0 0 50px ${props => props.$color}15;
+      0 30px 60px rgba(0, 0, 0, 0.35),
+      0 0 60px ${props => props.$color}20;
     
     &::before {
-      height: 6px;
+      height: 7px;
     }
     
     &::after {
@@ -253,20 +257,20 @@ const SectionCard = styled.div`
 `;
 
 const CardIcon = styled.div`
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   background: ${props => props.$gradient};
-  border-radius: 20px;
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1.5rem;
-  box-shadow: 0 12px 30px ${props => props.$color}40;
+  box-shadow: 0 15px 40px ${props => props.$color}45;
   transition: all 0.4s ease;
   
   svg {
     color: white;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
   }
   
   ${SectionCard}:hover & {
@@ -277,21 +281,21 @@ const CardIcon = styled.div`
 
 const CardLabel = styled.span`
   display: inline-block;
-  padding: 0.4rem 1rem;
+  padding: 0.5rem 1.2rem;
   background: ${props => props.$gradient};
   color: white;
-  border-radius: 20px;
-  font-size: 0.75rem;
+  border-radius: 25px;
+  font-size: 0.8rem;
   font-weight: 700;
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 12px ${props => props.$color}40;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 5px 15px ${props => props.$color}45;
 `;
 
 const CardTitle = styled.h3`
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 700;
   color: #f8fafc;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.75rem;
   transition: color 0.3s ease;
   
   ${SectionCard}:hover & {
@@ -300,36 +304,36 @@ const CardTitle = styled.h3`
 `;
 
 const CardDescription = styled.p`
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1rem;
-  line-height: 1.7;
-  margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin-bottom: 1.75rem;
 `;
 
 const CardFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 1rem;
+  padding-top: 1.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
 const CardBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   
   svg {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
   }
 `;
 
 const CardArrow = styled.div`
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
   display: flex;
@@ -344,11 +348,34 @@ const CardArrow = styled.div`
   
   ${SectionCard}:hover & {
     background: ${props => props.$gradient};
+    transform: scale(1.1);
     
     svg {
       color: white;
       transform: translateX(-4px);
     }
+  }
+`;
+
+// Connector line between cards
+const ConnectorLine = styled.div`
+  position: absolute;
+  width: 3px;
+  height: 80px;
+  background: linear-gradient(
+    180deg,
+    ${props => props.$fromColor}50 0%,
+    ${props => props.$toColor}50 100%
+  );
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -100px;
+  border-radius: 3px;
+  opacity: ${props => props.$visible ? 0.6 : 0};
+  transition: opacity 0.5s ease;
+  
+  @media (max-width: 768px) {
+    display: none;
   }
 `;
 
@@ -358,13 +385,12 @@ const SECTIONS = [
   {
     id: 'recipes',
     title: 'מתכונים',
-    description: 'מתכונים טעימים, טיפים קולינריים וסודות המטבח',
+    description: 'מתכונים טעימים, טיפים קולינריים וסודות המטבח שלנו',
     icon: Utensils,
     color: '#f59e0b',
     gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
     path: '/recipes',
-    label: 'טעים!',
-    parallaxSpeed: 0.15,
+    label: '🍳 טעים!',
   },
   {
     id: 'stories',
@@ -374,30 +400,27 @@ const SECTIONS = [
     color: '#8b5cf6',
     gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
     path: '/stories',
-    label: 'פרק חדש',
-    parallaxSpeed: 0.1,
+    label: '📚 פרק חדש',
   },
   {
     id: 'challenges',
     title: 'חידות ואתגרים',
-    description: 'סודוקו, חידות חשיבה ואתגרים שבועיים',
+    description: 'סודוקו, חידות חשיבה ואתגרים שבועיים מאתגרים',
     icon: Puzzle,
     color: '#ec4899',
     gradient: 'linear-gradient(135deg, #ec4899, #db2777)',
     path: '/challenges',
-    label: 'אתגר!',
-    parallaxSpeed: 0.2,
+    label: '🧩 אתגר!',
   },
   {
     id: 'giveaways',
-    title: 'הגרלות',
+    title: 'הגרלות ופרסים',
     description: 'השתתפי בהגרלות שבועיות ותזכי בפרסים מדהימים',
     icon: Gift,
     color: '#10b981',
     gradient: 'linear-gradient(135deg, #10b981, #059669)',
     path: '/giveaways',
-    label: 'הגרלה!',
-    parallaxSpeed: 0.12,
+    label: '🎁 הגרלה!',
   },
   {
     id: 'articles',
@@ -407,8 +430,7 @@ const SECTIONS = [
     color: '#92400e',
     gradient: 'linear-gradient(135deg, #b45309, #92400e)',
     path: '/articles',
-    label: 'חדש!',
-    parallaxSpeed: 0.18,
+    label: '☕ חדש!',
   },
   {
     id: 'market',
@@ -418,8 +440,7 @@ const SECTIONS = [
     color: '#059669',
     gradient: 'linear-gradient(135deg, #10b981, #059669)',
     path: '/market',
-    label: 'עסקאות',
-    parallaxSpeed: 0.08,
+    label: '🛍️ עסקאות',
   },
   {
     id: 'issues',
@@ -429,8 +450,7 @@ const SECTIONS = [
     color: '#6366f1',
     gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)',
     path: '/issues',
-    label: 'ארכיון',
-    parallaxSpeed: 0.14,
+    label: '📰 ארכיון',
   },
 ];
 
@@ -442,7 +462,6 @@ export default function ShederaStreet() {
   const [visibleCards, setVisibleCards] = useState(new Set());
   const cardRefs = useRef([]);
   
-  // Smooth scroll handler
   const handleScroll = useCallback(() => {
     setScrollY(window.scrollY);
   }, []);
@@ -452,7 +471,7 @@ export default function ShederaStreet() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
   
-  // Intersection Observer for cards appearing
+  // Intersection Observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -463,7 +482,7 @@ export default function ShederaStreet() {
           }
         });
       },
-      { threshold: 0.15, rootMargin: '0px 0px -50px 0px' }
+      { threshold: 0.2, rootMargin: '0px 0px -100px 0px' }
     );
     
     cardRefs.current.forEach(ref => {
@@ -477,20 +496,12 @@ export default function ShederaStreet() {
     navigate(section.path);
   };
   
-  // Calculate parallax offset for each card
-  const getParallaxOffset = (index, speed) => {
-    const cardTop = 800 + (index * 150); // Approximate position
-    const relativeScroll = scrollY - cardTop + 500;
-    return relativeScroll * speed * -1;
-  };
-  
   return (
     <PageContainer>
-      {/* Fixed Background - doesn't move */}
       <FixedBackground />
       
       <Content>
-        {/* Welcome Section */}
+        {/* Welcome */}
         <WelcomeSection>
           <WelcomeContent $scrollY={scrollY}>
             <WelcomeBadge>
@@ -499,7 +510,7 @@ export default function ShederaStreet() {
             </WelcomeBadge>
             <WelcomeTitle>המדורים שלנו</WelcomeTitle>
             <WelcomeSubtitle>
-              גללי למטה וגלי את כל התכנים המיוחדים שלנו
+              גללי למטה וגלי את כל התכנים המיוחדים
             </WelcomeSubtitle>
           </WelcomeContent>
           
@@ -509,56 +520,61 @@ export default function ShederaStreet() {
           </ScrollHint>
         </WelcomeSection>
         
-        {/* Sections Grid */}
+        {/* Zigzag Cards */}
         <SectionsArea>
-          <SectionsTitle>
-            <h2>✨ בחרי מדור</h2>
-            <p>לחצי על כרטיס כדי להיכנס</p>
-          </SectionsTitle>
-          
-          <SectionsGrid>
+          <ZigzagContainer>
             {SECTIONS.map((section, index) => {
               const Icon = section.icon;
               const isVisible = visibleCards.has(section.id);
-              const parallaxOffset = getParallaxOffset(index, section.parallaxSpeed);
+              const side = index % 2 === 0 ? 'left' : 'right';
+              const nextSection = SECTIONS[index + 1];
               
               return (
-                <SectionCard
-                  key={section.id}
-                  ref={el => cardRefs.current[index] = el}
-                  data-id={section.id}
-                  $color={section.color}
-                  $gradient={section.gradient}
-                  $visible={isVisible}
-                  $delay={index * 0.1}
-                  $offset={parallaxOffset}
-                  onClick={() => handleCardClick(section)}
-                >
-                  <CardLabel $color={section.color} $gradient={section.gradient}>
-                    {section.label}
-                  </CardLabel>
-                  
-                  <CardIcon $color={section.color} $gradient={section.gradient}>
-                    <Icon size={32} />
-                  </CardIcon>
-                  
-                  <CardTitle $color={section.color}>{section.title}</CardTitle>
-                  <CardDescription>{section.description}</CardDescription>
-                  
-                  <CardFooter>
-                    <CardBadge>
-                      <Sparkles />
-                      לחצי לכניסה
-                    </CardBadge>
+                <CardWrapper key={section.id} $side={side}>
+                  <SectionCard
+                    ref={el => cardRefs.current[index] = el}
+                    data-id={section.id}
+                    $color={section.color}
+                    $gradient={section.gradient}
+                    $visible={isVisible}
+                    $side={side}
+                    onClick={() => handleCardClick(section)}
+                  >
+                    <CardLabel $color={section.color} $gradient={section.gradient}>
+                      {section.label}
+                    </CardLabel>
                     
-                    <CardArrow $gradient={section.gradient}>
-                      <ArrowRight size={18} />
-                    </CardArrow>
-                  </CardFooter>
-                </SectionCard>
+                    <CardIcon $color={section.color} $gradient={section.gradient}>
+                      <Icon size={36} />
+                    </CardIcon>
+                    
+                    <CardTitle $color={section.color}>{section.title}</CardTitle>
+                    <CardDescription>{section.description}</CardDescription>
+                    
+                    <CardFooter>
+                      <CardBadge>
+                        <Sparkles />
+                        לחצי לכניסה
+                      </CardBadge>
+                      
+                      <CardArrow $gradient={section.gradient}>
+                        <ArrowRight size={20} />
+                      </CardArrow>
+                    </CardFooter>
+                    
+                    {/* Connector line to next card */}
+                    {nextSection && (
+                      <ConnectorLine 
+                        $fromColor={section.color}
+                        $toColor={nextSection.color}
+                        $visible={isVisible}
+                      />
+                    )}
+                  </SectionCard>
+                </CardWrapper>
               );
             })}
-          </SectionsGrid>
+          </ZigzagContainer>
         </SectionsArea>
       </Content>
     </PageContainer>
