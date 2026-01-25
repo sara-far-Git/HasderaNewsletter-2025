@@ -1817,31 +1817,27 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
   const goToNextPage = useCallback(() => {
     const flipbook = flipbookInstanceRef.current;
     const current = getFlipbookCurrentPage() || currentPage || 1;
-    console.log('➡️ goToNextPage called, flipbook:', !!flipbook, 'current:', current);
+    console.log('➡️ goToNextPage called');
+    console.log('  flipbook exists:', !!flipbook);
+    console.log('  flipbook.Book exists:', !!flipbook?.Book);
+    console.log('  flipbook.nextPage exists:', typeof flipbook?.nextPage);
+    console.log('  flipbook.Book.nextPage exists:', typeof flipbook?.Book?.nextPage);
+    console.log('  current page:', current);
+    
     if (!flipbook) return;
     
-    // עמוד 1 (כריכה) ב-RTL - ננסה כמה דרכים שונות
-    if (current <= 1) {
-      console.log('  On cover page - trying multiple methods...');
-      // נסה prevPage (RTL) או Book.nextPage ישירות
-      if (flipbook.Book?.nextPage) {
-        console.log('  Trying Book.nextPage()');
-        flipbook.Book.nextPage();
-      } else if (flipbook.prevPage) {
-        console.log('  Trying prevPage() for RTL cover');
-        flipbook.prevPage();
-      } else {
-        console.log('  Trying Book.goToPage(3)');
-        flipbook.Book?.goToPage?.(3, false);
-      }
-    } else if (typeof flipbook.nextPage === 'function') {
-      console.log('  Using flipbook.nextPage()');
+    // פשוט קורא ל-nextPage - הספריה מטפלת ב-RTL
+    if (typeof flipbook.nextPage === 'function') {
+      console.log('  Calling flipbook.nextPage()');
       flipbook.nextPage();
     } else if (flipbook.Book?.nextPage) {
-      console.log('  Using flipbook.Book.nextPage()');
+      console.log('  Calling flipbook.Book.nextPage()');
       flipbook.Book.nextPage();
     } else {
-      console.log('  No nextPage method found!');
+      console.log('  No nextPage method found - trying Book.goToPage');
+      const targetIndex = current <= 1 ? 2 : current + 2;
+      console.log('  Target index:', targetIndex);
+      flipbook.Book?.goToPage?.(targetIndex, false);
     }
     
     setTimeout(() => {
