@@ -7,7 +7,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import styled, { keyframes, createGlobalStyle } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { Link, X, Save, Send, Edit2, Plus, Trash2, Zap, Mail, ExternalLink, Phone, MapPin, Calendar, Clock, Star, Heart, ShoppingCart, User, Home } from "lucide-react";
+import { Link, X, Save, Send, Edit2, Plus, Trash2, Zap, Mail, ExternalLink, Phone, MapPin, Calendar, Clock, Star, Heart, ShoppingCart, User, Home, Share2, ArrowRight, Keyboard } from "lucide-react";
 import { getIssueById, updateIssueMetadata, publishIssue } from "../Services/issuesService";
 import { LinksContainer, availableIcons, availableAnimations } from "./LinkOverlayComponent";
 
@@ -791,6 +791,175 @@ const ButtonGroup = styled.div`
 `;
 
 // ============================================
+// 🎨 Reader-specific components
+// ============================================
+const BackButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Assistant', sans-serif;
+  font-size: 0.9rem;
+  
+  &:hover {
+    background: rgba(16, 185, 129, 0.3);
+    border-color: #10b981;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+`;
+
+const PageSlider = styled.input`
+  width: 120px;
+  height: 4px;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #10b981;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &:hover {
+      transform: scale(1.2);
+    }
+  }
+  
+  &::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #10b981;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+  
+  @media (max-width: 768px) {
+    width: 80px;
+  }
+`;
+
+const ShareModal = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 10010;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  animation: ${fadeIn} 0.2s ease-out;
+`;
+
+const ShareContent = styled.div`
+  background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  animation: ${fadeInUp} 0.3s ease-out;
+`;
+
+const ShareTitle = styled.h3`
+  color: white;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  margin: 0 0 1.5rem;
+  text-align: center;
+`;
+
+const ShareButtons = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const ShareButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1.5rem;
+  background: ${props => props.$bg || 'rgba(255, 255, 255, 0.1)'};
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Assistant', sans-serif;
+  font-size: 1rem;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+`;
+
+const KeyboardHint = styled.div`
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Assistant', sans-serif;
+  font-size: 0.85rem;
+  animation: ${fadeIn} 0.3s ease-out;
+  z-index: 10003;
+  
+  svg {
+    color: #10b981;
+  }
+  
+  kbd {
+    padding: 0.2rem 0.5rem;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.8rem;
+  }
+`;
+
+const CopySuccessToast = styled.div`
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.75rem 1.5rem;
+  background: rgba(16, 185, 129, 0.9);
+  border-radius: 8px;
+  color: white;
+  font-family: 'Assistant', sans-serif;
+  animation: ${fadeInUp} 0.3s ease-out;
+  z-index: 10020;
+`;
+
+// ============================================
 // 🔹 Main Component
 // ============================================
 export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue, slots: propSlots, showSlotsManagement = false, readOnly = false }) {
@@ -806,6 +975,11 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const [slots, setSlots] = useState(propSlots || null);
+  
+  // 🎨 Reader-specific state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showKeyboardHint, setShowKeyboardHint] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   
   const resolveTotalPages = useCallback((flipbook) => {
     if (!flipbook) return null;
@@ -1869,6 +2043,67 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
 
   const handleClose = () => onClose ? onClose() : navigate('/admin/issues');
 
+  // 🎨 Reader-specific: Show keyboard hint once
+  useEffect(() => {
+    if (!readOnly || isLoading) return;
+    
+    const hintShown = localStorage.getItem('readerKeyboardHintShown');
+    if (!hintShown && issue) {
+      setShowKeyboardHint(true);
+      localStorage.setItem('readerKeyboardHintShown', 'true');
+      
+      const timer = setTimeout(() => {
+        setShowKeyboardHint(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [readOnly, isLoading, issue]);
+
+  // 🎨 Reader-specific: Share functions
+  const handleShare = () => setShowShareModal(true);
+
+  const shareToWhatsApp = () => {
+    const url = window.location.href;
+    const text = `📰 ${issue?.Title || issue?.title || 'גיליון השדרה'} - קראו עכשיו!`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n' + url)}`, '_blank');
+    setShowShareModal(false);
+  };
+
+  const shareByEmail = () => {
+    const url = window.location.href;
+    const subject = `📰 ${issue?.Title || issue?.title || 'גיליון השדרה'}`;
+    const body = `היי,\n\nרציתי לשתף איתך את הגיליון החדש של השדרה:\n\n${url}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setShowShareModal(false);
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+      setShowShareModal(false);
+    } catch (e) {
+      console.error("Failed to copy:", e);
+    }
+  };
+
+  // 🎨 Reader-specific: Page slider
+  const handlePageSliderChange = (e) => {
+    const page = parseInt(e.target.value);
+    if (page && flipbookInstanceRef.current) {
+      try {
+        const fb = flipbookInstanceRef.current;
+        if (fb.goToPage) fb.goToPage(page);
+        else if (fb.turnToPage) fb.turnToPage(page);
+        else if (fb.gotoPage) fb.gotoPage(page);
+      } catch (err) {
+        console.warn('Could not go to page:', err);
+      }
+    }
+  };
+
   // Available icons for links
   const availableIcons = [
     { name: 'Link', component: Link },
@@ -2218,14 +2453,40 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       
       {/* Header */}
       <Header>
-        <HeaderTitle>
-          {issue?.Title || issue?.title || 'גיליון'}
-          {!readOnly && (
-            <PublishStatusBadge $isPublished={isPublished}>
-              {isPublished ? 'פורסם' : 'טיוטה'}
-            </PublishStatusBadge>
+        {/* Left side - Back button for readers, Title for admin */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {readOnly && (
+            <BackButton onClick={handleClose}>
+              <ArrowRight size={18} />
+              חזרה
+            </BackButton>
           )}
-        </HeaderTitle>
+          <HeaderTitle>
+            {issue?.Title || issue?.title || 'גיליון'}
+            {!readOnly && (
+              <PublishStatusBadge $isPublished={isPublished}>
+                {isPublished ? 'פורסם' : 'טיוטה'}
+              </PublishStatusBadge>
+            )}
+          </HeaderTitle>
+        </div>
+        
+        {/* Center - Page indicator with slider for readers */}
+        {readOnly && totalPages > 0 && (
+          <PageCounter>
+            <span>עמוד</span>
+            <span style={{ color: '#10b981', fontWeight: 600 }}>{currentPage}</span>
+            <span>מתוך</span>
+            <span>{totalPages}</span>
+            <PageSlider
+              type="range"
+              min={1}
+              max={totalPages}
+              value={currentPage}
+              onChange={handlePageSliderChange}
+            />
+          </PageCounter>
+        )}
         
         <HeaderActions>
           {!readOnly && (
@@ -2243,6 +2504,12 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
                 {isPublishing ? 'מפרסם...' : 'פרסם'}
               </ActionButton>
             </>
+          )}
+          {/* Share button for readers */}
+          {readOnly && (
+            <IconButton onClick={handleShare} title="שיתוף">
+              <Share2 size={18} />
+            </IconButton>
           )}
           <IconButton onClick={() => flipbookInstanceRef.current?.zoomOut?.()} title="הקטן">
             <ZoomOutIcon />
@@ -2515,6 +2782,46 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
             </ButtonGroup>
           </LinkModalContent>
         </LinkModal>
+      )}
+
+      {/* Reader-specific: Share Modal */}
+      {readOnly && showShareModal && (
+        <ShareModal onClick={() => setShowShareModal(false)}>
+          <ShareContent onClick={e => e.stopPropagation()}>
+            <ShareTitle>שתפו את הגיליון</ShareTitle>
+            <ShareButtons>
+              <ShareButton $bg="linear-gradient(135deg, #25D366 0%, #128C7E 100%)" onClick={shareToWhatsApp}>
+                📱 שיתוף בוואטסאפ
+              </ShareButton>
+              <ShareButton $bg="linear-gradient(135deg, #EA4335 0%, #C5221F 100%)" onClick={shareByEmail}>
+                ✉️ שליחה במייל
+              </ShareButton>
+              <ShareButton onClick={copyLink}>
+                📋 העתקת קישור
+              </ShareButton>
+              <ShareButton onClick={() => setShowShareModal(false)}>
+                ✕ ביטול
+              </ShareButton>
+            </ShareButtons>
+          </ShareContent>
+        </ShareModal>
+      )}
+
+      {/* Reader-specific: Keyboard Hint */}
+      {readOnly && showKeyboardHint && (
+        <KeyboardHint>
+          <Keyboard size={16} />
+          <span>דפדפו עם</span>
+          <kbd>←</kbd>
+          <kbd>→</kbd>
+          <span>| מסך מלא</span>
+          <kbd>ESC</kbd>
+        </KeyboardHint>
+      )}
+
+      {/* Reader-specific: Copy Success Toast */}
+      {readOnly && copySuccess && (
+        <CopySuccessToast>✓ הקישור הועתק!</CopySuccessToast>
       )}
     </ViewerContainer>
   );
