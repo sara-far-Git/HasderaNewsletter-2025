@@ -851,6 +851,17 @@ export default function FlipCanvasViewer({ issue, onClose }) {
   const [showHint, setShowHint] = useState(true);
   const [links, setLinks] = useState([]);
 
+  const resolveTotalPages = useCallback((flipbook) => {
+    if (!flipbook) return null;
+    const byOptions = flipbook.options?.numPages || flipbook.options?.pages?.length;
+    const byApi = typeof flipbook.getNumberOfPages === "function" ? flipbook.getNumberOfPages() : null;
+    const byBook =
+      (typeof flipbook.Book?.getNumberOfPages === "function" ? flipbook.Book.getNumberOfPages() : null) ||
+      flipbook.Book?.pages?.length ||
+      flipbook.Book?.numPages;
+    return byOptions || byBook || byApi || null;
+  }, []);
+
   // טעינת קישורים מה-metadata
   useEffect(() => {
     if (issue?.Summary || issue?.summary) {
@@ -1073,6 +1084,10 @@ export default function FlipCanvasViewer({ issue, onClose }) {
               trackedPageRef.current = page; // 🔄 Update tracked page immediately
               lastPageRef.current = page; // ✅ שמור את העמוד בRef
               setCurrentPage(page);
+              if (!totalPages) {
+                const pages = resolveTotalPages(flipbook);
+                if (pages) setTotalPages(pages);
+              }
               console.log('✅ Updated currentPage state to:', page, 'tracked:', trackedPageRef.current);
             }
           });
@@ -1080,7 +1095,8 @@ export default function FlipCanvasViewer({ issue, onClose }) {
           flipbook.on('ready', () => {
             console.log('✅ Flipbook ready event fired');
             setIsLoading(false);
-            setTotalPages(flipbook.options?.numPages || flipbook.options?.pages?.length);
+            const pages = resolveTotalPages(flipbook);
+            if (pages) setTotalPages(pages);
             
             // ✅ אם יש עמוד שנשמר, חזור אליו
             if (lastPageRef.current > 1) {
@@ -1095,7 +1111,8 @@ export default function FlipCanvasViewer({ issue, onClose }) {
 
           flipbook.on('pdfinit', () => {
             setIsLoading(false);
-            setTotalPages(flipbook.options?.numPages);
+            const pages = resolveTotalPages(flipbook);
+            if (pages) setTotalPages(pages);
           });
 
           flipbook.on('error', () => {
@@ -1185,7 +1202,18 @@ export default function FlipCanvasViewer({ issue, onClose }) {
   const handleClose = () => onClose ? onClose() : navigate('/issues');
 
   // האם להראות עיקול בצד מסוים
-  const canGoNext = totalPages ? currentPage < totalPages : false;
+  const effectiveTotalPages = useMemo(
+    () => totalPages || resolveTotalPages(flipbookInstanceRef.current),
+    [totalPages, resolveTotalPages, currentPage, isLoading]
+  );
+
+  useEffect(() => {
+    if (!totalPages && effectiveTotalPages) {
+      setTotalPages(effectiveTotalPages);
+    }
+  }, [totalPages, effectiveTotalPages]);
+
+  const canGoNext = effectiveTotalPages ? currentPage < effectiveTotalPages : false;
   const canGoPrev = currentPage > 1;
 
   return (
