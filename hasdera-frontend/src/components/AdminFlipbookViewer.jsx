@@ -1813,17 +1813,18 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     setIsFlipping(true);
     const before = current;
 
-    if (direction === 'prev') {
-      flipbook.nextPage?.(); // RTL: nextPage = שמאלה = "קודם" בעברית
+    // RTL flipbook: nextPage = קדימה בתוכן, prevPage = אחורה בתוכן
+    if (direction === 'next') {
+      flipbook.nextPage?.();
     } else {
-      flipbook.prevPage?.(); // RTL: prevPage = ימינה = "הבא" בעברית
+      flipbook.prevPage?.();
     }
 
     setTimeout(() => {
       const after = getFlipbookCurrentPage();
       if (after === before || after == null) {
         // Fallbacks for builds where prev/nextPage don't repaint
-        if (direction === 'prev') {
+        if (direction === 'next') {
           flipbook.Book?.flipNext?.();
           flipbook.Book?.next?.();
         } else {
