@@ -1358,7 +1358,8 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     
     try {
       // ננסה לקבל את ה-API URL מה-env או מה-API service
-      let apiBaseUrl = import.meta.env.VITE_API_URL;
+      const rawEnvBaseUrl = import.meta.env.VITE_API_URL;
+      let apiBaseUrl = typeof rawEnvBaseUrl === 'string' ? rawEnvBaseUrl.trim() : '';
       
       // אם אין VITE_API_URL, נשתמש בפורט הנכון מה-API service (5055)
       if (!apiBaseUrl) {
@@ -1370,6 +1371,10 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         if (apiBaseUrl === currentOrigin) {
           apiBaseUrl = currentOrigin.replace(/:\d+/, ':5055');
         }
+      }
+
+      if (!apiBaseUrl) {
+        apiBaseUrl = window.location.origin;
       }
       
       console.log('🌐 API Base URL:', apiBaseUrl);
@@ -1627,7 +1632,9 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     try {
       // אם זה לא URL מלא, ננסה ליצור אותו
       if (!pdfUrl.startsWith('http://') && !pdfUrl.startsWith('https://')) {
-        const apiBaseUrl = import.meta.env.VITE_API_URL || window.location.origin.replace(':5173', ':5000');
+        const rawEnvBaseUrl = import.meta.env.VITE_API_URL;
+        const envBaseUrl = typeof rawEnvBaseUrl === 'string' ? rawEnvBaseUrl.trim() : '';
+        const apiBaseUrl = envBaseUrl || window.location.origin.replace(':5173', ':5000');
         if (pdfUrl.startsWith('/')) {
           finalPdfUrl = `${apiBaseUrl}${pdfUrl}`;
         } else {
