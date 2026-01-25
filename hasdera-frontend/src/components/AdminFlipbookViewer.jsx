@@ -809,6 +809,18 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [slots, setSlots] = useState(propSlots || null);
   
+  const resolveTotalPages = useCallback((flipbook) => {
+    if (!flipbook) return null;
+    const byOptions = flipbook.options?.numPages || flipbook.options?.pages?.length;
+    const byApi = typeof flipbook.getNumberOfPages === "function" ? flipbook.getNumberOfPages() : null;
+    const byBook =
+      (typeof flipbook.Book?.getNumberOfPages === "function" ? flipbook.Book.getNumberOfPages() : null) ||
+      flipbook.Book?.pages?.length ||
+      flipbook.Book?.numPages ||
+      flipbook.Book?.totalPages;
+    return byOptions || byBook || byApi || null;
+  }, []);
+
   // 🎯 Link Management
   const [links, setLinks] = useState([]);
   const [editingLink, setEditingLink] = useState(null);
@@ -2138,7 +2150,18 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
   };
 
   // האם להראות עיקול בצד מסוים
-  const canGoNext = totalPages ? currentPage < totalPages : false;
+  const effectiveTotalPages = useMemo(
+    () => totalPages || resolveTotalPages(flipbookInstanceRef.current),
+    [totalPages, resolveTotalPages, currentPage, isLoading]
+  );
+
+  useEffect(() => {
+    if (!totalPages && effectiveTotalPages) {
+      setTotalPages(effectiveTotalPages);
+    }
+  }, [totalPages, effectiveTotalPages]);
+
+  const canGoNext = effectiveTotalPages ? currentPage < effectiveTotalPages : true;
   const canGoPrev = currentPage > 1;
 
   if (!issue) {
@@ -2355,7 +2378,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
                 value={linkForm.page}
                 onChange={(e) => setLinkForm({ ...linkForm, page: parseInt(e.target.value) })}
                 min={1}
-                max={totalPages || 100}
+                max={effectiveTotalPages || 100}
               />
             </FormGroup>
             <FormGroup>
