@@ -930,10 +930,12 @@ export default function IssuesList({ showAdvertiserActions = true, showReaderNav
       <PageWrapper>
         <BackgroundImage />
         
-        <ContentWrapper>
-          {/* Header */}
+        {/* Navigation */}
+        {showReaderNav ? (
+          <ReaderNav />
+        ) : (
           <Header>
-            <Logo onClick={() => navigate('/')}>השדרה</Logo>
+            <Logo onClick={() => navigate('/')}><img src="/logo.png" alt="השדרה" style={{ height: '40px', width: 'auto', backgroundColor: 'white', padding: '4px 8px', borderRadius: '8px' }} /></Logo>
             {showAdvertiserActions && (
               <BackButton onClick={() => navigate('/dashboard')}>
                 <ArrowLeft size={18} />
@@ -941,8 +943,9 @@ export default function IssuesList({ showAdvertiserActions = true, showReaderNav
               </BackButton>
             )}
           </Header>
+        )}
 
-          {showReaderNav && <ReaderNav />}
+        <ContentWrapper>
 
           {/* Title */}
           <TitleSection>
