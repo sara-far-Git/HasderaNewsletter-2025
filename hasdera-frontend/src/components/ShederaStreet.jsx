@@ -612,7 +612,7 @@ const SECTIONS = [
     icon: Utensils,
     color: '#f59e0b',
     gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-    path: '/recipes',
+    path: '/sections/recipes',
     label: '🍳 טעים!',
   },
   {
@@ -622,7 +622,7 @@ const SECTIONS = [
     icon: Book,
     color: '#8b5cf6',
     gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-    path: '/stories',
+    path: '/sections/stories',
     label: '📚 פרק חדש',
   },
   {
@@ -632,7 +632,7 @@ const SECTIONS = [
     icon: Puzzle,
     color: '#ec4899',
     gradient: 'linear-gradient(135deg, #ec4899, #db2777)',
-    path: '/challenges',
+    path: '/sections/challenges',
     label: '🧩 אתגר!',
   },
   {
@@ -642,7 +642,7 @@ const SECTIONS = [
     icon: Gift,
     color: '#10b981',
     gradient: 'linear-gradient(135deg, #10b981, #059669)',
-    path: '/giveaways',
+    path: '/sections/giveaways',
     label: '🎁 הגרלה!',
   },
   {
@@ -652,7 +652,7 @@ const SECTIONS = [
     icon: Coffee,
     color: '#92400e',
     gradient: 'linear-gradient(135deg, #b45309, #92400e)',
-    path: '/articles',
+    path: '/sections/articles',
     label: '☕ חדש!',
   },
   {
@@ -662,7 +662,7 @@ const SECTIONS = [
     icon: ShoppingBag,
     color: '#059669',
     gradient: 'linear-gradient(135deg, #10b981, #059669)',
-    path: '/market',
+    path: '/sections/market',
     label: '🛍️ עסקאות',
   },
   {

@@ -68,6 +68,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     public virtual DbSet<Announcement> Announcements { get; set; }
+    
+    // Sections (מדורים)
+    public virtual DbSet<Section> Sections { get; set; }
+    public virtual DbSet<SectionContent> SectionContents { get; set; }
+    public virtual DbSet<ContentComment> ContentComments { get; set; }
+    public virtual DbSet<ContentLike> ContentLikes { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

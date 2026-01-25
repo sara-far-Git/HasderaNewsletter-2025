@@ -21,6 +21,7 @@ import {
   Menu,
   X,
   Tag,
+  Newspaper,
 } from 'lucide-react';
 
 // 🎨 גופנים - נטען דרך index.html
@@ -311,6 +312,12 @@ const modules = [
     title: 'מערכת תוכן (CMS)',
     icon: FileEdit,
     path: '/admin/content',
+  },
+  {
+    id: 'sections',
+    title: 'ניהול מדורים',
+    icon: Newspaper,
+    path: '/admin/sections',
   },
   {
     id: 'analytics',

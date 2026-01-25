@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import UsersManagement from "../components/UsersManagement";
 import ContentManagement from "../components/ContentManagement";
+import AdminSections from "../components/AdminSections";
 import AdvertisersManagement from "../components/AdvertisersManagement";
 import PaymentsManagement from "../components/PaymentsManagement";
 import IssuesManagement from "../components/IssuesManagement";
@@ -151,6 +152,14 @@ export const adminRoutes = [
     element: (
       <AdminProtectedRoute>
         <IntegrationsManagement />
+      </AdminProtectedRoute>
+    ) 
+  },
+  { 
+    path: "/admin/sections", 
+    element: (
+      <AdminProtectedRoute>
+        <AdminSections />
       </AdminProtectedRoute>
     ) 
   },
