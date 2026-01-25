@@ -1,66 +1,37 @@
 /**
  * ShederaStreet.jsx
- * 🌳 "טיול בשדרה" - רחוב אינטראקטיבי עם אלמנטים ריאליסטיים
- * לחיצה על אלמנטים ברחוב מובילה למדורים
+ * 🌳 "מדורים" - ריבועים עם פרלקס, רקע קבוע
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import styled, { keyframes, css } from "styled-components";
-import { ChevronDown, TreePine } from "lucide-react";
+import styled, { keyframes } from "styled-components";
+import { 
+  Book, Utensils, Gift, Coffee, Puzzle, ShoppingBag, 
+  Star, Sparkles, ChevronDown, ArrowRight, Newspaper,
+  TreePine
+} from "lucide-react";
 
 // ================ ANIMATIONS ================
 
+const fadeInUp = keyframes`
+  from { opacity: 0; transform: translateY(60px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
 const float = keyframes`
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-`;
-
-const sway = keyframes`
-  0%, 100% { transform: rotate(-2deg); }
-  50% { transform: rotate(2deg); }
-`;
-
-const fadeIn = keyframes`
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
-`;
-
-const fadeInLeft = keyframes`
-  from { opacity: 0; transform: translateX(-80px); }
-  to { opacity: 1; transform: translateX(0); }
-`;
-
-const fadeInRight = keyframes`
-  from { opacity: 0; transform: translateX(80px); }
-  to { opacity: 1; transform: translateX(0); }
+  50% { transform: translateY(-10px); }
 `;
 
 const scrollHint = keyframes`
   0%, 100% { transform: translateY(0); opacity: 1; }
-  50% { transform: translateY(12px); opacity: 0.5; }
+  50% { transform: translateY(10px); opacity: 0.5; }
 `;
 
-const walkDots = keyframes`
-  0% { opacity: 0.3; }
-  50% { opacity: 1; }
-  100% { opacity: 0.3; }
-`;
-
-const birdFly = keyframes`
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(100vw, -30px); }
-`;
-
-const leafFall = keyframes`
-  0% { transform: translateY(-50px) rotate(0deg); opacity: 0; }
-  10% { opacity: 0.7; }
-  100% { transform: translateY(100vh) rotate(540deg) translateX(80px); opacity: 0; }
-`;
-
-const glow = keyframes`
-  0%, 100% { filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6)); }
-  50% { filter: drop-shadow(0 0 30px rgba(251, 191, 36, 0.9)); }
+const shimmer = keyframes`
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 `;
 
 const pulse = keyframes`
@@ -68,21 +39,16 @@ const pulse = keyframes`
   50% { transform: scale(1.02); }
 `;
 
-const sparkle = keyframes`
-  0%, 100% { opacity: 0; transform: scale(0); }
-  50% { opacity: 1; transform: scale(1); }
-`;
-
 // ================ STYLED COMPONENTS ================
 
-const StreetContainer = styled.div`
+const PageContainer = styled.div`
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
 `;
 
-// Background - always visible street image
-const BackgroundImage = styled.div`
+// Background - completely fixed, no scroll
+const FixedBackground = styled.div`
   position: fixed;
   top: 0;
   left: 0;
@@ -91,9 +57,8 @@ const BackgroundImage = styled.div`
   background-image: url("/image/ChatGPT Image Nov 16, 2025, 08_56_06 PM.png");
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
   z-index: 0;
-  transform: scale(1.05) translateY(${props => props.$scrollY * 0.1}px);
-  transition: transform 0.1s ease-out;
 
   &::before {
     content: '';
@@ -101,37 +66,14 @@ const BackgroundImage = styled.div`
     inset: 0;
     background: linear-gradient(
       180deg,
-      rgba(15, 23, 42, 0.4) 0%,
-      rgba(20, 30, 48, 0.3) 30%,
-      rgba(15, 23, 42, 0.35) 60%,
-      rgba(10, 15, 30, 0.5) 100%
+      rgba(15, 23, 42, 0.5) 0%,
+      rgba(20, 30, 48, 0.4) 50%,
+      rgba(15, 23, 42, 0.6) 100%
     );
   }
 `;
 
-// Flying elements
-const Bird = styled.div`
-  position: fixed;
-  font-size: 1.8rem;
-  animation: ${birdFly} ${props => props.$duration || 25}s linear infinite;
-  animation-delay: ${props => props.$delay || 0}s;
-  top: ${props => props.$top || 10}%;
-  left: -60px;
-  z-index: 50;
-  opacity: 0.6;
-`;
-
-const Leaf = styled.div`
-  position: fixed;
-  font-size: ${props => props.$size || 1.5}rem;
-  animation: ${leafFall} ${props => props.$duration || 18}s linear infinite;
-  animation-delay: ${props => props.$delay || 0}s;
-  left: ${props => props.$left || 50}%;
-  z-index: 45;
-  opacity: 0.5;
-`;
-
-// Main content
+// Content wrapper
 const Content = styled.div`
   position: relative;
   z-index: 10;
@@ -151,9 +93,9 @@ const WelcomeSection = styled.section`
 `;
 
 const WelcomeContent = styled.div`
-  transform: translateY(${props => Math.min(0, -props.$scrollY * 0.4)}px);
-  opacity: ${props => Math.max(0, 1 - props.$scrollY / 500)};
-  transition: all 0.15s ease-out;
+  transform: translateY(${props => Math.min(0, -props.$scrollY * 0.3)}px);
+  opacity: ${props => Math.max(0, 1 - props.$scrollY / 600)};
+  transition: all 0.1s ease-out;
 `;
 
 const WelcomeBadge = styled.div`
@@ -173,7 +115,7 @@ const WelcomeBadge = styled.div`
 
 const WelcomeTitle = styled.h1`
   font-family: 'Cormorant Garamond', 'David Libre', serif;
-  font-size: clamp(3.5rem, 12vw, 7rem);
+  font-size: clamp(3rem, 10vw, 6rem);
   font-weight: 300;
   color: #f8fafc;
   margin-bottom: 0.5rem;
@@ -182,10 +124,10 @@ const WelcomeTitle = styled.h1`
 `;
 
 const WelcomeSubtitle = styled.p`
-  font-size: clamp(1.1rem, 3vw, 1.5rem);
-  color: rgba(255, 255, 255, 0.8);
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  color: rgba(255, 255, 255, 0.85);
   margin-bottom: 3rem;
-  max-width: 600px;
+  max-width: 550px;
   line-height: 1.8;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 `;
@@ -198,534 +140,297 @@ const ScrollHint = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   color: rgba(255, 255, 255, 0.7);
   animation: ${scrollHint} 2s ease-in-out infinite;
   
   span {
-    font-size: 0.95rem;
-    letter-spacing: 0.15em;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   }
 `;
 
-const WalkDots = styled.div`
-  display: flex;
-  gap: 12px;
+// ===== SECTIONS AREA =====
+
+const SectionsArea = styled.section`
+  padding: 100px 2rem 200px;
+  min-height: 100vh;
 `;
 
-const Dot = styled.div`
-  width: 12px;
-  height: 12px;
-  background: #10b981;
-  border-radius: 50%;
-  animation: ${walkDots} 1.5s ease-in-out infinite;
-  animation-delay: ${props => props.$delay || 0}s;
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
-`;
-
-// ===== STREET SECTION =====
-
-const StreetSection = styled.section`
-  position: relative;
-  padding: 0;
-`;
-
-// Street elements wrapper - the actual "street" where things are placed
-const StreetScene = styled.div`
-  position: relative;
-  min-height: 400vh; /* Very long street */
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 100px 0;
-`;
-
-// Individual street element
-const StreetElement = styled.div`
-  position: absolute;
-  ${props => props.$left ? `left: ${props.$left};` : ''}
-  ${props => props.$right ? `right: ${props.$right};` : ''}
-  top: ${props => props.$top};
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: ${props => props.$zIndex || 20};
+const SectionsTitle = styled.div`
+  text-align: center;
+  margin-bottom: 4rem;
   
+  h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    color: #f8fafc;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+  }
+`;
+
+const SectionsGrid = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+`;
+
+// Each section card with parallax
+const SectionCard = styled.div`
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  border-radius: 24px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  
+  /* Parallax transform based on scroll */
+  transform: translateY(${props => props.$offset}px);
+  transition: transform 0.1s ease-out, box-shadow 0.4s ease, border-color 0.4s ease;
+  
+  /* Entrance animation */
   opacity: ${props => props.$visible ? 1 : 0};
-  transform: ${props => {
-    if (!props.$visible) return 'translateY(50px) scale(0.8)';
-    return 'translateY(0) scale(1)';
-  }};
+  animation: ${props => props.$visible ? fadeInUp : 'none'} 0.8s ease-out;
+  animation-delay: ${props => props.$delay || 0}s;
+  animation-fill-mode: both;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: ${props => props.$gradient};
+    border-radius: 24px 24px 0 0;
+    transition: height 0.3s ease;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 100%
+    );
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
   
   &:hover {
-    transform: scale(1.15) translateY(-10px);
-    z-index: 100;
+    transform: translateY(${props => props.$offset - 10}px) scale(1.02);
+    border-color: ${props => props.$color}50;
+    box-shadow: 
+      0 25px 50px rgba(0, 0, 0, 0.3),
+      0 0 50px ${props => props.$color}15;
+    
+    &::before {
+      height: 6px;
+    }
+    
+    &::after {
+      opacity: 1;
+    }
   }
 `;
 
-const ElementEmoji = styled.div`
-  font-size: ${props => props.$size || '5rem'};
-  filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.4));
-  animation: ${props => props.$animate ? float : 'none'} 4s ease-in-out infinite;
-  animation-delay: ${props => props.$delay || 0}s;
-  
-  ${StreetElement}:hover & {
-    filter: drop-shadow(0 15px 35px rgba(16, 185, 129, 0.5));
-  }
-`;
-
-const ElementLabel = styled.div`
-  position: absolute;
-  bottom: -35px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.9);
-  color: #f8fafc;
-  padding: 0.5rem 1rem;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  white-space: nowrap;
-  opacity: 0;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  
-  ${StreetElement}:hover & {
-    opacity: 1;
-    bottom: -45px;
-  }
-`;
-
-const ElementSparkle = styled.div`
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  font-size: 1.5rem;
-  animation: ${sparkle} 2s ease-in-out infinite;
-  animation-delay: ${props => props.$delay || 0}s;
-`;
-
-// Decorative elements (non-clickable)
-const Decoration = styled.div`
-  position: absolute;
-  ${props => props.$left ? `left: ${props.$left};` : ''}
-  ${props => props.$right ? `right: ${props.$right};` : ''}
-  top: ${props => props.$top};
-  font-size: ${props => props.$size || '4rem'};
-  opacity: ${props => props.$opacity || 0.6};
-  pointer-events: none;
-  animation: ${sway} ${props => props.$duration || 6}s ease-in-out infinite;
-  filter: ${props => props.$blur ? `blur(${props.$blur}px)` : 'none'};
-  z-index: ${props => props.$zIndex || 5};
-  
-  @media (max-width: 768px) {
-    font-size: ${props => `calc(${props.$size || '4rem'} * 0.7)`};
-  }
-`;
-
-// Street lamp
-const LampPost = styled.div`
-  position: absolute;
-  ${props => props.$left ? `left: ${props.$left};` : ''}
-  ${props => props.$right ? `right: ${props.$right};` : ''}
-  top: ${props => props.$top};
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  opacity: 0.9;
-  z-index: 15;
-  
-  @media (max-width: 768px) {
-    opacity: 0.5;
-  }
-`;
-
-const LampLight = styled.div`
-  font-size: 2.5rem;
-  animation: ${glow} 4s ease-in-out infinite;
-  margin-bottom: -10px;
-`;
-
-const LampPole = styled.div`
-  width: 8px;
-  height: ${props => props.$height || '120px'};
-  background: linear-gradient(180deg, #4b5563 0%, #374151 100%);
-  border-radius: 4px;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
-`;
-
-// Section dividers with text
-const SectionDivider = styled.div`
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  top: ${props => props.$top};
-  text-align: center;
-  z-index: 30;
-  opacity: ${props => props.$visible ? 1 : 0};
-  transition: opacity 0.8s ease;
-`;
-
-const DividerLine = styled.div`
+const CardIcon = styled.div`
+  width: 70px;
+  height: 70px;
+  background: ${props => props.$gradient};
+  border-radius: 20px;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 12px 30px ${props => props.$color}40;
+  transition: all 0.4s ease;
+  
+  svg {
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+  
+  ${SectionCard}:hover & {
+    transform: scale(1.1) rotate(-5deg);
+    animation: ${float} 2s ease-in-out infinite;
+  }
+`;
+
+const CardLabel = styled.span`
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  background: ${props => props.$gradient};
+  color: white;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
   margin-bottom: 1rem;
+  box-shadow: 0 4px 12px ${props => props.$color}40;
+`;
+
+const CardTitle = styled.h3`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 0.6rem;
+  transition: color 0.3s ease;
   
-  &::before, &::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    min-width: 50px;
+  ${SectionCard}:hover & {
+    color: ${props => props.$color};
   }
 `;
 
-const DividerEmoji = styled.span`
-  font-size: 2rem;
-`;
-
-const DividerText = styled.p`
+const CardDescription = styled.p`
   color: rgba(255, 255, 255, 0.7);
-  font-size: 1.1rem;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
 `;
 
-// Click hint tooltip
-const ClickHint = styled.div`
-  position: fixed;
-  bottom: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.9);
-  color: #f8fafc;
-  padding: 0.75rem 1.5rem;
-  border-radius: 50px;
-  font-size: 0.9rem;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  z-index: 100;
-  opacity: ${props => props.$visible ? 1 : 0};
-  transition: opacity 0.5s ease;
-  pointer-events: none;
+const CardFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const CardBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
   
-  span {
-    color: #10b981;
-    font-weight: 600;
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const CardArrow = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  
+  svg {
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+  }
+  
+  ${SectionCard}:hover & {
+    background: ${props => props.$gradient};
+    
+    svg {
+      color: white;
+      transform: translateX(-4px);
+    }
   }
 `;
 
 // ================ DATA ================
 
-const STREET_ELEMENTS = [
-  // ====== SECTION 1: כניסה לשדרה ======
+const SECTIONS = [
   {
-    id: 'welcome-tree',
-    type: 'decoration',
-    emoji: '🌳',
-    top: '5%',
-    left: '10%',
-    size: '6rem',
-    opacity: 0.7,
-    duration: 8,
-  },
-  {
-    id: 'welcome-tree2',
-    type: 'decoration',
-    emoji: '🌲',
-    top: '3%',
-    right: '8%',
-    size: '5rem',
-    opacity: 0.6,
-    duration: 10,
-  },
-  {
-    id: 'lamp1',
-    type: 'lamp',
-    top: '8%',
-    left: '25%',
-    height: '100px',
-  },
-  
-  // ====== ספסל - לוח מודעות ======
-  {
-    id: 'bench',
-    type: 'clickable',
-    emoji: '🪑',
-    label: 'לוח קהילתי',
-    top: '12%',
-    left: '15%',
-    size: '5rem',
-    path: '/market',
-    animate: true,
-  },
-  
-  // ====== עץ גדול ======
-  {
-    id: 'big-tree',
-    type: 'decoration',
-    emoji: '🌳',
-    top: '15%',
-    right: '20%',
-    size: '8rem',
-    opacity: 0.8,
-    duration: 7,
-  },
-  
-  // ====== דוכן פירות - מתכונים ======
-  {
-    id: 'fruit-stand',
-    type: 'clickable',
-    emoji: '🍎',
-    label: 'מתכונים טעימים',
-    top: '20%',
-    right: '25%',
-    size: '5.5rem',
+    id: 'recipes',
+    title: 'מתכונים',
+    description: 'מתכונים טעימים, טיפים קולינריים וסודות המטבח',
+    icon: Utensils,
+    color: '#f59e0b',
+    gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
     path: '/recipes',
-    animate: true,
-    sparkle: true,
-  },
-  
-  // ====== Section Divider ======
-  {
-    id: 'divider1',
-    type: 'divider',
-    top: '25%',
-    emoji: '🛤️',
-    text: 'ממשיכים בטיול...',
-  },
-  
-  // ====== פרחים ======
-  {
-    id: 'flowers1',
-    type: 'decoration',
-    emoji: '🌸',
-    top: '28%',
-    left: '5%',
-    size: '3rem',
-    opacity: 0.6,
+    label: 'טעים!',
+    parallaxSpeed: 0.15,
   },
   {
-    id: 'flowers2',
-    type: 'decoration',
-    emoji: '🌺',
-    top: '30%',
-    right: '8%',
-    size: '3.5rem',
-    opacity: 0.5,
-  },
-  
-  // ====== ספריה - סיפורים ======
-  {
-    id: 'library',
-    type: 'clickable',
-    emoji: '📚',
-    label: 'סיפורים בהמשכים',
-    top: '32%',
-    left: '30%',
-    size: '5.5rem',
+    id: 'stories',
+    title: 'סיפורים בהמשכים',
+    description: 'סיפורים מרגשים שילוו אותך לאורך כל השבוע',
+    icon: Book,
+    color: '#8b5cf6',
+    gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
     path: '/stories',
-    animate: true,
+    label: 'פרק חדש',
+    parallaxSpeed: 0.1,
   },
-  
-  // ====== פנס נוסף ======
   {
-    id: 'lamp2',
-    type: 'lamp',
-    top: '35%',
-    right: '15%',
-    height: '110px',
-  },
-  
-  // ====== שיח ======
-  {
-    id: 'bush1',
-    type: 'decoration',
-    emoji: '🌿',
-    top: '38%',
-    left: '8%',
-    size: '4rem',
-    opacity: 0.5,
-  },
-  
-  // ====== קיוסק - הגרלות ======
-  {
-    id: 'kiosk',
-    type: 'clickable',
-    emoji: '🎁',
-    label: 'הגרלות ופרסים',
-    top: '42%',
-    right: '22%',
-    size: '6rem',
-    path: '/giveaways',
-    animate: true,
-    sparkle: true,
-  },
-  
-  // ====== עצים נוספים ======
-  {
-    id: 'palm',
-    type: 'decoration',
-    emoji: '🌴',
-    top: '45%',
-    left: '12%',
-    size: '7rem',
-    opacity: 0.6,
-    duration: 9,
-  },
-  
-  // ====== Section Divider ======
-  {
-    id: 'divider2',
-    type: 'divider',
-    top: '50%',
-    emoji: '☀️',
-    text: 'עוד קצת לטייל...',
-  },
-  
-  // ====== בית קפה - כתבות ======
-  {
-    id: 'cafe',
-    type: 'clickable',
-    emoji: '☕',
-    label: 'טורים וכתבות',
-    top: '55%',
-    left: '25%',
-    size: '5.5rem',
-    path: '/articles',
-    animate: true,
-  },
-  
-  // ====== עץ ======
-  {
-    id: 'tree3',
-    type: 'decoration',
-    emoji: '🌳',
-    top: '58%',
-    right: '10%',
-    size: '6rem',
-    opacity: 0.7,
-    duration: 8,
-  },
-  
-  // ====== פנס ======
-  {
-    id: 'lamp3',
-    type: 'lamp',
-    top: '60%',
-    left: '18%',
-    height: '90px',
-  },
-  
-  // ====== פאזל - אתגרים ======
-  {
-    id: 'puzzle',
-    type: 'clickable',
-    emoji: '🧩',
-    label: 'חידות ואתגרים',
-    top: '65%',
-    right: '30%',
-    size: '5.5rem',
+    id: 'challenges',
+    title: 'חידות ואתגרים',
+    description: 'סודוקו, חידות חשיבה ואתגרים שבועיים',
+    icon: Puzzle,
+    color: '#ec4899',
+    gradient: 'linear-gradient(135deg, #ec4899, #db2777)',
     path: '/challenges',
-    animate: true,
-    sparkle: true,
-  },
-  
-  // ====== פרחים נוספים ======
-  {
-    id: 'flowers3',
-    type: 'decoration',
-    emoji: '🌻',
-    top: '68%',
-    left: '6%',
-    size: '4rem',
-    opacity: 0.6,
+    label: 'אתגר!',
+    parallaxSpeed: 0.2,
   },
   {
-    id: 'flowers4',
-    type: 'decoration',
-    emoji: '🌷',
-    top: '70%',
-    right: '5%',
-    size: '3.5rem',
-    opacity: 0.5,
+    id: 'giveaways',
+    title: 'הגרלות',
+    description: 'השתתפי בהגרלות שבועיות ותזכי בפרסים מדהימים',
+    icon: Gift,
+    color: '#10b981',
+    gradient: 'linear-gradient(135deg, #10b981, #059669)',
+    path: '/giveaways',
+    label: 'הגרלה!',
+    parallaxSpeed: 0.12,
   },
-  
-  // ====== Section Divider ======
   {
-    id: 'divider3',
-    type: 'divider',
-    top: '75%',
-    emoji: '🌟',
-    text: 'כמעט סיימנו!',
+    id: 'articles',
+    title: 'כתבות וטורים',
+    description: 'טורים אישיים, כתבות מעמיקות ושיחות מהלב',
+    icon: Coffee,
+    color: '#92400e',
+    gradient: 'linear-gradient(135deg, #b45309, #92400e)',
+    path: '/articles',
+    label: 'חדש!',
+    parallaxSpeed: 0.18,
   },
-  
-  // ====== עוד עצים ======
   {
-    id: 'tree4',
-    type: 'decoration',
-    emoji: '🌲',
-    top: '78%',
-    left: '15%',
-    size: '5.5rem',
-    opacity: 0.6,
-    duration: 11,
+    id: 'market',
+    title: 'לוח קהילתי',
+    description: 'קניה, מכירה, שירותים - הכל בתוך הקהילה שלנו',
+    icon: ShoppingBag,
+    color: '#059669',
+    gradient: 'linear-gradient(135deg, #10b981, #059669)',
+    path: '/market',
+    label: 'עסקאות',
+    parallaxSpeed: 0.08,
   },
-  
-  // ====== עיתון - גיליונות ======
   {
-    id: 'newspaper',
-    type: 'clickable',
-    emoji: '📰',
-    label: 'ארכיון גיליונות',
-    top: '82%',
-    left: '35%',
-    size: '5.5rem',
+    id: 'issues',
+    title: 'ארכיון גיליונות',
+    description: 'כל הגיליונות הקודמים של השדרה במקום אחד',
+    icon: Newspaper,
+    color: '#6366f1',
+    gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)',
     path: '/issues',
-    animate: true,
-  },
-  
-  // ====== פנס אחרון ======
-  {
-    id: 'lamp4',
-    type: 'lamp',
-    top: '85%',
-    right: '20%',
-    height: '100px',
-  },
-  
-  // ====== סוף הרחוב ======
-  {
-    id: 'end-tree1',
-    type: 'decoration',
-    emoji: '🌳',
-    top: '90%',
-    left: '10%',
-    size: '6rem',
-    opacity: 0.7,
-  },
-  {
-    id: 'end-tree2',
-    type: 'decoration',
-    emoji: '🌲',
-    top: '92%',
-    right: '12%',
-    size: '5rem',
-    opacity: 0.6,
-  },
-  
-  // ====== בית - דף הבית ======
-  {
-    id: 'home',
-    type: 'clickable',
-    emoji: '🏠',
-    label: 'חזרה הביתה',
-    top: '95%',
-    left: '45%',
-    size: '6rem',
-    path: '/',
-    animate: true,
+    label: 'ארכיון',
+    parallaxSpeed: 0.14,
   },
 ];
 
@@ -734,11 +439,10 @@ const STREET_ELEMENTS = [
 export default function ShederaStreet() {
   const navigate = useNavigate();
   const [scrollY, setScrollY] = useState(0);
-  const [visibleElements, setVisibleElements] = useState(new Set());
-  const [showClickHint, setShowClickHint] = useState(false);
-  const elementRefs = useRef({});
+  const [visibleCards, setVisibleCards] = useState(new Set());
+  const cardRefs = useRef([]);
   
-  // Scroll handler
+  // Smooth scroll handler
   const handleScroll = useCallback(() => {
     setScrollY(window.scrollY);
   }, []);
@@ -748,66 +452,42 @@ export default function ShederaStreet() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
   
-  // Show click hint after scrolling a bit
-  useEffect(() => {
-    if (scrollY > 300 && scrollY < 1500) {
-      setShowClickHint(true);
-    } else {
-      setShowClickHint(false);
-    }
-  }, [scrollY]);
-  
-  // Intersection Observer for elements appearing
+  // Intersection Observer for cards appearing
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const id = entry.target.dataset.id;
-            setVisibleElements(prev => new Set([...prev, id]));
+            setVisibleCards(prev => new Set([...prev, id]));
           }
         });
       },
-      { threshold: 0.1, rootMargin: '50px' }
+      { threshold: 0.15, rootMargin: '0px 0px -50px 0px' }
     );
     
-    Object.values(elementRefs.current).forEach(ref => {
+    cardRefs.current.forEach(ref => {
       if (ref) observer.observe(ref);
     });
     
     return () => observer.disconnect();
   }, []);
   
-  const handleElementClick = (element) => {
-    if (element.path) {
-      navigate(element.path);
-    }
+  const handleCardClick = (section) => {
+    navigate(section.path);
   };
   
-  const leaves = ['🍂', '🍃', '🌿'];
+  // Calculate parallax offset for each card
+  const getParallaxOffset = (index, speed) => {
+    const cardTop = 800 + (index * 150); // Approximate position
+    const relativeScroll = scrollY - cardTop + 500;
+    return relativeScroll * speed * -1;
+  };
   
   return (
-    <StreetContainer>
-      {/* Background - always visible */}
-      <BackgroundImage $scrollY={scrollY} />
-      
-      {/* Flying birds */}
-      <Bird $top={8} $duration={30} $delay={0}>🕊️</Bird>
-      <Bird $top={15} $duration={40} $delay={12}>🐦</Bird>
-      <Bird $top={5} $duration={35} $delay={25}>🕊️</Bird>
-      
-      {/* Falling leaves */}
-      {[...Array(8)].map((_, i) => (
-        <Leaf 
-          key={i}
-          $left={10 + (i * 12)}
-          $size={1.2 + Math.random() * 0.6}
-          $duration={16 + Math.random() * 8}
-          $delay={i * 4}
-        >
-          {leaves[i % leaves.length]}
-        </Leaf>
-      ))}
+    <PageContainer>
+      {/* Fixed Background - doesn't move */}
+      <FixedBackground />
       
       <Content>
         {/* Welcome Section */}
@@ -815,126 +495,72 @@ export default function ShederaStreet() {
           <WelcomeContent $scrollY={scrollY}>
             <WelcomeBadge>
               <TreePine size={20} />
-              טיול בשדרה
+              מדורי השדרה
             </WelcomeBadge>
-            <WelcomeTitle>ברוכה הבאה</WelcomeTitle>
+            <WelcomeTitle>המדורים שלנו</WelcomeTitle>
             <WelcomeSubtitle>
-              גללי למטה וטיילי ברחוב שלנו
-              <br />
-              לחצי על האלמנטים כדי להיכנס למדורים 🚶‍♀️
+              גללי למטה וגלי את כל התכנים המיוחדים שלנו
             </WelcomeSubtitle>
           </WelcomeContent>
           
           <ScrollHint>
-            <span>התחילי לטייל</span>
-            <WalkDots>
-              <Dot $delay={0} />
-              <Dot $delay={0.2} />
-              <Dot $delay={0.4} />
-            </WalkDots>
-            <ChevronDown size={36} />
+            <span>גללי למטה</span>
+            <ChevronDown size={32} />
           </ScrollHint>
         </WelcomeSection>
         
-        {/* Street Scene - all elements positioned absolutely */}
-        <StreetSection>
-          <StreetScene>
-            {STREET_ELEMENTS.map((element) => {
-              const isVisible = visibleElements.has(element.id);
+        {/* Sections Grid */}
+        <SectionsArea>
+          <SectionsTitle>
+            <h2>✨ בחרי מדור</h2>
+            <p>לחצי על כרטיס כדי להיכנס</p>
+          </SectionsTitle>
+          
+          <SectionsGrid>
+            {SECTIONS.map((section, index) => {
+              const Icon = section.icon;
+              const isVisible = visibleCards.has(section.id);
+              const parallaxOffset = getParallaxOffset(index, section.parallaxSpeed);
               
-              // Clickable element
-              if (element.type === 'clickable') {
-                return (
-                  <StreetElement
-                    key={element.id}
-                    ref={el => elementRefs.current[element.id] = el}
-                    data-id={element.id}
-                    $top={element.top}
-                    $left={element.left}
-                    $right={element.right}
-                    $visible={isVisible}
-                    $zIndex={30}
-                    onClick={() => handleElementClick(element)}
-                  >
-                    {element.sparkle && (
-                      <ElementSparkle $delay={Math.random()}>✨</ElementSparkle>
-                    )}
-                    <ElementEmoji 
-                      $size={element.size}
-                      $animate={element.animate}
-                      $delay={Math.random() * 2}
-                    >
-                      {element.emoji}
-                    </ElementEmoji>
-                    <ElementLabel>{element.label}</ElementLabel>
-                  </StreetElement>
-                );
-              }
-              
-              // Lamp post
-              if (element.type === 'lamp') {
-                return (
-                  <LampPost
-                    key={element.id}
-                    ref={el => elementRefs.current[element.id] = el}
-                    data-id={element.id}
-                    $top={element.top}
-                    $left={element.left}
-                    $right={element.right}
-                    style={{ opacity: isVisible ? 0.9 : 0, transition: 'opacity 0.8s ease' }}
-                  >
-                    <LampLight>💡</LampLight>
-                    <LampPole $height={element.height} />
-                  </LampPost>
-                );
-              }
-              
-              // Divider
-              if (element.type === 'divider') {
-                return (
-                  <SectionDivider
-                    key={element.id}
-                    ref={el => elementRefs.current[element.id] = el}
-                    data-id={element.id}
-                    $top={element.top}
-                    $visible={isVisible}
-                  >
-                    <DividerLine>
-                      <DividerEmoji>{element.emoji}</DividerEmoji>
-                    </DividerLine>
-                    <DividerText>{element.text}</DividerText>
-                  </SectionDivider>
-                );
-              }
-              
-              // Decoration
               return (
-                <Decoration
-                  key={element.id}
-                  ref={el => elementRefs.current[element.id] = el}
-                  data-id={element.id}
-                  $top={element.top}
-                  $left={element.left}
-                  $right={element.right}
-                  $size={element.size}
-                  $opacity={isVisible ? element.opacity : 0}
-                  $duration={element.duration}
-                  $blur={element.blur}
-                  $zIndex={element.zIndex}
-                  style={{ transition: 'opacity 0.8s ease' }}
+                <SectionCard
+                  key={section.id}
+                  ref={el => cardRefs.current[index] = el}
+                  data-id={section.id}
+                  $color={section.color}
+                  $gradient={section.gradient}
+                  $visible={isVisible}
+                  $delay={index * 0.1}
+                  $offset={parallaxOffset}
+                  onClick={() => handleCardClick(section)}
                 >
-                  {element.emoji}
-                </Decoration>
+                  <CardLabel $color={section.color} $gradient={section.gradient}>
+                    {section.label}
+                  </CardLabel>
+                  
+                  <CardIcon $color={section.color} $gradient={section.gradient}>
+                    <Icon size={32} />
+                  </CardIcon>
+                  
+                  <CardTitle $color={section.color}>{section.title}</CardTitle>
+                  <CardDescription>{section.description}</CardDescription>
+                  
+                  <CardFooter>
+                    <CardBadge>
+                      <Sparkles />
+                      לחצי לכניסה
+                    </CardBadge>
+                    
+                    <CardArrow $gradient={section.gradient}>
+                      <ArrowRight size={18} />
+                    </CardArrow>
+                  </CardFooter>
+                </SectionCard>
               );
             })}
-          </StreetScene>
-        </StreetSection>
+          </SectionsGrid>
+        </SectionsArea>
       </Content>
-      
-      {/* Click hint */}
-      <ClickHint $visible={showClickHint}>
-        💡 <span>לחצי</span> על האלמנטים כדי להיכנס למדורים!
-      </ClickHint>
-    </StreetContainer>
+    </PageContainer>
   );
 }
