@@ -1820,10 +1820,10 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     console.log('➡️ goToNextPage called, flipbook:', !!flipbook, 'current:', current);
     if (!flipbook) return;
     
-    // עמוד 1 (כריכה) ב-RTL - צריך להשתמש ב-goToPage
+    // עמוד 1 (כריכה) ב-RTL - צריך להשתמש ב-Book.goToPage ישירות (בלי RTL conversion)
     if (current <= 1) {
-      console.log('  On cover page - using goToPage(2)');
-      flipbook.goToPage?.(2, false);
+      console.log('  On cover page - using Book.goToPage(2) directly');
+      flipbook.Book?.goToPage?.(2, false);
     } else if (typeof flipbook.nextPage === 'function') {
       console.log('  Using flipbook.nextPage()');
       flipbook.nextPage();
