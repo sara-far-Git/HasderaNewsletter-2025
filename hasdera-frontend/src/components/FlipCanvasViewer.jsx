@@ -1140,8 +1140,16 @@ export default function FlipCanvasViewer({ issue, onClose }) {
     const flipbook = flipbookInstanceRef.current;
     if (!flipbook) return;
 
-    if (typeof flipbook.flipPrev === "function") {
-      flipbook.flipPrev();
+    if (typeof flipbook.nextPage === "function") {
+      flipbook.nextPage(); // RTL: nextPage = קודם
+      setTimeout(() => {
+        const page = flipbook.getCurrentPageNumber?.();
+        if (page) {
+          trackedPageRef.current = page;
+          lastPageRef.current = page;
+          setCurrentPage(page);
+        }
+      }, 150);
       return;
     }
 
@@ -1164,8 +1172,16 @@ export default function FlipCanvasViewer({ issue, onClose }) {
     const flipbook = flipbookInstanceRef.current;
     if (!flipbook) return;
 
-    if (typeof flipbook.flipNext === "function") {
-      flipbook.flipNext();
+    if (typeof flipbook.prevPage === "function") {
+      flipbook.prevPage(); // RTL: prevPage = הבא
+      setTimeout(() => {
+        const page = flipbook.getCurrentPageNumber?.();
+        if (page) {
+          trackedPageRef.current = page;
+          lastPageRef.current = page;
+          setCurrentPage(page);
+        }
+      }, 150);
       return;
     }
 
