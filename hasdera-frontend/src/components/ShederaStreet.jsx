@@ -1,9 +1,9 @@
 /**
  * ShederaStreet.jsx
- * 🌳 "מדורים" - ריבועים בזיגזג שמופיעים בפתאומיות + אלמנטים תלת מימדיים
+ * 🌳 "מדורים" - ריבועים בזיגזג עם אנימציות חלקות
  */
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styled, { keyframes, css } from "styled-components";
 import { 
@@ -16,32 +16,22 @@ import {
 const popInLeft = keyframes`
   0% { 
     opacity: 0; 
-    transform: translateX(-200px) scale(0.5) rotate(-10deg);
-    filter: blur(10px);
-  }
-  60% {
-    transform: translateX(20px) scale(1.05) rotate(2deg);
+    transform: translateX(-150px) scale(0.7);
   }
   100% { 
     opacity: 1; 
-    transform: translateX(0) scale(1) rotate(0deg);
-    filter: blur(0);
+    transform: translateX(0) scale(1);
   }
 `;
 
 const popInRight = keyframes`
   0% { 
     opacity: 0; 
-    transform: translateX(200px) scale(0.5) rotate(10deg);
-    filter: blur(10px);
-  }
-  60% {
-    transform: translateX(-20px) scale(1.05) rotate(-2deg);
+    transform: translateX(150px) scale(0.7);
   }
   100% { 
     opacity: 1; 
-    transform: translateX(0) scale(1) rotate(0deg);
-    filter: blur(0);
+    transform: translateX(0) scale(1);
   }
 `;
 
@@ -57,27 +47,16 @@ const scrollHint = keyframes`
 
 const birdFly = keyframes`
   0% { 
-    transform: translate(0, 0); 
-    opacity: 0;
+    transform: translate(-100px, 0); 
   }
-  5% { opacity: 0.8; }
-  50% { 
-    transform: translate(50vw, -40px); 
-  }
-  95% { opacity: 0.8; }
   100% { 
-    transform: translate(100vw, 10px); 
-    opacity: 0;
+    transform: translate(calc(100vw + 100px), -50px); 
   }
 `;
 
 const wingFlap = keyframes`
-  0%, 100% { 
-    transform: rotateX(0deg) scaleY(1);
-  }
-  50% { 
-    transform: rotateX(60deg) scaleY(0.6);
-  }
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.4); }
 `;
 
 const leafFall = keyframes`
@@ -85,29 +64,55 @@ const leafFall = keyframes`
     transform: translateY(-100px) rotate(0deg) translateX(0); 
     opacity: 0; 
   }
-  10% { opacity: 0.8; }
-  50% { transform: translateY(50vh) rotate(360deg) translateX(50px); }
+  10% { opacity: 0.7; }
   100% { 
-    transform: translateY(110vh) rotate(720deg) translateX(-30px); 
+    transform: translateY(100vh) rotate(720deg) translateX(100px); 
     opacity: 0; 
   }
 `;
 
 const sway = keyframes`
-  0%, 100% { transform: rotate(-3deg) translateX(0); }
-  50% { transform: rotate(3deg) translateX(10px); }
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
 `;
 
 const twinkle = keyframes`
-  0%, 100% { opacity: 0.3; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.2); }
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.3); }
 `;
 
-const floatSlow = keyframes`
-  0%, 100% { transform: translateY(0) translateX(0); }
-  25% { transform: translateY(-20px) translateX(10px); }
-  50% { transform: translateY(-10px) translateX(-5px); }
-  75% { transform: translateY(-30px) translateX(5px); }
+const floatAround = keyframes`
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(15px, -20px) rotate(5deg); }
+  50% { transform: translate(-10px, -10px) rotate(-5deg); }
+  75% { transform: translate(20px, -25px) rotate(10deg); }
+`;
+
+const cloudMove = keyframes`
+  0% { transform: translateX(-100%); opacity: 0; }
+  10% { opacity: 0.4; }
+  90% { opacity: 0.4; }
+  100% { transform: translateX(100vw); opacity: 0; }
+`;
+
+const shimmer = keyframes`
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+const pulse = keyframes`
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.5); opacity: 0.2; }
+`;
+
+const spin = keyframes`
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+`;
+
+const bounce = keyframes`
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
 `;
 
 // ================ STYLED COMPONENTS ================
@@ -118,18 +123,16 @@ const PageContainer = styled.div`
   overflow-x: hidden;
 `;
 
-// Fixed Background
+// Fixed Background - completely static, no JS
 const FixedBackground = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-image: url("/image/ChatGPT Image Nov 16, 2025, 08_56_06 PM.png");
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   z-index: 0;
+  will-change: auto;
 
   &::before {
     content: '';
@@ -137,160 +140,183 @@ const FixedBackground = styled.div`
     inset: 0;
     background: linear-gradient(
       180deg,
-      rgba(15, 23, 42, 0.45) 0%,
-      rgba(20, 30, 48, 0.35) 50%,
-      rgba(15, 23, 42, 0.5) 100%
+      rgba(15, 23, 42, 0.4) 0%,
+      rgba(20, 30, 48, 0.3) 50%,
+      rgba(15, 23, 42, 0.45) 100%
     );
   }
 `;
 
-// ===== 3D ELEMENTS =====
+// ===== 3D ELEMENTS - All CSS only, no JS =====
 
-// Animated Bird with flapping wings
-const BirdContainer = styled.div.attrs(props => ({
-  style: {
-    top: `${props.$top || 15}%`,
-    animationDuration: `${props.$duration || 20}s`,
-    animationDelay: `${props.$delay || 0}s`,
-  }
-}))`
+const AnimationLayer = styled.div`
   position: fixed;
-  left: -80px;
-  z-index: 60;
+  inset: 0;
   pointer-events: none;
-  animation: ${birdFly} linear infinite;
+  z-index: 5;
+  overflow: hidden;
+`;
+
+// Animated Bird with flapping wings - pure CSS
+const BirdWrapper = styled.div`
+  position: absolute;
+  top: ${props => props.$top}%;
+  left: 0;
+  animation: ${birdFly} ${props => props.$duration}s linear infinite;
+  animation-delay: ${props => props.$delay}s;
+  will-change: transform;
 `;
 
 const BirdBody = styled.div`
   position: relative;
-  width: 30px;
-  height: 12px;
+  width: 35px;
+  height: 14px;
   background: #1e293b;
-  border-radius: 50% 20% 20% 50%;
+  border-radius: 50% 25% 25% 50%;
   
-  /* Head */
   &::before {
     content: '';
     position: absolute;
-    right: -8px;
-    top: -2px;
-    width: 14px;
-    height: 14px;
+    right: -10px;
+    top: -3px;
+    width: 16px;
+    height: 16px;
     background: #1e293b;
     border-radius: 50%;
   }
   
-  /* Beak */
   &::after {
     content: '';
     position: absolute;
-    right: -16px;
+    right: -18px;
     top: 4px;
-    width: 0;
-    height: 0;
-    border-left: 10px solid #f59e0b;
-    border-top: 4px solid transparent;
-    border-bottom: 4px solid transparent;
+    border-left: 12px solid #f59e0b;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
   }
 `;
 
 const BirdWing = styled.div`
   position: absolute;
-  top: -8px;
-  left: 8px;
-  width: 20px;
-  height: 16px;
-  background: #334155;
+  top: -10px;
+  left: 10px;
+  width: 22px;
+  height: 18px;
+  background: #475569;
   border-radius: 50% 50% 0 0;
   transform-origin: bottom center;
-  animation: ${wingFlap} 0.15s ease-in-out infinite;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: -4px;
-    left: 4px;
-    width: 14px;
-    height: 12px;
-    background: #475569;
-    border-radius: 50% 50% 0 0;
-  }
+  animation: ${wingFlap} 0.12s ease-in-out infinite;
+  will-change: transform;
 `;
 
 const BirdTail = styled.div`
   position: absolute;
-  left: -12px;
-  top: 2px;
-  width: 0;
-  height: 0;
-  border-right: 15px solid #1e293b;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
+  left: -14px;
+  top: 3px;
+  border-right: 18px solid #334155;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
 `;
 
-const Leaf = styled.div.attrs(props => ({
-  style: {
-    left: `${props.$left || 50}%`,
-    fontSize: `${props.$size || 1.5}rem`,
-    animationDuration: `${props.$duration || 15}s`,
-    animationDelay: `${props.$delay || 0}s`,
-  }
-}))`
-  position: fixed;
-  z-index: 55;
-  animation: ${leafFall} linear infinite;
-  top: -50px;
-  pointer-events: none;
+// Falling leaves - pure CSS
+const LeafElement = styled.div`
+  position: absolute;
+  top: 0;
+  left: ${props => props.$left}%;
+  font-size: ${props => props.$size}rem;
+  animation: ${leafFall} ${props => props.$duration}s linear infinite;
+  animation-delay: ${props => props.$delay}s;
+  will-change: transform;
 `;
 
-const FloatingTree = styled.div.attrs(props => ({
-  style: {
-    left: props.$left || 'auto',
-    right: props.$right || 'auto',
-    top: props.$top || '20%',
-    fontSize: props.$size || '4rem',
-    opacity: props.$opacity || 0.3,
-    animationDuration: `${props.$duration || 8}s`,
-    filter: props.$blur ? `blur(${props.$blur}px)` : 'none',
-  }
-}))`
-  position: fixed;
-  z-index: 5;
-  animation: ${sway} ease-in-out infinite;
-  pointer-events: none;
+// Swaying trees - pure CSS
+const TreeElement = styled.div`
+  position: absolute;
+  top: ${props => props.$top};
+  ${props => props.$left ? `left: ${props.$left};` : ''}
+  ${props => props.$right ? `right: ${props.$right};` : ''}
+  font-size: ${props => props.$size};
+  opacity: ${props => props.$opacity};
+  animation: ${sway} ${props => props.$duration}s ease-in-out infinite;
+  filter: blur(${props => props.$blur || 0}px);
+  will-change: transform;
 `;
 
-const Sparkle = styled.div.attrs(props => ({
-  style: {
-    top: props.$top,
-    left: props.$left,
-    animationDuration: `${props.$duration || 3}s`,
-    animationDelay: `${props.$delay || 0}s`,
-  }
-}))`
-  position: fixed;
-  font-size: 1.2rem;
-  z-index: 50;
-  animation: ${twinkle} ease-in-out infinite;
-  pointer-events: none;
-  opacity: 0.6;
+// Sparkles - pure CSS
+const SparkleElement = styled.div`
+  position: absolute;
+  top: ${props => props.$top};
+  left: ${props => props.$left};
+  font-size: 1.3rem;
+  animation: ${twinkle} ${props => props.$duration}s ease-in-out infinite;
+  animation-delay: ${props => props.$delay}s;
+  will-change: transform, opacity;
 `;
 
-const FloatingElement = styled.div.attrs(props => ({
-  style: {
-    left: props.$left || 'auto',
-    right: props.$right || 'auto',
-    top: props.$top,
-    fontSize: props.$size || '2rem',
-    opacity: props.$opacity || 0.5,
-    animationDuration: `${props.$duration || 10}s`,
-    animationDelay: `${props.$delay || 0}s`,
-  }
-}))`
-  position: fixed;
-  z-index: 45;
-  animation: ${floatSlow} ease-in-out infinite;
-  pointer-events: none;
+// Floating elements - butterflies, flowers
+const FloatingItem = styled.div`
+  position: absolute;
+  top: ${props => props.$top};
+  ${props => props.$left ? `left: ${props.$left};` : ''}
+  ${props => props.$right ? `right: ${props.$right};` : ''}
+  font-size: ${props => props.$size};
+  opacity: ${props => props.$opacity};
+  animation: ${floatAround} ${props => props.$duration}s ease-in-out infinite;
+  animation-delay: ${props => props.$delay}s;
+  will-change: transform;
+`;
+
+// Clouds - slow moving
+const CloudElement = styled.div`
+  position: absolute;
+  top: ${props => props.$top};
+  font-size: ${props => props.$size};
+  opacity: 0.35;
+  animation: ${cloudMove} ${props => props.$duration}s linear infinite;
+  animation-delay: ${props => props.$delay}s;
+  will-change: transform;
+`;
+
+// Light beams - decorative
+const LightBeam = styled.div`
+  position: absolute;
+  top: 0;
+  left: ${props => props.$left}%;
+  width: 100px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    transparent 40%
+  );
+  transform: rotate(${props => props.$rotate}deg);
+  animation: ${pulse} ${props => props.$duration}s ease-in-out infinite;
+  animation-delay: ${props => props.$delay}s;
+`;
+
+// Stars
+const StarElement = styled.div`
+  position: absolute;
+  top: ${props => props.$top};
+  left: ${props => props.$left};
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  animation: ${twinkle} ${props => props.$duration}s ease-in-out infinite;
+  animation-delay: ${props => props.$delay}s;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+`;
+
+// Spinning element
+const SpinningElement = styled.div`
+  position: absolute;
+  top: ${props => props.$top};
+  ${props => props.$left ? `left: ${props.$left};` : ''}
+  ${props => props.$right ? `right: ${props.$right};` : ''}
+  font-size: ${props => props.$size};
+  opacity: ${props => props.$opacity};
+  animation: ${spin} ${props => props.$duration}s linear infinite;
 `;
 
 const Content = styled.div`
@@ -312,9 +338,7 @@ const WelcomeSection = styled.section`
 `;
 
 const WelcomeContent = styled.div`
-  transform: translateY(${props => Math.min(0, -props.$scrollY * 0.3)}px);
-  opacity: ${props => Math.max(0, 1 - props.$scrollY / 600)};
-  transition: all 0.1s ease-out;
+  animation: ${float} 4s ease-in-out infinite;
 `;
 
 const WelcomeBadge = styled.div`
@@ -393,7 +417,7 @@ const CardWrapper = styled.div`
   }
 `;
 
-// Card - completely invisible until triggered
+// Card with smooth appearance
 const SectionCard = styled.div`
   width: 100%;
   max-width: 480px;
@@ -409,25 +433,21 @@ const SectionCard = styled.div`
   backdrop-filter: blur(25px);
   position: relative;
   overflow: hidden;
+  will-change: transform, opacity;
   
-  /* Completely invisible until visible */
+  /* Invisible until visible */
   opacity: 0;
   visibility: hidden;
-  transform: ${props => props.$side === 'left' ? 'translateX(-200px)' : 'translateX(200px)'} scale(0.5);
+  transform: ${props => props.$side === 'left' ? 'translateX(-100px)' : 'translateX(100px)'};
   
-  /* When visible - animate in */
   ${props => props.$visible && props.$side === 'left' && css`
     visibility: visible;
-    opacity: 1;
-    transform: translateX(0) scale(1);
-    animation: ${popInLeft} 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: ${popInLeft} 0.6s ease-out forwards;
   `}
   
   ${props => props.$visible && props.$side === 'right' && css`
     visibility: visible;
-    opacity: 1;
-    transform: translateX(0) scale(1);
-    animation: ${popInRight} 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: ${popInRight} 0.6s ease-out forwards;
   `}
   
   &::before {
@@ -457,19 +477,14 @@ const SectionCard = styled.div`
   }
   
   &:hover {
-    transform: scale(1.04) translateY(-8px);
+    transform: scale(1.03) translateY(-8px);
     border-color: ${props => props.$color}60;
     box-shadow: 
       0 35px 70px rgba(0, 0, 0, 0.4),
-      0 0 80px ${props => props.$color}25;
+      0 0 80px ${props => props.$color}20;
     
-    &::before {
-      height: 8px;
-    }
-    
-    &::after {
-      opacity: 1;
-    }
+    &::before { height: 8px; }
+    &::after { opacity: 1; }
   }
 `;
 
@@ -492,7 +507,7 @@ const CardIcon = styled.div`
   
   ${SectionCard}:hover & {
     transform: scale(1.15) rotate(-8deg);
-    animation: ${float} 1.5s ease-in-out infinite;
+    animation: ${bounce} 0.5s ease-in-out;
   }
 `;
 
@@ -541,11 +556,6 @@ const CardBadge = styled.span`
   gap: 0.5rem;
   color: rgba(255, 255, 255, 0.65);
   font-size: 0.95rem;
-  
-  svg {
-    width: 16px;
-    height: 16px;
-  }
 `;
 
 const CardArrow = styled.div`
@@ -649,27 +659,16 @@ const SECTIONS = [
   },
 ];
 
-// Leaves data
-const LEAVES = ['🍂', '🍃', '🌿', '🍀', '🌸'];
+const LEAVES = ['🍂', '🍃', '🌿', '🍀', '🌸', '🌺'];
 
 // ================ COMPONENT ================
 
 export default function ShederaStreet() {
   const navigate = useNavigate();
-  const [scrollY, setScrollY] = useState(0);
   const [visibleCards, setVisibleCards] = useState(new Set());
   const cardRefs = useRef([]);
   
-  const handleScroll = useCallback(() => {
-    setScrollY(window.scrollY);
-  }, []);
-  
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
-  
-  // Intersection Observer - trigger when card enters viewport
+  // Intersection Observer for cards
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -680,7 +679,7 @@ export default function ShederaStreet() {
           }
         });
       },
-      { threshold: 0.25, rootMargin: '0px 0px -150px 0px' }
+      { threshold: 0.2, rootMargin: '0px 0px -100px 0px' }
     );
     
     cardRefs.current.forEach(ref => {
@@ -698,67 +697,83 @@ export default function ShederaStreet() {
     <PageContainer>
       <FixedBackground />
       
-      {/* 3D Elements - Animated Birds with flapping wings */}
-      <BirdContainer $top={8} $duration={22} $delay={0}>
-        <BirdBody>
-          <BirdWing />
-          <BirdTail />
-        </BirdBody>
-      </BirdContainer>
-      <BirdContainer $top={18} $duration={30} $delay={7}>
-        <BirdBody>
-          <BirdWing />
-          <BirdTail />
-        </BirdBody>
-      </BirdContainer>
-      <BirdContainer $top={5} $duration={26} $delay={15}>
-        <BirdBody>
-          <BirdWing />
-          <BirdTail />
-        </BirdBody>
-      </BirdContainer>
-      <BirdContainer $top={25} $duration={35} $delay={22}>
-        <BirdBody>
-          <BirdWing />
-          <BirdTail />
-        </BirdBody>
-      </BirdContainer>
-      
-      {/* 3D Elements - Falling Leaves */}
-      {[...Array(10)].map((_, i) => (
-        <Leaf
-          key={i}
-          $left={5 + i * 10}
-          $size={1.2 + Math.random() * 0.8}
-          $duration={12 + Math.random() * 10}
-          $delay={i * 2.5}
-        >
-          {LEAVES[i % LEAVES.length]}
-        </Leaf>
-      ))}
-      
-      {/* 3D Elements - Trees */}
-      <FloatingTree $left="3%" $top="15%" $size="5rem" $opacity={0.25} $duration={10} $blur={1}>🌳</FloatingTree>
-      <FloatingTree $right="5%" $top="25%" $size="4rem" $opacity={0.2} $duration={12} $blur={2}>🌲</FloatingTree>
-      <FloatingTree $left="8%" $top="50%" $size="6rem" $opacity={0.3} $duration={9}>🌴</FloatingTree>
-      <FloatingTree $right="4%" $top="60%" $size="5rem" $opacity={0.25} $duration={11} $blur={1}>🌳</FloatingTree>
-      <FloatingTree $left="5%" $top="80%" $size="4rem" $opacity={0.2} $duration={8}>🌲</FloatingTree>
-      
-      {/* 3D Elements - Sparkles */}
-      <Sparkle $top="20%" $left="15%" $duration={2.5} $delay={0}>✨</Sparkle>
-      <Sparkle $top="35%" $left="85%" $duration={3} $delay={1}>✨</Sparkle>
-      <Sparkle $top="55%" $left="10%" $duration={2.8} $delay={0.5}>✨</Sparkle>
-      <Sparkle $top="70%" $left="90%" $duration={3.2} $delay={1.5}>✨</Sparkle>
-      <Sparkle $top="85%" $left="20%" $duration={2.6} $delay={2}>✨</Sparkle>
-      
-      {/* 3D Elements - Floating */}
-      <FloatingElement $right="8%" $top="40%" $size="2.5rem" $opacity={0.4} $duration={15}>🦋</FloatingElement>
-      <FloatingElement $left="6%" $top="65%" $size="2rem" $opacity={0.35} $duration={18} $delay={5}>🌸</FloatingElement>
+      {/* Animation Layer - all pure CSS, no JS updates */}
+      <AnimationLayer>
+        {/* Birds with flapping wings */}
+        <BirdWrapper $top={8} $duration={18} $delay={0}>
+          <BirdBody><BirdWing /><BirdTail /></BirdBody>
+        </BirdWrapper>
+        <BirdWrapper $top={15} $duration={25} $delay={6}>
+          <BirdBody><BirdWing /><BirdTail /></BirdBody>
+        </BirdWrapper>
+        <BirdWrapper $top={5} $duration={22} $delay={12}>
+          <BirdBody><BirdWing /><BirdTail /></BirdBody>
+        </BirdWrapper>
+        <BirdWrapper $top={22} $duration={30} $delay={20}>
+          <BirdBody><BirdWing /><BirdTail /></BirdBody>
+        </BirdWrapper>
+        
+        {/* Falling leaves */}
+        {[...Array(12)].map((_, i) => (
+          <LeafElement
+            key={`leaf-${i}`}
+            $left={8 + i * 8}
+            $size={1.3 + (i % 3) * 0.3}
+            $duration={14 + (i % 5) * 3}
+            $delay={i * 2}
+          >
+            {LEAVES[i % LEAVES.length]}
+          </LeafElement>
+        ))}
+        
+        {/* Trees */}
+        <TreeElement $left="3%" $top="12%" $size="5rem" $opacity={0.3} $duration={8} $blur={1}>🌳</TreeElement>
+        <TreeElement $right="4%" $top="20%" $size="4rem" $opacity={0.25} $duration={10} $blur={2}>🌲</TreeElement>
+        <TreeElement $left="6%" $top="45%" $size="6rem" $opacity={0.35} $duration={7}>🌴</TreeElement>
+        <TreeElement $right="5%" $top="55%" $size="5rem" $opacity={0.3} $duration={9} $blur={1}>🌳</TreeElement>
+        <TreeElement $left="4%" $top="75%" $size="4.5rem" $opacity={0.25} $duration={11}>🌲</TreeElement>
+        <TreeElement $right="6%" $top="85%" $size="5rem" $opacity={0.3} $duration={8}>🌴</TreeElement>
+        
+        {/* Sparkles */}
+        <SparkleElement $top="18%" $left="12%" $duration={2.5} $delay={0}>✨</SparkleElement>
+        <SparkleElement $top="30%" $left="88%" $duration={3} $delay={0.5}>✨</SparkleElement>
+        <SparkleElement $top="48%" $left="8%" $duration={2.8} $delay={1}>✨</SparkleElement>
+        <SparkleElement $top="62%" $left="92%" $duration={3.2} $delay={1.5}>✨</SparkleElement>
+        <SparkleElement $top="78%" $left="15%" $duration={2.6} $delay={2}>✨</SparkleElement>
+        <SparkleElement $top="88%" $left="85%" $duration={2.9} $delay={0.8}>✨</SparkleElement>
+        
+        {/* Floating items */}
+        <FloatingItem $right="7%" $top="35%" $size="2.5rem" $opacity={0.5} $duration={12} $delay={0}>🦋</FloatingItem>
+        <FloatingItem $left="5%" $top="58%" $size="2rem" $opacity={0.45} $duration={15} $delay={3}>🦋</FloatingItem>
+        <FloatingItem $right="10%" $top="70%" $size="2.2rem" $opacity={0.4} $duration={14} $delay={6}>🌸</FloatingItem>
+        <FloatingItem $left="8%" $top="25%" $size="1.8rem" $opacity={0.35} $duration={16} $delay={2}>🌺</FloatingItem>
+        
+        {/* Clouds */}
+        <CloudElement $top="8%" $size="4rem" $duration={60} $delay={0}>☁️</CloudElement>
+        <CloudElement $top="15%" $size="3rem" $duration={80} $delay={20}>☁️</CloudElement>
+        <CloudElement $top="5%" $size="3.5rem" $duration={70} $delay={40}>☁️</CloudElement>
+        
+        {/* Light beams */}
+        <LightBeam $left={20} $rotate={-15} $duration={8} $delay={0} />
+        <LightBeam $left={70} $rotate={15} $duration={10} $delay={2} />
+        
+        {/* Stars */}
+        <StarElement $top="10%" $left="25%" $duration={2} $delay={0} />
+        <StarElement $top="18%" $left="75%" $duration={2.5} $delay={0.5} />
+        <StarElement $top="35%" $left="15%" $duration={3} $delay={1} />
+        <StarElement $top="50%" $left="85%" $duration={2.2} $delay={1.5} />
+        <StarElement $top="70%" $left="20%" $duration={2.8} $delay={0.3} />
+        <StarElement $top="82%" $left="80%" $duration={2.4} $delay={0.8} />
+        
+        {/* Spinning flowers */}
+        <SpinningElement $left="2%" $top="40%" $size="1.5rem" $opacity={0.3} $duration={20}>🌼</SpinningElement>
+        <SpinningElement $right="3%" $top="65%" $size="1.3rem" $opacity={0.25} $duration={25}>🌻</SpinningElement>
+      </AnimationLayer>
       
       <Content>
         {/* Welcome */}
         <WelcomeSection>
-          <WelcomeContent $scrollY={scrollY}>
+          <WelcomeContent>
             <WelcomeBadge>
               <TreePine size={20} />
               מדורי השדרה
@@ -807,7 +822,7 @@ export default function ShederaStreet() {
                     
                     <CardFooter>
                       <CardBadge>
-                        <Sparkles />
+                        <Sparkles size={16} />
                         לחצי לכניסה
                       </CardBadge>
                       
