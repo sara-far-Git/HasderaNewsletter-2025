@@ -1816,11 +1816,15 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
 
   const goToNextPage = useCallback(() => {
     const flipbook = flipbookInstanceRef.current;
-    console.log('➡️ goToNextPage called, flipbook:', !!flipbook);
+    const current = getFlipbookCurrentPage() || currentPage || 1;
+    console.log('➡️ goToNextPage called, flipbook:', !!flipbook, 'current:', current);
     if (!flipbook) return;
     
-    // נסה כמה דרכים שונות
-    if (typeof flipbook.nextPage === 'function') {
+    // עמוד 1 (כריכה) ב-RTL - צריך להשתמש ב-goToPage
+    if (current <= 1) {
+      console.log('  On cover page - using goToPage(2)');
+      flipbook.goToPage?.(2, false);
+    } else if (typeof flipbook.nextPage === 'function') {
       console.log('  Using flipbook.nextPage()');
       flipbook.nextPage();
     } else if (flipbook.Book?.nextPage) {
@@ -1835,7 +1839,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       console.log('  After next, page:', page);
       if (page) updateVisiblePages(page);
     }, 300);
-  }, [getFlipbookCurrentPage, updateVisiblePages]);
+  }, [getFlipbookCurrentPage, updateVisiblePages, currentPage]);
 
   // קיצורי מקלדת (סטנדרטי - הספריה מטפלת ב-RTL)
   useEffect(() => {
