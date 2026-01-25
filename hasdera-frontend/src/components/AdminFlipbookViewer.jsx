@@ -2472,21 +2472,28 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         </div>
         
         {/* Center - Page indicator with slider for readers */}
-        {readOnly && effectiveTotalPages > 0 && (
-          <PageCounter>
-            <span>עמוד</span>
-            <span style={{ color: '#10b981', fontWeight: 600 }}>{Math.min(currentPage, effectiveTotalPages)}</span>
-            <span>מתוך</span>
-            <span>{effectiveTotalPages}</span>
-            <PageSlider
-              type="range"
-              min={1}
-              max={effectiveTotalPages}
-              value={Math.min(currentPage, effectiveTotalPages)}
-              onChange={handlePageSliderChange}
-            />
-          </PageCounter>
-        )}
+        {readOnly && effectiveTotalPages > 0 && (() => {
+          // חישוב עמוד נוכחי מנורמל - בגלל spread view הספרייה מחזירה מספרים כפולים
+          const displayPage = Math.max(1, Math.min(
+            currentPage <= effectiveTotalPages ? currentPage : Math.ceil(currentPage / 2),
+            effectiveTotalPages
+          ));
+          return (
+            <PageCounter>
+              <span>עמוד</span>
+              <span style={{ color: '#10b981', fontWeight: 600 }}>{displayPage}</span>
+              <span>מתוך</span>
+              <span>{effectiveTotalPages}</span>
+              <PageSlider
+                type="range"
+                min={1}
+                max={effectiveTotalPages}
+                value={displayPage}
+                onChange={handlePageSliderChange}
+              />
+            </PageCounter>
+          );
+        })()}
         
         <HeaderActions>
           {!readOnly && (
