@@ -1,269 +1,176 @@
 /**
  * AnnouncementsBanner.jsx
- * באנר הודעות חגיגיות/מבצעים לקוראים - עיצוב מגזין מודרני
+ * באנר הודעות - עיצוב נקי ואלגנטי
  */
 
 import React, { useState, useEffect } from "react";
 import styled, { keyframes } from "styled-components";
-import { X, ChevronLeft, ChevronRight, ArrowLeft, Sparkles, Gift, Bell, Star } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, ArrowLeft, Bell, Gift, Star, Info } from "lucide-react";
 import { getActiveAnnouncements } from "../Services/announcementsService";
 
-// 🎬 אנימציות
+// אנימציה עדינה
 const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(-10px); }
+  from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
-const pulse = keyframes`
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.01); }
-`;
-
-const float = keyframes`
-  0%, 100% { transform: translateY(0) rotate(-2deg); }
-  50% { transform: translateY(-5px) rotate(2deg); }
-`;
-
-const sparkle = keyframes`
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
-`;
-
-// 🎨 Styled Components
+// Styled Components - עיצוב נקי ומינימליסטי
 const BannerWrapper = styled.div`
   margin-bottom: 2rem;
-  animation: ${fadeIn} 0.6s ease-out;
+  animation: ${fadeIn} 0.4s ease-out;
 `;
 
 const Banner = styled.div`
   position: relative;
-  background: ${props => props.$background || 'linear-gradient(135deg, #10b981 0%, #059669 100%)'};
-  border-radius: 24px;
-  padding: 0;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 
-              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
   
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 5px;
-    background: linear-gradient(90deg, 
-      rgba(255,255,255,0.8), 
-      rgba(255,255,255,0.2), 
-      rgba(255,255,255,0.8));
-    background-size: 300% 100%;
-    animation: gradientMove 4s linear infinite;
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
   }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.15) 0%, 
-      transparent 50%, 
-      rgba(0, 0, 0, 0.1) 100%);
-    pointer-events: none;
-  }
-  
-  @keyframes gradientMove {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 300% 50%; }
-  }
+`;
+
+const AccentBar = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  background: ${props => props.$color || '#10b981'};
 `;
 
 const BannerContent = styled.div`
   display: flex;
-  align-items: stretch;
-  min-height: 120px;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  gap: 1.25rem;
   
   @media (max-width: 768px) {
     flex-direction: column;
-  }
-`;
-
-const IconSection = styled.div`
-  width: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.15);
-  position: relative;
-  
-  @media (max-width: 768px) {
-    width: 100%;
-    padding: 1.5rem;
-  }
-`;
-
-const EmojiIcon = styled.div`
-  font-size: 3.5rem;
-  animation: ${float} 3s ease-in-out infinite;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-  
-  @media (max-width: 768px) {
-    font-size: 2.5rem;
-  }
-`;
-
-const SparkleDecor = styled.div`
-  position: absolute;
-  color: rgba(255, 255, 255, 0.6);
-  animation: ${sparkle} 2s ease-in-out infinite;
-  z-index: 2;
-  
-  &.top-right {
-    top: 15%;
-    right: 15%;
-    animation-delay: 0.3s;
-  }
-  
-  &.bottom-left {
-    bottom: 15%;
-    left: 15%;
-    animation-delay: 0.6s;
-  }
-`;
-
-const TextSection = styled.div`
-  flex: 1;
-  padding: 1.5rem 2rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  
-  @media (max-width: 768px) {
-    padding: 1.25rem;
     text-align: center;
+    padding: 1.25rem;
   }
 `;
 
-const TypeBadge = styled.span`
-  display: inline-flex;
+const IconContainer = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: ${props => props.$bgColor || 'rgba(16, 185, 129, 0.15)'};
+  display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.8rem;
-  background: ${props => {
-    switch(props.$type) {
-      case 'promotion': return 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
-      case 'holiday': return 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)';
-      case 'update': return 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
-      default: return 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-    }
-  }};
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: white;
+  justify-content: center;
+  flex-shrink: 0;
+  
+  svg {
+    color: ${props => props.$color || '#10b981'};
+  }
+  
+  @media (max-width: 768px) {
+    width: 44px;
+    height: 44px;
+  }
+`;
+
+const TextContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const TypeLabel = styled.span`
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  width: fit-content;
-  margin-bottom: 0.75rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  
-  @media (max-width: 768px) {
-    margin: 0 auto 0.75rem;
-  }
+  color: ${props => props.$color || '#10b981'};
+  margin-bottom: 0.25rem;
 `;
 
 const Title = styled.h3`
   color: #f8fafc;
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem;
-  line-height: 1.3;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+  line-height: 1.4;
   
   @media (max-width: 768px) {
-    font-size: 1.25rem;
+    font-size: 1rem;
   }
 `;
 
 const Description = styled.p`
   color: #94a3b8;
-  font-size: 1rem;
+  font-size: 0.9rem;
   margin: 0;
-  line-height: 1.6;
-  max-width: 500px;
+  line-height: 1.5;
   
   @media (max-width: 768px) {
-    font-size: 0.9rem;
-  }
-`;
-
-const ActionSection = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.1);
-  
-  @media (max-width: 768px) {
-    padding: 1rem 1.25rem 1.5rem;
+    font-size: 0.85rem;
   }
 `;
 
 const ActionButton = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.9rem 1.75rem;
-  background: rgba(255, 255, 255, 0.95);
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  background: ${props => props.$color || '#10b981'};
   border: none;
-  border-radius: 14px;
-  color: #1a1a2e;
-  font-weight: 700;
-  font-size: 1rem;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
   font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
   
   &:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    background: #ffffff;
-  }
-  
-  &:active {
-    transform: translateY(-1px);
+    filter: brightness(1.1);
+    transform: translateX(-2px);
   }
   
   svg {
-    transition: transform 0.3s ease;
+    transition: transform 0.2s ease;
   }
   
   &:hover svg {
-    transform: translateX(-4px);
+    transform: translateX(-3px);
+  }
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
   }
 `;
 
 const CloseButton = styled.button`
   position: absolute;
-  top: 1rem;
-  left: 1rem;
-  width: 32px;
-  height: 32px;
+  top: 0.75rem;
+  left: 0.75rem;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #64748b;
   cursor: pointer;
   transition: all 0.2s;
   z-index: 10;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: white;
-    transform: scale(1.05);
+    background: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
   }
 `;
 
@@ -271,73 +178,83 @@ const NavigationContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-top: 1rem;
 `;
 
-const NavArrow = styled.button`
-  width: 36px;
-  height: 36px;
+const NavButton = styled.button`
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #64748b;
   cursor: pointer;
   transition: all 0.2s;
   
   &:hover {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    border-color: transparent;
-    color: white;
-    transform: scale(1.05);
+    background: rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+    border-color: rgba(255, 255, 255, 0.12);
   }
 `;
 
 const DotsContainer = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
 `;
 
 const Dot = styled.button`
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   border: none;
-  background: ${props => props.$active 
-    ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
-    : 'rgba(255, 255, 255, 0.2)'};
+  background: ${props => props.$active ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: ${props => props.$active ? '0 0 10px rgba(16, 185, 129, 0.5)' : 'none'};
+  transition: all 0.2s ease;
   
   &:hover {
-    background: ${props => props.$active 
-      ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-      : 'rgba(255, 255, 255, 0.4)'};
-    transform: scale(1.2);
+    background: ${props => props.$active ? '#10b981' : 'rgba(255, 255, 255, 0.3)'};
   }
 `;
 
-const Counter = styled.div`
+const Counter = styled.span`
   color: #64748b;
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  margin-right: 0.5rem;
 `;
 
-// Type labels
-const TYPE_LABELS = {
-  news: { label: 'חדשות', icon: Bell },
-  promotion: { label: 'מבצע', icon: Gift },
-  holiday: { label: 'חג שמח', icon: Star },
-  update: { label: 'עדכון', icon: Sparkles },
+// הגדרות סוגי הודעות
+const TYPE_CONFIG = {
+  news: { 
+    label: 'חדשות', 
+    icon: Bell, 
+    color: '#10b981',
+    bgColor: 'rgba(16, 185, 129, 0.15)'
+  },
+  promotion: { 
+    label: 'מבצע', 
+    icon: Gift, 
+    color: '#f59e0b',
+    bgColor: 'rgba(245, 158, 11, 0.15)'
+  },
+  holiday: { 
+    label: 'חג שמח', 
+    icon: Star, 
+    color: '#ec4899',
+    bgColor: 'rgba(236, 72, 153, 0.15)'
+  },
+  update: { 
+    label: 'עדכון', 
+    icon: Info, 
+    color: '#8b5cf6',
+    bgColor: 'rgba(139, 92, 246, 0.15)'
+  },
 };
 
-/**
- * קומפוננטת באנר הודעות
- */
 const AnnouncementsBanner = ({ className }) => {
   const [announcements, setAnnouncements] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -348,7 +265,6 @@ const AnnouncementsBanner = ({ className }) => {
     const loadAnnouncements = async () => {
       try {
         const data = await getActiveAnnouncements();
-        console.log("📢 Loaded announcements:", data);
         setAnnouncements(data || []);
       } catch (error) {
         console.error("Error loading announcements:", error);
@@ -360,13 +276,13 @@ const AnnouncementsBanner = ({ className }) => {
     loadAnnouncements();
   }, []);
 
-  // Auto-rotate announcements
+  // Auto-rotate
   useEffect(() => {
     if (announcements.length <= 1) return;
 
     const interval = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % announcements.length);
-    }, 10000);
+    }, 8000);
 
     return () => clearInterval(interval);
   }, [announcements.length]);
@@ -393,7 +309,6 @@ const AnnouncementsBanner = ({ className }) => {
     }
   };
 
-  // Filter out dismissed announcements - support both camelCase and snake_case
   const visibleAnnouncements = announcements.filter(a => {
     const id = a.announcementId || a.announcement_id;
     return !dismissed.includes(id);
@@ -408,55 +323,51 @@ const AnnouncementsBanner = ({ className }) => {
 
   if (!current) return null;
 
-  // Support both camelCase and snake_case from API
   const announcementId = current.announcementId || current.announcement_id;
-  const backgroundColor = current.backgroundColor || current.background_color;
   const actionText = current.actionText || current.action_text;
   const actionUrl = current.actionUrl || current.action_url;
   const announcementType = current.type || 'news';
   
-  const typeInfo = TYPE_LABELS[announcementType] || TYPE_LABELS.news;
-  const TypeIcon = typeInfo.icon;
+  const config = TYPE_CONFIG[announcementType] || TYPE_CONFIG.news;
+  const TypeIcon = config.icon;
 
   return (
     <BannerWrapper className={className}>
-      <Banner $background={backgroundColor}>
+      <Banner>
+        <AccentBar $color={config.color} />
+        
         <CloseButton onClick={() => handleDismiss(announcementId)} aria-label="סגור">
-          <X size={18} />
+          <X size={16} />
         </CloseButton>
         
         <BannerContent>
-          <IconSection>
-            <SparkleDecor className="top-right"><Sparkles size={14} /></SparkleDecor>
-            <EmojiIcon>{current.icon || '🎉'}</EmojiIcon>
-            <SparkleDecor className="bottom-left"><Sparkles size={12} /></SparkleDecor>
-          </IconSection>
+          <IconContainer $color={config.color} $bgColor={config.bgColor}>
+            <TypeIcon size={22} />
+          </IconContainer>
           
-          <TextSection>
-            <TypeBadge $type={announcementType}>
-              <TypeIcon size={12} />
-              {typeInfo.label}
-            </TypeBadge>
+          <TextContent>
+            <TypeLabel $color={config.color}>{config.label}</TypeLabel>
             <Title>{current.title}</Title>
             {current.content && <Description>{current.content}</Description>}
-          </TextSection>
+          </TextContent>
           
           {actionText && (
-            <ActionSection>
-              <ActionButton onClick={() => handleAction(actionUrl)}>
-                {actionText}
-                <ArrowLeft size={18} />
-              </ActionButton>
-            </ActionSection>
+            <ActionButton 
+              $color={config.color}
+              onClick={() => handleAction(actionUrl)}
+            >
+              {actionText}
+              <ArrowLeft size={16} />
+            </ActionButton>
           )}
         </BannerContent>
       </Banner>
       
       {visibleAnnouncements.length > 1 && (
         <NavigationContainer>
-          <NavArrow onClick={handleNext}>
-            <ChevronRight size={18} />
-          </NavArrow>
+          <NavButton onClick={handleNext}>
+            <ChevronRight size={16} />
+          </NavButton>
           <DotsContainer>
             {visibleAnnouncements.map((_, idx) => (
               <Dot
@@ -466,9 +377,9 @@ const AnnouncementsBanner = ({ className }) => {
               />
             ))}
           </DotsContainer>
-          <NavArrow onClick={handlePrev}>
-            <ChevronLeft size={18} />
-          </NavArrow>
+          <NavButton onClick={handlePrev}>
+            <ChevronLeft size={16} />
+          </NavButton>
           <Counter>{safeIndex + 1} / {visibleAnnouncements.length}</Counter>
         </NavigationContainer>
       )}
