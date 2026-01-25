@@ -2274,7 +2274,11 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
           <NavigationArrow 
             $side="left" 
             $disabled={!canGoPrev}
-            onClick={goToPrevPage}
+            onClick={(e) => {
+              console.log('🖱️ Left arrow clicked! canGoPrev:', canGoPrev);
+              e.stopPropagation();
+              goToPrevPage();
+            }}
             title="עמוד קודם"
             aria-label="עמוד קודם"
           >
@@ -2285,7 +2289,11 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
           <NavigationArrow 
             $side="right" 
             $disabled={!canGoNext}
-            onClick={goToNextPage}
+            onClick={(e) => {
+              console.log('🖱️ Right arrow clicked! canGoNext:', canGoNext);
+              e.stopPropagation();
+              goToNextPage();
+            }}
             title="עמוד הבא"
             aria-label="עמוד הבא"
           >
