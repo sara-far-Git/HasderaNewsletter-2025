@@ -18,8 +18,11 @@ const fadeInUp = keyframes`
 /* ======================== Styled Components ======================== */
 const PageWrapper = styled.div`
   min-height: 100vh;
+  width: 100%;
   position: relative;
   color: #f8fafc;
+  display: flex;
+  flex-direction: column;
 `;
 
 const BackgroundImage = styled.div`
@@ -49,10 +52,12 @@ const BackgroundImage = styled.div`
 
 const Container = styled.div`
   max-width: 900px;
+  width: 100%;
   margin: 0 auto;
   padding: 0 1.5rem 3rem;
   position: relative;
   z-index: 1;
+  flex: 1;
 `;
 
 const PageTitle = styled.h1`

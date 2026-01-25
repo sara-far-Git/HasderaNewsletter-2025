@@ -13,10 +13,12 @@ import {
 
 /* ======================== Styled Components ======================== */
 const FooterWrapper = styled.footer`
-  margin-top: 4rem;
+  margin-top: auto;
   width: 100%;
+  position: relative;
+  z-index: 10;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.5) 100%);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
 `;
 
 const FooterContent = styled.div`

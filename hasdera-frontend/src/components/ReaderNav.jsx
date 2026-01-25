@@ -20,6 +20,8 @@ const pulse = keyframes`
 const NavWrapper = styled.header`
   position: sticky;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   backdrop-filter: blur(20px);
   background: rgba(15, 23, 42, 0.95);
