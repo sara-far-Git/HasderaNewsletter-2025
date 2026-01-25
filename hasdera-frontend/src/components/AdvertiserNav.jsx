@@ -701,7 +701,7 @@ export default function AdvertiserNav() {
 
       <MainWrapper>
         <Navbar $visible={navbarVisible}>
-          <LogoNav><img src="/logo.png" alt="השדרה" style={{ height: '35px', width: 'auto' }} /></LogoNav>
+          <LogoNav><img src="/logo.png" alt="השדרה" style={{ height: '35px', width: 'auto', backgroundColor: 'white', padding: '4px 8px', borderRadius: '8px' }} /></LogoNav>
           <NavLinks>
             <li>
               <NavLink onClick={(e) => handleSmoothScroll(e, 'overview')}>המדורים</NavLink>
@@ -723,7 +723,7 @@ export default function AdvertiserNav() {
             <WelcomeMessage>
               שלום <span>{userName}</span> 👋
             </WelcomeMessage>
-            <LogoHero><img src="/logo.png" alt="השדרה" style={{ height: '120px', width: 'auto' }} /></LogoHero>
+            <LogoHero><img src="/logo.png" alt="השדרה" style={{ height: '120px', width: 'auto', backgroundColor: 'white', padding: '10px 16px', borderRadius: '16px' }} /></LogoHero>
             <Tagline>
               מגזין{' '}
               <RotatingWords>

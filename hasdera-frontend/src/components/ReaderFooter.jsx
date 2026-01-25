@@ -14,10 +14,10 @@ import {
 /* ======================== Styled Components ======================== */
 const FooterWrapper = styled.footer`
   margin-top: 4rem;
-  margin-left: -1.5rem;
-  margin-right: -1.5rem;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.4) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.5) 100%);
 `;
 
 const FooterContent = styled.div`
@@ -218,7 +218,13 @@ export default function ReaderFooter() {
           {/* About Section */}
           <FooterSection>
             <FooterLogo>
-              <img src="/logo.png" alt="השדרה" style={{ height: '50px', width: 'auto' }} />
+              <img src="/logo.png" alt="השדרה" style={{ 
+                height: '50px', 
+                width: 'auto',
+                backgroundColor: 'white',
+                padding: '6px 10px',
+                borderRadius: '10px'
+              }} />
             </FooterLogo>
             <FooterDescription>
               מגזין קהילתי דיגיטלי המחבר בין תושבי השכונה. 

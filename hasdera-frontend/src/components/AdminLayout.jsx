@@ -362,7 +362,7 @@ export default function AdminLayout({ children, title }) {
         
         <Sidebar $isOpen={sidebarOpen} $isDashboard={isDashboard}>
           <SidebarHeader>
-            <Logo><img src="/logo.png" alt="השדרה" style={{ height: '40px', width: 'auto', marginLeft: '10px' }} /> ניהול</Logo>
+            <Logo><img src="/logo.png" alt="השדרה" style={{ height: '40px', width: 'auto', marginLeft: '10px', backgroundColor: 'white', padding: '4px 8px', borderRadius: '8px' }} /> ניהול</Logo>
             <CloseButton $show={!isDashboard && sidebarOpen} onClick={() => setSidebarOpen(false)}>
               <X size={24} />
             </CloseButton>

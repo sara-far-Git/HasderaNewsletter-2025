@@ -22,9 +22,10 @@ const NavWrapper = styled.header`
   top: 0;
   z-index: 100;
   backdrop-filter: blur(20px);
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(15, 23, 42, 0.95);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin: 0 -1.5rem;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
   padding: 0.75rem 2rem;
   animation: ${fadeIn} 0.4s ease-out;
 `;
@@ -441,7 +442,13 @@ export default function ReaderNav() {
         <NavInner>
           {/* Logo */}
           <Logo onClick={() => handleNavigate("/")}>
-            <img src="/logo.png" alt="השדרה" style={{ height: '45px', width: 'auto' }} />
+            <img src="/logo.png" alt="השדרה" style={{ 
+              height: '45px', 
+              width: 'auto',
+              backgroundColor: 'white',
+              padding: '4px 8px',
+              borderRadius: '8px'
+            }} />
           </Logo>
 
           {/* Center Navigation - Desktop */}
@@ -493,7 +500,13 @@ export default function ReaderNav() {
       <MobileMenu $open={mobileMenuOpen}>
         <MobileMenuHeader>
           <Logo onClick={() => handleNavigate("/")}>
-            <img src="/logo.png" alt="השדרה" style={{ height: '40px', width: 'auto' }} />
+            <img src="/logo.png" alt="השדרה" style={{ 
+              height: '40px', 
+              width: 'auto',
+              backgroundColor: 'white',
+              padding: '4px 8px',
+              borderRadius: '8px'
+            }} />
           </Logo>
           <IconButton onClick={() => setMobileMenuOpen(false)}>
             <X size={20} />

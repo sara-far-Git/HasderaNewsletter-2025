@@ -677,7 +677,7 @@ export default function LoginPage() {
       <PageContainer>
         <Card>
           <Logo>
-            <img src="/logo.png" alt="השדרה" style={{ height: '60px', width: 'auto' }} />
+            <img src="/logo.png" alt="השדרה" style={{ height: '60px', width: 'auto', backgroundColor: 'white', padding: '6px 12px', borderRadius: '12px' }} />
           </Logo>
 
           {pendingGoogleToken && (
