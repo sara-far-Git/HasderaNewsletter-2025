@@ -438,32 +438,29 @@ const NavigationArrow = styled.button.withConfig({
   visibility: visible !important;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(16, 185, 129, 0.85);
   backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 3px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
   color: white;
-  cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
+  cursor: pointer;
   z-index: 10002;
   transition: all 0.3s ease;
-  opacity: ${props => props.$disabled ? 0.4 : 1};
-  pointer-events: ${props => props.$disabled ? 'auto' : 'auto'};
+  opacity: 1;
+  pointer-events: auto;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
   
   ${props => props.$side === 'right' ? 'right: 30px;' : 'left: 30px;'}
   
-  &:hover:not(:disabled) {
-    background: rgba(16, 185, 129, 0.8);
-    border-color: #10b981;
-    transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 6px 25px rgba(16, 185, 129, 0.5);
+  &:hover {
+    background: rgba(16, 185, 129, 1);
+    border-color: white;
+    transform: translateY(-50%) scale(1.15);
+    box-shadow: 0 8px 30px rgba(16, 185, 129, 0.6);
   }
   
-  &:active:not(:disabled) {
+  &:active {
     transform: translateY(-50%) scale(0.95);
-  }
-  
-  &:disabled {
-    cursor: not-allowed;
   }
   
   @media (max-width: 768px) {
@@ -2343,9 +2340,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
           {/* חץ שמאל - עמוד קודם */}
           <NavigationArrow 
             $side="left" 
-            $disabled={!canGoPrev}
             onClick={(e) => {
-              console.log('🖱️ Left arrow clicked! canGoPrev:', canGoPrev);
               e.stopPropagation();
               goToPrevPage();
             }}
@@ -2358,9 +2353,7 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
           {/* חץ ימין - עמוד הבא */}
           <NavigationArrow 
             $side="right" 
-            $disabled={!canGoNext}
             onClick={(e) => {
-              console.log('🖱️ Right arrow clicked! canGoNext:', canGoNext);
               e.stopPropagation();
               goToNextPage();
             }}
