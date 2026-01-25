@@ -1869,8 +1869,8 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     const handleKey = (e) => {
       if (e.key === "Escape") {
         isFullscreen ? document.exitFullscreen?.() : onClose?.();
-      } else if (e.key === "ArrowRight") goToPrevPage();
-      else if (e.key === "ArrowLeft") goToNextPage();
+      } else if (e.key === "ArrowRight") goToNextPage();
+      else if (e.key === "ArrowLeft") goToPrevPage();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -2287,26 +2287,26 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
       {/* 🔧 חצי ניווט מותאמים אישית - תמיד מוצגים */}
       {!isLoading && !error && (
         <>
-          {/* חץ ימין - עמוד קודם (RTL) */}
+          {/* חץ ימין - עמוד הבא */}
           <NavigationArrow 
             $side="right" 
-            $disabled={!canGoPrev}
-            onClick={canGoPrev ? goToPrevPage : undefined}
-            title={canGoPrev ? "עמוד קודם" : "אין עמוד קודם"}
-            aria-label={canGoPrev ? "עמוד קודם" : "אין עמוד קודם"}
-            disabled={!canGoPrev}
-          >
-            <ChevronRightIcon />
-          </NavigationArrow>
-          
-          {/* חץ שמאל - עמוד הבא (RTL) */}
-          <NavigationArrow 
-            $side="left" 
             $disabled={!canGoNext}
             onClick={canGoNext ? goToNextPage : undefined}
             title={canGoNext ? "עמוד הבא" : "אין עמוד הבא"}
             aria-label={canGoNext ? "עמוד הבא" : "אין עמוד הבא"}
             disabled={!canGoNext}
+          >
+            <ChevronRightIcon />
+          </NavigationArrow>
+          
+          {/* חץ שמאל - עמוד קודם */}
+          <NavigationArrow 
+            $side="left" 
+            $disabled={!canGoPrev}
+            onClick={canGoPrev ? goToPrevPage : undefined}
+            title={canGoPrev ? "עמוד קודם" : "אין עמוד קודם"}
+            aria-label={canGoPrev ? "עמוד קודם" : "אין עמוד קודם"}
+            disabled={!canGoPrev}
           >
             <ChevronLeftIcon />
           </NavigationArrow>
