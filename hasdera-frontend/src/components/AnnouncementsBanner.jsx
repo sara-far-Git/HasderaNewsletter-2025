@@ -1,23 +1,76 @@
 /**
  * AnnouncementsBanner.jsx
- * באנר הודעות - עיצוב נקי ואלגנטי
+ * באנר הודעות - עיצוב נקי ואלגנטי עם אנימציית קונפטי
  */
 
 import React, { useState, useEffect } from "react";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 import { X, ChevronLeft, ChevronRight, ArrowLeft, Bell, Gift, Star, Info } from "lucide-react";
 import { getActiveAnnouncements } from "../Services/announcementsService";
 
-// אנימציה עדינה
+// אנימציות
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
-// Styled Components - עיצוב נקי ומינימליסטי
+// אנימציית קונפטי - חלקיקים עולים ונעלמים
+const confettiFall = keyframes`
+  0% { 
+    opacity: 1;
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  100% { 
+    opacity: 0;
+    transform: translateY(-80px) rotate(180deg) scale(0.5);
+  }
+`;
+
+const confettiPop = keyframes`
+  0% { 
+    opacity: 0;
+    transform: scale(0);
+  }
+  20% { 
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  100% { 
+    opacity: 0;
+    transform: scale(0) translateY(-60px);
+  }
+`;
+
+// Styled Components
 const BannerWrapper = styled.div`
   margin-bottom: 2rem;
   animation: ${fadeIn} 0.4s ease-out;
+  position: relative;
+`;
+
+const ConfettiContainer = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 20;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+`;
+
+const ConfettiPiece = styled.div`
+  position: absolute;
+  width: ${props => props.$size || 8}px;
+  height: ${props => props.$size || 8}px;
+  background: ${props => props.$color};
+  border-radius: ${props => props.$shape === 'circle' ? '50%' : '2px'};
+  top: 50%;
+  left: ${props => props.$left}%;
+  animation: ${confettiPop} 1.2s ease-out forwards;
+  animation-delay: ${props => props.$delay}s;
+  opacity: 0;
 `;
 
 const Banner = styled.div`
@@ -233,26 +286,67 @@ const TYPE_CONFIG = {
     label: 'חדשות', 
     icon: Bell, 
     color: '#10b981',
-    bgColor: 'rgba(16, 185, 129, 0.15)'
+    bgColor: 'rgba(16, 185, 129, 0.15)',
+    showConfetti: false
   },
   promotion: { 
     label: 'מבצע', 
     icon: Gift, 
     color: '#f59e0b',
-    bgColor: 'rgba(245, 158, 11, 0.15)'
+    bgColor: 'rgba(245, 158, 11, 0.15)',
+    showConfetti: true
   },
   holiday: { 
     label: 'חג שמח', 
     icon: Star, 
     color: '#ec4899',
-    bgColor: 'rgba(236, 72, 153, 0.15)'
+    bgColor: 'rgba(236, 72, 153, 0.15)',
+    showConfetti: true
   },
   update: { 
     label: 'עדכון', 
     icon: Info, 
     color: '#8b5cf6',
-    bgColor: 'rgba(139, 92, 246, 0.15)'
+    bgColor: 'rgba(139, 92, 246, 0.15)',
+    showConfetti: false
   },
+};
+
+// קונפטי - צבעים מגוונים
+const CONFETTI_COLORS = ['#f59e0b', '#ec4899', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4'];
+
+// יצירת חלקיקי קונפטי
+const generateConfettiPieces = (count = 12) => {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    left: 10 + (i * 7) + Math.random() * 5,
+    delay: i * 0.05,
+    size: 6 + Math.random() * 6,
+    shape: Math.random() > 0.5 ? 'circle' : 'square'
+  }));
+};
+
+// קומפוננטת קונפטי
+const Confetti = ({ show }) => {
+  const [pieces] = useState(() => generateConfettiPieces(14));
+  
+  if (!show) return null;
+  
+  return (
+    <ConfettiContainer>
+      {pieces.map(piece => (
+        <ConfettiPiece
+          key={piece.id}
+          $color={piece.color}
+          $left={piece.left}
+          $delay={piece.delay}
+          $size={piece.size}
+          $shape={piece.shape}
+        />
+      ))}
+    </ConfettiContainer>
+  );
 };
 
 const AnnouncementsBanner = ({ className }) => {
@@ -333,6 +427,9 @@ const AnnouncementsBanner = ({ className }) => {
 
   return (
     <BannerWrapper className={className}>
+      {/* קונפטי למבצעים וחגים */}
+      <Confetti show={config.showConfetti} />
+      
       <Banner>
         <AccentBar $color={config.color} />
         
