@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, BookOpen, ChevronLeft, Sparkles, ArrowLeft } from "lucide-react";
+import { CalendarDays, BookOpen, ChevronLeft, Sparkles, ArrowLeft, Utensils, Heart, Users, Home, Lightbulb, Palette } from "lucide-react";
 import { getIssues } from "../Services/issuesService";
 import hasederaTheme from "../styles/HasederaTheme";
 import ReaderNav from "./ReaderNav";
+import AnnouncementsBanner from "./AnnouncementsBanner";
 
 /* ======================== Animations ======================== */
 const fadeInUp = keyframes`
@@ -299,6 +300,63 @@ const EmptyState = styled.div`
   color: #64748b;
 `;
 
+/* ============ Sections (מדורים) ============ */
+const SectionsSection = styled.section`
+  margin-top: 3rem;
+  animation: ${fadeInUp} 0.8s ease-out 0.3s both;
+`;
+
+const SectionsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(6, 1fr);
+  }
+`;
+
+const SectionCard = styled.div`
+  background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-4px);
+    border-color: ${props => props.$color || '#10b981'};
+    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+    
+    .icon-wrapper {
+      transform: scale(1.1);
+      background: ${props => props.$color || '#10b981'};
+    }
+  }
+`;
+
+const SectionIcon = styled.div`
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 0.75rem;
+  border-radius: 14px;
+  background: ${props => props.$color || 'rgba(16, 185, 129, 0.2)'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${props => props.$iconColor || '#10b981'};
+  transition: all 0.3s ease;
+`;
+
+const SectionName = styled.h4`
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0;
+`;
+
 /* ======================== Component ======================== */
 const GRADIENTS = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -307,6 +365,16 @@ const GRADIENTS = [
   'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
   'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
   'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+];
+
+// מדורים קבועים
+const SECTIONS = [
+  { id: 'recipes', name: 'מתכונים', icon: Utensils, color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.2)' },
+  { id: 'health', name: 'בריאות', icon: Heart, color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.2)' },
+  { id: 'community', name: 'קהילה', icon: Users, color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.2)' },
+  { id: 'home', name: 'בית ומשפחה', icon: Home, color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.2)' },
+  { id: 'tips', name: 'טיפים', icon: Lightbulb, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.2)' },
+  { id: 'culture', name: 'תרבות', icon: Palette, color: '#ec4899', bgColor: 'rgba(236, 72, 153, 0.2)' },
 ];
 
 export default function ReaderHome() {
@@ -367,6 +435,9 @@ export default function ReaderHome() {
           </HeroSubtitle>
         </HeroSection>
 
+        {/* 🎉 הודעות חגיגיות/מבצעים */}
+        <AnnouncementsBanner />
+
         {loading ? (
           <EmptyState>טוען גיליונות...</EmptyState>
         ) : !issues.length ? (
@@ -399,6 +470,34 @@ export default function ReaderHome() {
                 </LatestCard>
               </LatestSection>
             )}
+
+            {/* 📚 מדורים קבועים */}
+            <SectionsSection>
+              <SectionHeader>
+                <SectionTitle>מדורים</SectionTitle>
+              </SectionHeader>
+              <SectionsGrid>
+                {SECTIONS.map((section) => {
+                  const IconComponent = section.icon;
+                  return (
+                    <SectionCard 
+                      key={section.id} 
+                      $color={section.color}
+                      onClick={() => navigate(`/sections/${section.id}`)}
+                    >
+                      <SectionIcon 
+                        className="icon-wrapper"
+                        $color={section.bgColor} 
+                        $iconColor={section.color}
+                      >
+                        <IconComponent size={26} />
+                      </SectionIcon>
+                      <SectionName>{section.name}</SectionName>
+                    </SectionCard>
+                  );
+                })}
+              </SectionsGrid>
+            </SectionsSection>
 
             {/* Archive Grid */}
             {archiveIssues.length > 0 && (
