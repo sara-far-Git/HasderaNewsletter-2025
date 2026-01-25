@@ -2473,10 +2473,9 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         
         {/* Center - Page indicator with slider for readers */}
         {readOnly && effectiveTotalPages > 0 && (() => {
-          // זיהוי אם הספרייה מחזירה spreads (זוגות) או עמודים בודדים
-          // אם currentPage > effectiveTotalPages, כנראה שהספרייה מחזירה spreads כ-total
-          const isSpreadMode = currentPage > effectiveTotalPages;
-          const actualTotalPages = isSpreadMode ? effectiveTotalPages * 2 : effectiveTotalPages;
+          // הפליפבוק במצב RTL double-page - numPages מחזיר spreads, לא עמודים בודדים
+          // לכן נכפיל ב-2 כדי לקבל את מספר העמודים האמיתי
+          const actualTotalPages = effectiveTotalPages * 2;
           const displayPage = Math.max(1, Math.min(currentPage, actualTotalPages));
           
           return (
