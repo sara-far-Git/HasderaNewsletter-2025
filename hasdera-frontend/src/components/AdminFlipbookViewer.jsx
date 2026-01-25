@@ -1793,66 +1793,61 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
   // 🔧 פונקציות ניווט - עדכון ידני של visiblePages כי ה-pagechange event לא תמיד עובד
   const attemptFlip = useCallback((direction) => {
     const flipbook = flipbookInstanceRef.current;
-    if (!flipbook || isFlipping) return;
-
-    const effectiveTotalPages = resolveTotalPages(flipbook) || totalPages;
-    const current = getFlipbookCurrentPage() || currentPage;
-
-    if (direction === 'next' && effectiveTotalPages && current >= effectiveTotalPages) return;
-    if (direction === 'prev' && current <= 1) return;
-
-    const getTargetPage = () => {
-      if (direction === 'next') {
-        if (current <= 1) return 2;
-        return current + 2;
-      }
-      if (current <= 2) return 1;
-      return current - 2;
-    };
-
-    setIsFlipping(true);
-    const before = current;
-
-    // RTL flipbook: nextPage = קדימה בתוכן, prevPage = אחורה בתוכן
-    if (direction === 'next') {
-      flipbook.nextPage?.();
-    } else {
-      flipbook.prevPage?.();
+    if (!flipbook) {
+      console.log('⚠️ No flipbook instance');
+      return;
+    }
+    if (isFlipping) {
+      console.log('⚠️ Already flipping, ignoring');
+      return;
     }
 
-    setTimeout(() => {
-      const after = getFlipbookCurrentPage();
-      if (after === before || after == null) {
-        // Fallbacks for builds where prev/nextPage don't repaint
-        if (direction === 'next') {
-          flipbook.Book?.flipNext?.();
-          flipbook.Book?.next?.();
-        } else {
-          flipbook.Book?.flipPrev?.();
-          flipbook.Book?.prev?.();
-        }
+    const effectiveTotalPages = resolveTotalPages(flipbook) || totalPages || 999;
+    const current = getFlipbookCurrentPage() || currentPage || 1;
+
+    console.log(`🔄 attemptFlip: direction=${direction}, current=${current}, total=${effectiveTotalPages}`);
+
+    // בדיקות גבולות - פחות נוקשות
+    if (direction === 'next' && current >= effectiveTotalPages - 1) {
+      console.log('⚠️ Already at last page');
+      return;
+    }
+    if (direction === 'prev' && current <= 1) {
+      console.log('⚠️ Already at first page');
+      return;
+    }
+
+    setIsFlipping(true);
+    
+    // Safety timeout - תמיד משחרר את isFlipping אחרי 1 שניה
+    const safetyTimeout = setTimeout(() => {
+      console.log('⚠️ Safety timeout - resetting isFlipping');
+      setIsFlipping(false);
+    }, 1000);
+
+    try {
+      // RTL flipbook: nextPage = קדימה בתוכן, prevPage = אחורה בתוכן
+      if (direction === 'next') {
+        flipbook.nextPage?.();
+      } else {
+        flipbook.prevPage?.();
       }
 
-      // If still stuck, snap to target page
       setTimeout(() => {
-        const stuck = getFlipbookCurrentPage();
-        if (stuck === before || stuck == null) {
-          const target = getTargetPage();
-          const clamped = effectiveTotalPages ? Math.min(target, effectiveTotalPages) : target;
-          if (clamped && clamped >= 1) {
-            flipbook.goToPage?.(clamped, true);
-          }
-        }
         const page = getFlipbookCurrentPage();
-        if (effectiveTotalPages && page > effectiveTotalPages) {
-          updateVisiblePages(effectiveTotalPages);
-        } else if (page) {
+        console.log(`📄 After flip: page=${page}`);
+        if (page) {
           updateVisiblePages(page);
         }
         refreshFlipbookDisplay();
+        clearTimeout(safetyTimeout);
         setIsFlipping(false);
-      }, 200);
-    }, 200);
+      }, 300);
+    } catch (err) {
+      console.error('❌ Flip error:', err);
+      clearTimeout(safetyTimeout);
+      setIsFlipping(false);
+    }
   }, [isFlipping, resolveTotalPages, totalPages, currentPage, updateVisiblePages, getFlipbookCurrentPage, refreshFlipbookDisplay]);
 
   const goToPrevPage = useCallback(() => {
@@ -1865,13 +1860,13 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     attemptFlip('next');
   }, [attemptFlip]);
 
-  // קיצורי מקלדת
+  // קיצורי מקלדת (RTL: ימין=קודם, שמאל=הבא)
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === "Escape") {
         isFullscreen ? document.exitFullscreen?.() : onClose?.();
-      } else if (e.key === "ArrowRight") goToNextPage();
-      else if (e.key === "ArrowLeft") goToPrevPage();
+      } else if (e.key === "ArrowRight") goToPrevPage();
+      else if (e.key === "ArrowLeft") goToNextPage();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -2285,29 +2280,29 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         </HeaderActions>
       </Header>
 
-      {/* 🔧 חצי ניווט מותאמים אישית - תמיד מוצגים */}
+      {/* 🔧 חצי ניווט מותאמים אישית - תמיד מוצגים (RTL: הבא בשמאל, קודם בימין) */}
       {!isLoading && !error && (
         <>
-          {/* חץ ימין - עמוד הבא */}
+          {/* חץ ימין - עמוד קודם (RTL) */}
           <NavigationArrow 
             $side="right" 
-            $disabled={!canGoNext}
-            onClick={canGoNext ? goToNextPage : undefined}
-            title={canGoNext ? "עמוד הבא" : "אין עמוד הבא"}
-            aria-label={canGoNext ? "עמוד הבא" : "אין עמוד הבא"}
-            disabled={!canGoNext}
-          >
-            <ChevronRightIcon />
-          </NavigationArrow>
-          
-          {/* חץ שמאל - עמוד קודם */}
-          <NavigationArrow 
-            $side="left" 
             $disabled={!canGoPrev}
             onClick={canGoPrev ? goToPrevPage : undefined}
             title={canGoPrev ? "עמוד קודם" : "אין עמוד קודם"}
             aria-label={canGoPrev ? "עמוד קודם" : "אין עמוד קודם"}
             disabled={!canGoPrev}
+          >
+            <ChevronRightIcon />
+          </NavigationArrow>
+          
+          {/* חץ שמאל - עמוד הבא (RTL) */}
+          <NavigationArrow 
+            $side="left" 
+            $disabled={!canGoNext}
+            onClick={canGoNext ? goToNextPage : undefined}
+            title={canGoNext ? "עמוד הבא" : "אין עמוד הבא"}
+            aria-label={canGoNext ? "עמוד הבא" : "אין עמוד הבא"}
+            disabled={!canGoNext}
           >
             <ChevronLeftIcon />
           </NavigationArrow>
