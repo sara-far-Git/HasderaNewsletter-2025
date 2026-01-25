@@ -1801,6 +1801,15 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     if (direction === 'next' && effectiveTotalPages && current >= effectiveTotalPages) return;
     if (direction === 'prev' && current <= 1) return;
 
+    const getTargetPage = () => {
+      if (direction === 'next') {
+        if (current <= 1) return 2;
+        return current + 2;
+      }
+      if (current <= 2) return 1;
+      return current - 2;
+    };
+
     setIsFlipping(true);
     const before = current;
 
@@ -1823,14 +1832,25 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         }
       }
 
-      const page = getFlipbookCurrentPage();
-      if (effectiveTotalPages && page > effectiveTotalPages) {
-        updateVisiblePages(effectiveTotalPages);
-      } else if (page) {
-        updateVisiblePages(page);
-      }
-      refreshFlipbookDisplay();
-      setIsFlipping(false);
+      // If still stuck, snap to target page
+      setTimeout(() => {
+        const stuck = getFlipbookCurrentPage();
+        if (stuck === before || stuck == null) {
+          const target = getTargetPage();
+          const clamped = effectiveTotalPages ? Math.min(target, effectiveTotalPages) : target;
+          if (clamped && clamped >= 1) {
+            flipbook.goToPage?.(clamped, true);
+          }
+        }
+        const page = getFlipbookCurrentPage();
+        if (effectiveTotalPages && page > effectiveTotalPages) {
+          updateVisiblePages(effectiveTotalPages);
+        } else if (page) {
+          updateVisiblePages(page);
+        }
+        refreshFlipbookDisplay();
+        setIsFlipping(false);
+      }, 200);
     }, 200);
   }, [isFlipping, resolveTotalPages, totalPages, currentPage, updateVisiblePages, getFlipbookCurrentPage, refreshFlipbookDisplay]);
 
