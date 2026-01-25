@@ -1820,10 +1820,20 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     console.log('➡️ goToNextPage called, flipbook:', !!flipbook, 'current:', current);
     if (!flipbook) return;
     
-    // עמוד 1 (כריכה) ב-RTL - צריך להשתמש ב-Book.goToPage ישירות (בלי RTL conversion)
+    // עמוד 1 (כריכה) ב-RTL - ננסה כמה דרכים שונות
     if (current <= 1) {
-      console.log('  On cover page - using Book.goToPage(2) directly');
-      flipbook.Book?.goToPage?.(2, false);
+      console.log('  On cover page - trying multiple methods...');
+      // נסה prevPage (RTL) או Book.nextPage ישירות
+      if (flipbook.Book?.nextPage) {
+        console.log('  Trying Book.nextPage()');
+        flipbook.Book.nextPage();
+      } else if (flipbook.prevPage) {
+        console.log('  Trying prevPage() for RTL cover');
+        flipbook.prevPage();
+      } else {
+        console.log('  Trying Book.goToPage(3)');
+        flipbook.Book?.goToPage?.(3, false);
+      }
     } else if (typeof flipbook.nextPage === 'function') {
       console.log('  Using flipbook.nextPage()');
       flipbook.nextPage();
