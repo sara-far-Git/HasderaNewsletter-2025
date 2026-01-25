@@ -21,6 +21,7 @@ import {
   Menu,
   X,
   Tag,
+  Bell,
 } from 'lucide-react';
 
 // 🎨 גופנים - נטען דרך index.html
@@ -335,6 +336,12 @@ const modules = [
     title: 'אזור התממשקות',
     icon: Plug,
     path: '/admin/integrations',
+  },
+  {
+    id: 'announcements',
+    title: 'הודעות ומבצעים',
+    icon: Bell,
+    path: '/admin/announcements',
   },
 ];
 

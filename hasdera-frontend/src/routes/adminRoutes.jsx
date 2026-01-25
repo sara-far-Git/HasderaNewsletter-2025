@@ -13,6 +13,7 @@ import AdminProtectedRoute from "../components/AdminProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
 import PlacementBook from "../components/PlacementBook";
+import AdminAnnouncements from "../components/AdminAnnouncements";
 
 // 🎯 קומפוננט Wrapper לעיתון באזור הניהול
 function AdminFlipbookViewerWrapper() {
@@ -151,6 +152,14 @@ export const adminRoutes = [
     element: (
       <AdminProtectedRoute>
         <IntegrationsManagement />
+      </AdminProtectedRoute>
+    ) 
+  },
+  { 
+    path: "/admin/announcements", 
+    element: (
+      <AdminProtectedRoute>
+        <AdminAnnouncements />
       </AdminProtectedRoute>
     ) 
   },
