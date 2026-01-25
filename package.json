@@ -2,7 +2,7 @@
   "name": "hasdera-workspace",
   "private": true,
   "scripts": {
-    "start:api": "cd HasderaApi && dotnet run",
+    "start:api": "export PATH=\"$HOME/.dotnet:$PATH\" && cd HasderaApi && dotnet run",
     "start:web": "cd hasdera-frontend && npm run dev -- --host",
     "start:all": "concurrently -k -n api,web -c blue,green \"npm run start:api\" \"npm run start:web\""
   },
