@@ -2473,21 +2473,22 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
         
         {/* Center - Page indicator with slider for readers */}
         {readOnly && effectiveTotalPages > 0 && (() => {
-          // חישוב עמוד נוכחי מנורמל - בגלל spread view הספרייה מחזירה מספרים כפולים
-          const displayPage = Math.max(1, Math.min(
-            currentPage <= effectiveTotalPages ? currentPage : Math.ceil(currentPage / 2),
-            effectiveTotalPages
-          ));
+          // זיהוי אם הספרייה מחזירה spreads (זוגות) או עמודים בודדים
+          // אם currentPage > effectiveTotalPages, כנראה שהספרייה מחזירה spreads כ-total
+          const isSpreadMode = currentPage > effectiveTotalPages;
+          const actualTotalPages = isSpreadMode ? effectiveTotalPages * 2 : effectiveTotalPages;
+          const displayPage = Math.max(1, Math.min(currentPage, actualTotalPages));
+          
           return (
             <PageCounter>
               <span>עמוד</span>
               <span style={{ color: '#10b981', fontWeight: 600 }}>{displayPage}</span>
               <span>מתוך</span>
-              <span>{effectiveTotalPages}</span>
+              <span>{actualTotalPages}</span>
               <PageSlider
                 type="range"
                 min={1}
-                max={effectiveTotalPages}
+                max={actualTotalPages}
                 value={displayPage}
                 onChange={handlePageSliderChange}
               />
