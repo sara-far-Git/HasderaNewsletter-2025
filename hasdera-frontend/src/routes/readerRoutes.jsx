@@ -8,6 +8,7 @@ import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
 import { useAuth } from "../contexts/AuthContext";
 import AdminFlipbookViewer from "../components/AdminFlipbookViewer";
+import ShederaStreet from "../components/ShederaStreet";
 
 // ✨ קומפוננט Wrapper לצפייה בגיליון (לוגיקה מהאדמין, read-only)
 function ReaderFlipbookViewerWrapper() {
@@ -121,6 +122,14 @@ export const readerRoutes = [
     element: (
       <ReaderProtectedRoute>
         <ReaderProfile />
+      </ReaderProtectedRoute>
+    ) 
+  },
+  { 
+    path: "/street", 
+    element: (
+      <ReaderProtectedRoute>
+        <ShederaStreet />
       </ReaderProtectedRoute>
     ) 
   },
