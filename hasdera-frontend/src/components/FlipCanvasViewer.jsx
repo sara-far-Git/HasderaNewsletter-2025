@@ -1140,6 +1140,11 @@ export default function FlipCanvasViewer({ issue, onClose }) {
     const flipbook = flipbookInstanceRef.current;
     if (!flipbook) return;
 
+    if (typeof flipbook.flipPrev === "function") {
+      flipbook.flipPrev();
+      return;
+    }
+
     const current = flipbook.getCurrentPageNumber?.() || trackedPageRef.current || 1;
     console.log('⬅️ goToPrevPage: current from flipbook =', current);
 
@@ -1158,6 +1163,11 @@ export default function FlipCanvasViewer({ issue, onClose }) {
   const goToNextPage = useCallback(() => {
     const flipbook = flipbookInstanceRef.current;
     if (!flipbook) return;
+
+    if (typeof flipbook.flipNext === "function") {
+      flipbook.flipNext();
+      return;
+    }
 
     const current = flipbook.getCurrentPageNumber?.() || trackedPageRef.current || 1;
     const maxPages = flipbook.options?.numPages || totalPages || 999;
