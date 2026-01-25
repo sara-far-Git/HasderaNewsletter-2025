@@ -851,6 +851,23 @@ export default function FlipCanvasViewer({ issue, onClose }) {
   const [showHint, setShowHint] = useState(true);
   const [links, setLinks] = useState([]);
 
+  const getFlipbookCurrentPage = useCallback((flipbook) => {
+    if (!flipbook) return null;
+    if (typeof flipbook.getCurrentPageNumber === "function") {
+      return flipbook.getCurrentPageNumber();
+    }
+    if (flipbook.Book?.getCurrentPageNumber) {
+      return flipbook.Book.getCurrentPageNumber();
+    }
+    if (flipbook.cPage && flipbook.cPage.length > 0) {
+      return Math.max(...flipbook.cPage) + 1;
+    }
+    if (typeof flipbook.Book?.rightIndex === "number") {
+      return flipbook.Book.rightIndex;
+    }
+    return null;
+  }, []);
+
   const resolveTotalPages = useCallback((flipbook) => {
     if (!flipbook) return null;
     const byOptions = flipbook.options?.numPages || flipbook.options?.pages?.length;
@@ -858,7 +875,8 @@ export default function FlipCanvasViewer({ issue, onClose }) {
     const byBook =
       (typeof flipbook.Book?.getNumberOfPages === "function" ? flipbook.Book.getNumberOfPages() : null) ||
       flipbook.Book?.pages?.length ||
-      flipbook.Book?.numPages;
+      flipbook.Book?.numPages ||
+      flipbook.Book?.totalPages;
     return byOptions || byBook || byApi || null;
   }, []);
 
@@ -1078,7 +1096,7 @@ export default function FlipCanvasViewer({ issue, onClose }) {
 
         if (flipbook.on) {
           flipbook.on('pagechange', () => {
-            const page = flipbook.getCurrentPageNumber?.();
+            const page = getFlipbookCurrentPage(flipbook);
             console.log('📄 pagechange event fired, page:', page);
             if (page) {
               trackedPageRef.current = page; // 🔄 Update tracked page immediately
@@ -1143,7 +1161,7 @@ export default function FlipCanvasViewer({ issue, onClose }) {
     if (typeof flipbook.nextPage === "function") {
       flipbook.nextPage(); // RTL: nextPage = קודם
       setTimeout(() => {
-        const page = flipbook.getCurrentPageNumber?.();
+        const page = getFlipbookCurrentPage(flipbook);
         if (page) {
           trackedPageRef.current = page;
           lastPageRef.current = page;
@@ -1175,7 +1193,7 @@ export default function FlipCanvasViewer({ issue, onClose }) {
     if (typeof flipbook.prevPage === "function") {
       flipbook.prevPage(); // RTL: prevPage = הבא
       setTimeout(() => {
-        const page = flipbook.getCurrentPageNumber?.();
+        const page = getFlipbookCurrentPage(flipbook);
         if (page) {
           trackedPageRef.current = page;
           lastPageRef.current = page;
@@ -1316,6 +1334,17 @@ export default function FlipCanvasViewer({ issue, onClose }) {
           >
             <ChevronLeftIcon />
           </NavigationArrow>
+
+          {/* חץ שמאל - עמוד הבא (fallback) */}
+          <ClickZone
+            $side="left"
+            $disabled={!canGoNext}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (canGoNext) goToNextPage();
+            }}
+          />
         </>
       )}
 
