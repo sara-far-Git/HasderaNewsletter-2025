@@ -1758,6 +1758,18 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     console.log('📄 Manual page update:', page, 'visiblePages:', visible);
   }, []);
 
+  const refreshFlipbookDisplay = useCallback(() => {
+    const flipbook = flipbookInstanceRef.current;
+    if (!flipbook) return;
+    // Attempt to force a redraw on different Real3D builds.
+    flipbook.Book?.render?.();
+    flipbook.Book?.update?.();
+    flipbook.Book?.updatePages?.();
+    flipbook.render?.();
+    flipbook.update?.();
+    flipbook.resize?.();
+  }, []);
+
   // 🔧 פונקציה לקבלת העמוד הנוכחי מה-flipbook
   const getFlipbookCurrentPage = useCallback(() => {
     const flipbook = flipbookInstanceRef.current;
@@ -1778,33 +1790,42 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
   }, []);
 
   // 🔧 פונקציות ניווט - עדכון ידני של visiblePages כי ה-pagechange event לא תמיד עובד
-  const goToPrevPage = useCallback(() => {
+  const attemptFlip = useCallback((direction) => {
     const flipbook = flipbookInstanceRef.current;
-    if (flipbook) {
-      console.log('⬅️ goToPrevPage called');
+    if (!flipbook) return;
+    const before = getFlipbookCurrentPage();
+    if (direction === 'prev') {
       flipbook.nextPage?.(); // RTL: nextPage = שמאלה = "קודם" בעברית
-      // עדכון ידני אחרי קצת זמן
-      setTimeout(() => {
-        const page = getFlipbookCurrentPage();
-        console.log('⬅️ After nextPage, current page:', page);
-        if (page) updateVisiblePages(page);
-      }, 150);
+    } else {
+      flipbook.prevPage?.(); // RTL: prevPage = ימינה = "הבא" בעברית
     }
-  }, [updateVisiblePages, getFlipbookCurrentPage]);
+    setTimeout(() => {
+      const after = getFlipbookCurrentPage();
+      if (after === before || after == null) {
+        // Fallbacks for builds where prev/nextPage don't repaint
+        if (direction === 'prev') {
+          flipbook.Book?.flipNext?.();
+          flipbook.Book?.next?.();
+        } else {
+          flipbook.Book?.flipPrev?.();
+          flipbook.Book?.prev?.();
+        }
+      }
+      const page = getFlipbookCurrentPage();
+      if (page) updateVisiblePages(page);
+      refreshFlipbookDisplay();
+    }, 180);
+  }, [updateVisiblePages, getFlipbookCurrentPage, refreshFlipbookDisplay]);
+
+  const goToPrevPage = useCallback(() => {
+    console.log('⬅️ goToPrevPage called');
+    attemptFlip('prev');
+  }, [attemptFlip]);
 
   const goToNextPage = useCallback(() => {
-    const flipbook = flipbookInstanceRef.current;
-    if (flipbook) {
-      console.log('➡️ goToNextPage called');
-      flipbook.prevPage?.(); // RTL: prevPage = ימינה = "הבא" בעברית
-      // עדכון ידני אחרי קצת זמן
-      setTimeout(() => {
-        const page = getFlipbookCurrentPage();
-        console.log('➡️ After prevPage, current page:', page);
-        if (page) updateVisiblePages(page);
-      }, 150);
-    }
-  }, [updateVisiblePages, getFlipbookCurrentPage]);
+    console.log('➡️ goToNextPage called');
+    attemptFlip('next');
+  }, [attemptFlip]);
 
   // קיצורי מקלדת
   useEffect(() => {
