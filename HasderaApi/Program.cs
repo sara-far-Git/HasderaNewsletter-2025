@@ -98,10 +98,11 @@ builder.Services.AddCors(options =>
                     origin == "https://hasdera-advertiser.pages.dev")
                     return true;
                 
-                // Allow custom domain (אם יש)
-                // הוסף כאן את הדומיין המותאם אישית שלך, למשל:
-                // if (origin == "https://advertiser.hasdera.com" || origin == "https://app.hasdera.com")
-                //     return true;
+                // Allow hasdera-magazine.co.il domain
+                if (origin == "https://hasdera-magazine.co.il" || 
+                    origin == "https://www.hasdera-magazine.co.il" ||
+                    origin.EndsWith(".hasdera-magazine.co.il"))
+                    return true;
                 
                 return false;
             })
