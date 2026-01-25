@@ -42,7 +42,7 @@ const BackButton = styled.button`
   transition: background 0.2s;
 
   &:hover {
-    background: #2563eb;
+    background: #059669;
   }
 `;
 

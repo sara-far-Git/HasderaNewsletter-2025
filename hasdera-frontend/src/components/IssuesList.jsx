@@ -170,17 +170,16 @@ const TitleSection = styled.div`
 const IconBox = styled.div`
   display: inline-flex;
   padding: ${hasederaTheme.spacing.lg};
-  background: ${hasederaTheme.colors.gradient.primary};
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   border-radius: ${hasederaTheme.borderRadius['2xl']};
   margin-bottom: 1.5rem;
-  box-shadow: ${hasederaTheme.shadows.green};
-  animation: ${float} 3s ease-in-out infinite;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
   align-items: center;
   justify-content: center;
   
   svg {
     display: block;
-    color: ${hasederaTheme.colors.text.white};
+    color: white;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
     flex-shrink: 0;
     width: 48px;
