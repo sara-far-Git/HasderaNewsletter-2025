@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import styled, { keyframes, css } from "styled-components";
+import styled, { keyframes, css, createGlobalStyle } from "styled-components";
 import { 
   Book, Utensils, Gift, Coffee, Puzzle, ShoppingBag, 
   Sparkles, ChevronDown, ArrowRight, Newspaper, TreePine
@@ -113,6 +113,24 @@ const spin = keyframes`
 const bounce = keyframes`
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-15px); }
+`;
+
+// ================ GLOBAL STYLES ================
+
+const SmoothScrollStyles = createGlobalStyle`
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 `;
 
 // ================ STYLED COMPONENTS ================
@@ -668,6 +686,18 @@ export default function ShederaStreet() {
   const [visibleCards, setVisibleCards] = useState(new Set());
   const cardRefs = useRef([]);
   
+  // Enable smooth scrolling on mount
+  useEffect(() => {
+    // Add smooth scroll to html
+    document.documentElement.style.scrollBehavior = 'smooth';
+    document.body.style.scrollBehavior = 'smooth';
+    
+    return () => {
+      document.documentElement.style.scrollBehavior = '';
+      document.body.style.scrollBehavior = '';
+    };
+  }, []);
+  
   // Intersection Observer for cards
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -694,8 +724,10 @@ export default function ShederaStreet() {
   };
   
   return (
-    <PageContainer>
-      <FixedBackground />
+    <>
+      <SmoothScrollStyles />
+      <PageContainer>
+        <FixedBackground />
       
       {/* Animation Layer - all pure CSS, no JS updates */}
       <AnimationLayer>
@@ -837,6 +869,7 @@ export default function ShederaStreet() {
           </ZigzagContainer>
         </SectionsArea>
       </Content>
-    </PageContainer>
+      </PageContainer>
+    </>
   );
 }
