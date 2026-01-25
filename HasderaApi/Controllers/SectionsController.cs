@@ -13,9 +13,9 @@ namespace HasderaApi.Controllers
     [Route("api/[controller]")]
     public class SectionsController : ControllerBase
     {
-        private readonly HasderaDbContext _context;
+        private readonly AppDbContext _context;
 
-        public SectionsController(HasderaDbContext context)
+        public SectionsController(AppDbContext context)
         {
             _context = context;
         }
