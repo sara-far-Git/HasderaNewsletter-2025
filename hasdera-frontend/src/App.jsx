@@ -16,11 +16,24 @@ const GlobalStyleComponent = createGlobalStyle`
 function AppRoutes() {
   let appMode = String(import.meta.env.VITE_APP_MODE || "all").toLowerCase();
   const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const modeOverride = searchParams?.get("mode")?.toLowerCase();
+  const allowedModes = new Set(["reader", "advertiser", "admin", "all"]);
 
   if (host.includes("hasdera-magazine.co.il") || host.includes("hasderanewsletter-2025.pages.dev")) {
     appMode = "reader";
   } else if (host.includes("hasdera-advertiser.pages.dev")) {
     appMode = "advertiser";
+  }
+
+  // Local dev: default to reader unless explicitly overridden.
+  const isLocalhost = host === "localhost" || host === "127.0.0.1";
+  if (isLocalhost && appMode === "all" && !modeOverride) {
+    appMode = "reader";
+  }
+
+  if (modeOverride && allowedModes.has(modeOverride)) {
+    appMode = modeOverride;
   }
   const loginRoute = readerRoutes.filter(route => route.path === "/login");
 
