@@ -1,6 +1,6 @@
 /**
  * ShederaStreet.jsx
- * 🌳 "מדורים" - ריבועים בזיגזג שמופיעים בגלילה
+ * 🌳 "מדורים" - ריבועים בזיגזג שמופיעים בפתאומיות + אלמנטים תלת מימדיים
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -13,31 +13,41 @@ import {
 
 // ================ ANIMATIONS ================
 
-const fadeInLeft = keyframes`
-  from { 
+const popInLeft = keyframes`
+  0% { 
     opacity: 0; 
-    transform: translateX(-120px) rotate(-3deg); 
+    transform: translateX(-200px) scale(0.5) rotate(-10deg);
+    filter: blur(10px);
   }
-  to { 
+  60% {
+    transform: translateX(20px) scale(1.05) rotate(2deg);
+  }
+  100% { 
     opacity: 1; 
-    transform: translateX(0) rotate(0deg); 
+    transform: translateX(0) scale(1) rotate(0deg);
+    filter: blur(0);
   }
 `;
 
-const fadeInRight = keyframes`
-  from { 
+const popInRight = keyframes`
+  0% { 
     opacity: 0; 
-    transform: translateX(120px) rotate(3deg); 
+    transform: translateX(200px) scale(0.5) rotate(10deg);
+    filter: blur(10px);
   }
-  to { 
+  60% {
+    transform: translateX(-20px) scale(1.05) rotate(-2deg);
+  }
+  100% { 
     opacity: 1; 
-    transform: translateX(0) rotate(0deg); 
+    transform: translateX(0) scale(1) rotate(0deg);
+    filter: blur(0);
   }
 `;
 
 const float = keyframes`
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  50% { transform: translateY(-10px); }
 `;
 
 const scrollHint = keyframes`
@@ -45,9 +55,50 @@ const scrollHint = keyframes`
   50% { transform: translateY(12px); opacity: 0.5; }
 `;
 
-const pulse = keyframes`
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
+const birdFly = keyframes`
+  0% { 
+    transform: translate(0, 0) scaleX(-1); 
+    opacity: 0;
+  }
+  5% { opacity: 0.7; }
+  50% { 
+    transform: translate(50vw, -30px) scaleX(-1); 
+  }
+  95% { opacity: 0.7; }
+  100% { 
+    transform: translate(100vw, 10px) scaleX(-1); 
+    opacity: 0;
+  }
+`;
+
+const leafFall = keyframes`
+  0% { 
+    transform: translateY(-100px) rotate(0deg) translateX(0); 
+    opacity: 0; 
+  }
+  10% { opacity: 0.8; }
+  50% { transform: translateY(50vh) rotate(360deg) translateX(50px); }
+  100% { 
+    transform: translateY(110vh) rotate(720deg) translateX(-30px); 
+    opacity: 0; 
+  }
+`;
+
+const sway = keyframes`
+  0%, 100% { transform: rotate(-3deg) translateX(0); }
+  50% { transform: rotate(3deg) translateX(10px); }
+`;
+
+const twinkle = keyframes`
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+`;
+
+const floatSlow = keyframes`
+  0%, 100% { transform: translateY(0) translateX(0); }
+  25% { transform: translateY(-20px) translateX(10px); }
+  50% { transform: translateY(-10px) translateX(-5px); }
+  75% { transform: translateY(-30px) translateX(5px); }
 `;
 
 // ================ STYLED COMPONENTS ================
@@ -77,11 +128,73 @@ const FixedBackground = styled.div`
     inset: 0;
     background: linear-gradient(
       180deg,
-      rgba(15, 23, 42, 0.5) 0%,
-      rgba(20, 30, 48, 0.4) 50%,
-      rgba(15, 23, 42, 0.55) 100%
+      rgba(15, 23, 42, 0.45) 0%,
+      rgba(20, 30, 48, 0.35) 50%,
+      rgba(15, 23, 42, 0.5) 100%
     );
   }
+`;
+
+// ===== 3D ELEMENTS =====
+
+const Bird = styled.div`
+  position: fixed;
+  font-size: ${props => props.$size || 2}rem;
+  z-index: 60;
+  animation: ${birdFly} ${props => props.$duration || 20}s linear infinite;
+  animation-delay: ${props => props.$delay || 0}s;
+  top: ${props => props.$top || 15}%;
+  left: -60px;
+  pointer-events: none;
+`;
+
+const Leaf = styled.div`
+  position: fixed;
+  font-size: ${props => props.$size || 1.5}rem;
+  z-index: 55;
+  animation: ${leafFall} ${props => props.$duration || 15}s linear infinite;
+  animation-delay: ${props => props.$delay || 0}s;
+  left: ${props => props.$left || 50}%;
+  top: -50px;
+  pointer-events: none;
+`;
+
+const FloatingTree = styled.div`
+  position: fixed;
+  font-size: ${props => props.$size || 4}rem;
+  opacity: ${props => props.$opacity || 0.3};
+  z-index: 5;
+  animation: ${sway} ${props => props.$duration || 8}s ease-in-out infinite;
+  ${props => props.$left ? `left: ${props.$left};` : ''}
+  ${props => props.$right ? `right: ${props.$right};` : ''}
+  top: ${props => props.$top || '20%'};
+  pointer-events: none;
+  filter: blur(${props => props.$blur || 0}px);
+`;
+
+const Sparkle = styled.div`
+  position: fixed;
+  font-size: 1.2rem;
+  z-index: 50;
+  animation: ${twinkle} ${props => props.$duration || 3}s ease-in-out infinite;
+  animation-delay: ${props => props.$delay || 0}s;
+  top: ${props => props.$top};
+  left: ${props => props.$left};
+  pointer-events: none;
+  opacity: 0.6;
+`;
+
+const FloatingElement = styled.div`
+  position: fixed;
+  font-size: ${props => props.$size || 2}rem;
+  z-index: 45;
+  animation: ${floatSlow} ${props => props.$duration || 10}s ease-in-out infinite;
+  animation-delay: ${props => props.$delay || 0}s;
+  ${props => props.$left ? `left: ${props.$left};` : ''}
+  ${props => props.$right ? `right: ${props.$right};` : ''}
+  top: ${props => props.$top};
+  opacity: ${props => props.$opacity || 0.5};
+  pointer-events: none;
 `;
 
 const Content = styled.div`
@@ -164,19 +277,17 @@ const ScrollHint = styled.div`
 // ===== ZIGZAG SECTIONS =====
 
 const SectionsArea = styled.section`
-  padding: 0 2rem 200px;
+  padding: 0 2rem 250px;
 `;
 
-// Zigzag container - each card takes full width but aligns left/right
 const ZigzagContainer = styled.div`
   max-width: 1000px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 120px; /* Big gap between cards */
+  gap: 150px;
 `;
 
-// Card wrapper for zigzag alignment
 const CardWrapper = styled.div`
   display: flex;
   justify-content: ${props => props.$side === 'left' ? 'flex-start' : 'flex-end'};
@@ -186,32 +297,35 @@ const CardWrapper = styled.div`
   }
 `;
 
-// The card itself
+// Card - completely invisible until triggered
 const SectionCard = styled.div`
   width: 100%;
-  max-width: 450px;
+  max-width: 480px;
   background: linear-gradient(
     145deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.04) 100%
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.05) 100%
   );
   border-radius: 28px;
   padding: 2.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   cursor: pointer;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(25px);
   position: relative;
   overflow: hidden;
   
-  /* Animation based on visibility and side */
-  opacity: ${props => props.$visible ? 1 : 0};
-  transform: ${props => {
-    if (!props.$visible) {
-      return props.$side === 'left' ? 'translateX(-100px)' : 'translateX(100px)';
-    }
-    return 'translateX(0)';
-  }};
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Completely invisible until visible */
+  opacity: 0;
+  visibility: hidden;
+  transform: ${props => props.$side === 'left' ? 'translateX(-200px)' : 'translateX(200px)'} scale(0.5);
+  
+  /* When visible - animate in */
+  ${props => props.$visible && `
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    animation: ${props.$side === 'left' ? popInLeft : popInRight} 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  `}
   
   &::before {
     content: '';
@@ -232,7 +346,7 @@ const SectionCard = styled.div`
     background: linear-gradient(
       135deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.12) 50%,
       transparent 100%
     );
     opacity: 0;
@@ -240,14 +354,14 @@ const SectionCard = styled.div`
   }
   
   &:hover {
-    transform: translateX(0) scale(1.03) translateY(-5px);
-    border-color: ${props => props.$color}50;
+    transform: scale(1.04) translateY(-8px);
+    border-color: ${props => props.$color}60;
     box-shadow: 
-      0 30px 60px rgba(0, 0, 0, 0.35),
-      0 0 60px ${props => props.$color}20;
+      0 35px 70px rgba(0, 0, 0, 0.4),
+      0 0 80px ${props => props.$color}25;
     
     &::before {
-      height: 7px;
+      height: 8px;
     }
     
     &::after {
@@ -257,42 +371,42 @@ const SectionCard = styled.div`
 `;
 
 const CardIcon = styled.div`
-  width: 80px;
-  height: 80px;
+  width: 85px;
+  height: 85px;
   background: ${props => props.$gradient};
   border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1.5rem;
-  box-shadow: 0 15px 40px ${props => props.$color}45;
+  box-shadow: 0 18px 45px ${props => props.$color}50;
   transition: all 0.4s ease;
   
   svg {
     color: white;
-    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
   }
   
   ${SectionCard}:hover & {
-    transform: scale(1.1) rotate(-5deg);
-    animation: ${float} 2s ease-in-out infinite;
+    transform: scale(1.15) rotate(-8deg);
+    animation: ${float} 1.5s ease-in-out infinite;
   }
 `;
 
 const CardLabel = styled.span`
   display: inline-block;
-  padding: 0.5rem 1.2rem;
+  padding: 0.5rem 1.25rem;
   background: ${props => props.$gradient};
   color: white;
   border-radius: 25px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
   margin-bottom: 1.25rem;
-  box-shadow: 0 5px 15px ${props => props.$color}45;
+  box-shadow: 0 6px 20px ${props => props.$color}50;
 `;
 
 const CardTitle = styled.h3`
-  font-size: 1.8rem;
+  font-size: 1.9rem;
   font-weight: 700;
   color: #f8fafc;
   margin-bottom: 0.75rem;
@@ -304,7 +418,7 @@ const CardTitle = styled.h3`
 `;
 
 const CardDescription = styled.p`
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 1.1rem;
   line-height: 1.8;
   margin-bottom: 1.75rem;
@@ -315,15 +429,15 @@ const CardFooter = styled.div`
   align-items: center;
   justify-content: space-between;
   padding-top: 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 `;
 
 const CardBadge = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.95rem;
   
   svg {
     width: 16px;
@@ -332,10 +446,10 @@ const CardBadge = styled.span`
 `;
 
 const CardArrow = styled.div`
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -352,30 +466,8 @@ const CardArrow = styled.div`
     
     svg {
       color: white;
-      transform: translateX(-4px);
+      transform: translateX(-5px);
     }
-  }
-`;
-
-// Connector line between cards
-const ConnectorLine = styled.div`
-  position: absolute;
-  width: 3px;
-  height: 80px;
-  background: linear-gradient(
-    180deg,
-    ${props => props.$fromColor}50 0%,
-    ${props => props.$toColor}50 100%
-  );
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: -100px;
-  border-radius: 3px;
-  opacity: ${props => props.$visible ? 0.6 : 0};
-  transition: opacity 0.5s ease;
-  
-  @media (max-width: 768px) {
-    display: none;
   }
 `;
 
@@ -454,6 +546,9 @@ const SECTIONS = [
   },
 ];
 
+// Leaves data
+const LEAVES = ['🍂', '🍃', '🌿', '🍀', '🌸'];
+
 // ================ COMPONENT ================
 
 export default function ShederaStreet() {
@@ -471,7 +566,7 @@ export default function ShederaStreet() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
   
-  // Intersection Observer
+  // Intersection Observer - trigger when card enters viewport
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -482,7 +577,7 @@ export default function ShederaStreet() {
           }
         });
       },
-      { threshold: 0.2, rootMargin: '0px 0px -100px 0px' }
+      { threshold: 0.25, rootMargin: '0px 0px -150px 0px' }
     );
     
     cardRefs.current.forEach(ref => {
@@ -499,6 +594,43 @@ export default function ShederaStreet() {
   return (
     <PageContainer>
       <FixedBackground />
+      
+      {/* 3D Elements - Birds */}
+      <Bird $top={8} $duration={25} $delay={0} $size={2}>🕊️</Bird>
+      <Bird $top={18} $duration={35} $delay={8} $size={1.8}>🐦</Bird>
+      <Bird $top={5} $duration={30} $delay={18} $size={2.2}>🕊️</Bird>
+      <Bird $top={25} $duration={28} $delay={25} $size={1.6}>🐦</Bird>
+      
+      {/* 3D Elements - Falling Leaves */}
+      {[...Array(10)].map((_, i) => (
+        <Leaf
+          key={i}
+          $left={5 + i * 10}
+          $size={1.2 + Math.random() * 0.8}
+          $duration={12 + Math.random() * 10}
+          $delay={i * 2.5}
+        >
+          {LEAVES[i % LEAVES.length]}
+        </Leaf>
+      ))}
+      
+      {/* 3D Elements - Trees */}
+      <FloatingTree $left="3%" $top="15%" $size="5rem" $opacity={0.25} $duration={10} $blur={1}>🌳</FloatingTree>
+      <FloatingTree $right="5%" $top="25%" $size="4rem" $opacity={0.2} $duration={12} $blur={2}>🌲</FloatingTree>
+      <FloatingTree $left="8%" $top="50%" $size="6rem" $opacity={0.3} $duration={9}>🌴</FloatingTree>
+      <FloatingTree $right="4%" $top="60%" $size="5rem" $opacity={0.25} $duration={11} $blur={1}>🌳</FloatingTree>
+      <FloatingTree $left="5%" $top="80%" $size="4rem" $opacity={0.2} $duration={8}>🌲</FloatingTree>
+      
+      {/* 3D Elements - Sparkles */}
+      <Sparkle $top="20%" $left="15%" $duration={2.5} $delay={0}>✨</Sparkle>
+      <Sparkle $top="35%" $left="85%" $duration={3} $delay={1}>✨</Sparkle>
+      <Sparkle $top="55%" $left="10%" $duration={2.8} $delay={0.5}>✨</Sparkle>
+      <Sparkle $top="70%" $left="90%" $duration={3.2} $delay={1.5}>✨</Sparkle>
+      <Sparkle $top="85%" $left="20%" $duration={2.6} $delay={2}>✨</Sparkle>
+      
+      {/* 3D Elements - Floating */}
+      <FloatingElement $right="8%" $top="40%" $size="2.5rem" $opacity={0.4} $duration={15}>🦋</FloatingElement>
+      <FloatingElement $left="6%" $top="65%" $size="2rem" $opacity={0.35} $duration={18} $delay={5}>🌸</FloatingElement>
       
       <Content>
         {/* Welcome */}
@@ -527,7 +659,6 @@ export default function ShederaStreet() {
               const Icon = section.icon;
               const isVisible = visibleCards.has(section.id);
               const side = index % 2 === 0 ? 'left' : 'right';
-              const nextSection = SECTIONS[index + 1];
               
               return (
                 <CardWrapper key={section.id} $side={side}>
@@ -545,7 +676,7 @@ export default function ShederaStreet() {
                     </CardLabel>
                     
                     <CardIcon $color={section.color} $gradient={section.gradient}>
-                      <Icon size={36} />
+                      <Icon size={38} />
                     </CardIcon>
                     
                     <CardTitle $color={section.color}>{section.title}</CardTitle>
@@ -558,18 +689,9 @@ export default function ShederaStreet() {
                       </CardBadge>
                       
                       <CardArrow $gradient={section.gradient}>
-                        <ArrowRight size={20} />
+                        <ArrowRight size={22} />
                       </CardArrow>
                     </CardFooter>
-                    
-                    {/* Connector line to next card */}
-                    {nextSection && (
-                      <ConnectorLine 
-                        $fromColor={section.color}
-                        $toColor={nextSection.color}
-                        $visible={isVisible}
-                      />
-                    )}
                   </SectionCard>
                 </CardWrapper>
               );
