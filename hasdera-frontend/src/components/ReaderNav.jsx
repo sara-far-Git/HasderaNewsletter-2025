@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
-import { Home, Archive, User, Newspaper, Menu, X, LogOut, Bell, Search } from "lucide-react";
+import { Home, Archive, User, Newspaper, Menu, X, LogOut, Bell, Search, TreePine } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import SearchModal from "./SearchModal";
 
@@ -425,6 +425,7 @@ export default function ReaderNav() {
 
   const navItems = [
     { path: "/", label: "בית", icon: Home, exact: true },
+    { path: "/street", label: "מדורים", icon: TreePine, exact: true },
     { path: "/issues", label: "ארכיון גיליונות", icon: Archive, exact: false },
     { path: "/me", label: "אזור אישי", icon: User, exact: true },
   ];
