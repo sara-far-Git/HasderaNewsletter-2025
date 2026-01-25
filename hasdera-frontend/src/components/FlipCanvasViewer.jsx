@@ -1213,7 +1213,7 @@ export default function FlipCanvasViewer({ issue, onClose }) {
     }
   }, [totalPages, effectiveTotalPages]);
 
-  const canGoNext = effectiveTotalPages ? currentPage < effectiveTotalPages : false;
+  const canGoNext = effectiveTotalPages ? currentPage < effectiveTotalPages : true;
   const canGoPrev = currentPage > 1;
 
   return (
