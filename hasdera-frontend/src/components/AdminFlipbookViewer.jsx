@@ -1790,15 +1790,11 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
     return null;
   }, []);
 
-  // 🔧 פונקציות ניווט - עדכון ידני של visiblePages כי ה-pagechange event לא תמיד עובד
+  // 🔧 פונקציות ניווט - שימוש ב-goToPage ישירות לאמינות מקסימלית
   const attemptFlip = useCallback((direction) => {
     const flipbook = flipbookInstanceRef.current;
     if (!flipbook) {
       console.log('⚠️ No flipbook instance');
-      return;
-    }
-    if (isFlipping) {
-      console.log('⚠️ Already flipping, ignoring');
       return;
     }
 
@@ -1807,48 +1803,34 @@ export default function AdminFlipbookViewer({ issueId, onClose, issue: propIssue
 
     console.log(`🔄 attemptFlip: direction=${direction}, current=${current}, total=${effectiveTotalPages}`);
 
-    // בדיקות גבולות - פחות נוקשות
-    if (direction === 'next' && current >= effectiveTotalPages - 1) {
-      console.log('⚠️ Already at last page');
-      return;
-    }
-    if (direction === 'prev' && current <= 1) {
-      console.log('⚠️ Already at first page');
-      return;
-    }
-
-    setIsFlipping(true);
-    
-    // Safety timeout - תמיד משחרר את isFlipping אחרי 1 שניה
-    const safetyTimeout = setTimeout(() => {
-      console.log('⚠️ Safety timeout - resetting isFlipping');
-      setIsFlipping(false);
-    }, 1000);
-
-    try {
-      // RTL flipbook: nextPage = קדימה בתוכן, prevPage = אחורה בתוכן
-      if (direction === 'next') {
-        flipbook.nextPage?.();
-      } else {
-        flipbook.prevPage?.();
+    // חישוב עמוד יעד (spread view = 2 עמודים בכל פעם)
+    let targetPage;
+    if (direction === 'next') {
+      if (current >= effectiveTotalPages) {
+        console.log('⚠️ Already at last page');
+        return;
       }
-
-      setTimeout(() => {
-        const page = getFlipbookCurrentPage();
-        console.log(`📄 After flip: page=${page}`);
-        if (page) {
-          updateVisiblePages(page);
-        }
-        refreshFlipbookDisplay();
-        clearTimeout(safetyTimeout);
-        setIsFlipping(false);
-      }, 300);
-    } catch (err) {
-      console.error('❌ Flip error:', err);
-      clearTimeout(safetyTimeout);
-      setIsFlipping(false);
+      targetPage = current <= 1 ? 2 : Math.min(current + 2, effectiveTotalPages);
+    } else {
+      if (current <= 1) {
+        console.log('⚠️ Already at first page');
+        return;
+      }
+      targetPage = current <= 2 ? 1 : Math.max(current - 2, 1);
     }
-  }, [isFlipping, resolveTotalPages, totalPages, currentPage, updateVisiblePages, getFlipbookCurrentPage, refreshFlipbookDisplay]);
+
+    console.log(`📍 Going to page ${targetPage}`);
+    
+    // שימוש ב-goToPage ישירות - יותר אמין מ-nextPage/prevPage
+    flipbook.goToPage?.(targetPage, false); // false = עם אנימציה
+
+    setTimeout(() => {
+      const page = getFlipbookCurrentPage() || targetPage;
+      console.log(`📄 After flip: page=${page}`);
+      updateVisiblePages(page);
+      refreshFlipbookDisplay();
+    }, 400);
+  }, [resolveTotalPages, totalPages, currentPage, updateVisiblePages, getFlipbookCurrentPage, refreshFlipbookDisplay]);
 
   const goToPrevPage = useCallback(() => {
     console.log('⬅️ goToPrevPage called');
