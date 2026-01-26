@@ -39,7 +39,10 @@ function AppRoutes() {
 
   let allRoutesInOrder;
   if (appMode === "reader") {
-    allRoutesInOrder = [...readerRoutes];
+    // Include admin routes so Admin users can access /admin even from reader mode
+    // Filter out duplicate login route from adminRoutes
+    const adminRoutesWithoutLogin = adminRoutes.filter(route => route.path !== "/login");
+    allRoutesInOrder = [...readerRoutes, ...adminRoutesWithoutLogin];
   } else if (appMode === "advertiser") {
     allRoutesInOrder = [
       ...loginRoute,
