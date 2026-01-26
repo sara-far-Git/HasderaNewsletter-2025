@@ -19,8 +19,7 @@ import {
   addComment,
   toggleLike
 } from "../Services/sectionsService";
-import ReaderNav from "./ReaderNav";
-import ReaderFooter from "./ReaderFooter";
+// Navigation and footer removed - not needed for section pages
 
 // 🎬 אנימציות
 const fadeIn = keyframes`
@@ -530,36 +529,27 @@ export default function SectionPage() {
 
   if (loading) {
     return (
-      <>
-        <ReaderNav />
-        <PageContainer>
-          <LoadingState>
-            <Loader size={48} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
-            <p>טוען...</p>
-          </LoadingState>
-        </PageContainer>
-        <ReaderFooter />
-      </>
+      <PageContainer>
+        <LoadingState>
+          <Loader size={48} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
+          <p>טוען...</p>
+        </LoadingState>
+      </PageContainer>
     );
   }
 
   if (!section) {
     return (
-      <>
-        <ReaderNav />
-        <PageContainer>
-          <EmptyState>
-            <p>קטגוריה לא נמצאה</p>
-          </EmptyState>
-        </PageContainer>
-        <ReaderFooter />
-      </>
+      <PageContainer>
+        <EmptyState>
+          <p>קטגוריה לא נמצאה</p>
+        </EmptyState>
+      </PageContainer>
     );
   }
 
   return (
     <>
-      <ReaderNav />
       <PageContainer>
         <Container>
           <SectionHeader>
@@ -715,8 +705,6 @@ export default function SectionPage() {
           </ModalContent>
         </Modal>
       )}
-
-      <ReaderFooter />
     </>
   );
 }
