@@ -14,26 +14,64 @@ const GlobalStyleComponent = createGlobalStyle`
 // 🎯 קומפוננט פנימי שמטען את כל ה-routes
 // ההגנות (ProtectedRoute, AdminProtectedRoute) מטפלות בהרשאות
 function AppRoutes() {
+  let appMode = String(import.meta.env.VITE_APP_MODE || "all").toLowerCase();
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const modeOverride = searchParams?.get("mode")?.toLowerCase();
+  const allowedModes = new Set(["reader", "advertiser", "admin", "all"]);
+
+  if (host.includes("hasdera-magazine.co.il") || host.includes("hasderanewsletter-2025.pages.dev")) {
+    appMode = "reader";
+  } else if (host.includes("hasdera-advertiser.pages.dev")) {
+    appMode = "advertiser";
+  }
+
+  // Local dev: default to reader unless explicitly overridden.
+  const isLocalhost = host === "localhost" || host === "127.0.0.1";
+  if (isLocalhost && appMode === "all" && !modeOverride) {
+    appMode = "reader";
+  }
+
+  if (modeOverride && allowedModes.has(modeOverride)) {
+    appMode = modeOverride;
+  }
+  const loginRoute = readerRoutes.filter(route => route.path === "/login");
+
+  let allRoutesInOrder;
+  if (appMode === "reader") {
+    // Include admin routes so Admin users can access /admin even from reader mode
+    // Filter out duplicate login route from adminRoutes
+    const adminRoutesWithoutLogin = adminRoutes.filter(route => route.path !== "/login");
+    allRoutesInOrder = [...readerRoutes, ...adminRoutesWithoutLogin];
+  } else if (appMode === "advertiser") {
+    allRoutesInOrder = [
+      ...loginRoute,
+      ...advertiserRoutes,
+      ...adminRoutes,
+    ];
+  } else if (appMode === "admin") {
+    allRoutesInOrder = [
+      ...loginRoute,
+      ...adminRoutes,
+    ];
+  } else {
+    // "all" (default): reader -> advertiser -> admin
+    allRoutesInOrder = [
+      ...readerRoutes,
+      ...advertiserRoutes,
+      ...adminRoutes,
+    ];
+  }
+
   // יצירת מפה של routes לפי path כדי למנוע כפילויות
-  // React Router יבחר את ה-route הראשון שהוא מוצא, אז נשמור את הסדר הנכון
   const routesMap = new Map();
-  
-  // נטען את ה-routes בסדר הזה: reader -> advertiser -> admin
-  // כך routes של admin יגברו על routes של advertiser אם יש כפילויות
-  const allRoutesInOrder = [
-    ...readerRoutes,
-    ...advertiserRoutes,
-    ...adminRoutes,
-  ];
-  
-  // נשמור רק את ה-route האחרון לכל path (כך admin routes יגברו)
   allRoutesInOrder.forEach(route => {
     routesMap.set(route.path, route);
   });
-  
+
   const uniqueRoutes = Array.from(routesMap.values());
-  
-  console.log(`🚀 Loaded ${uniqueRoutes.length} unique routes (${readerRoutes.length} reader + ${advertiserRoutes.length} advertiser + ${adminRoutes.length} admin, removed ${allRoutesInOrder.length - uniqueRoutes.length} duplicates)`);
+
+  console.log(`🚀 Loaded ${uniqueRoutes.length} unique routes (mode=${appMode})`);
   
   return (
     <Routes>
