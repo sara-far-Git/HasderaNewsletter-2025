@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import FlipCanvasViewer from "../components/FlipCanvasViewer";
 import FlipIssue from "../components/FlipIssue";
 import IssuesList from "../components/IssuesList";
+import SectionPage from "../components/SectionPage";
 import ReaderProtectedRoute from "../components/ReaderProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import LoginPage from "../components/LoginPage";
@@ -139,6 +140,14 @@ export const readerRoutes = [
     element: (
       <ReaderProtectedRoute>
         <FlipIssue />
+      </ReaderProtectedRoute>
+    ) 
+  },
+  { 
+    path: "/sections/:sectionId", 
+    element: (
+      <ReaderProtectedRoute>
+        <SectionPage />
       </ReaderProtectedRoute>
     ) 
   },

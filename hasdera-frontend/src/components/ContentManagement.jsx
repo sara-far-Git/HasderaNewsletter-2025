@@ -8,6 +8,7 @@ import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { FileEdit, Users, Image, Layout, FileText, CheckCircle, Clock, Edit } from 'lucide-react';
 import AdminLayout from './AdminLayout';
+import AdminSections from './AdminSections';
 
 // 🎬 אנימציות
 const fadeInUp = keyframes`
@@ -394,12 +395,7 @@ export default function ContentManagement() {
           </ContentGrid>
         )}
 
-        {activeTab === 'sections' && (
-          <EmptyState>
-            <Layout size={64} />
-            <p>ניהול מדורים - בקרוב</p>
-          </EmptyState>
-        )}
+        {activeTab === 'sections' && <AdminSections />}
 
         {activeTab === 'editors' && (
           <EmptyState>

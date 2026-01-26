@@ -68,6 +68,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     public virtual DbSet<Announcement> Announcements { get; set; }
+    
+    // Sections and Content
+    public virtual DbSet<Section> Sections { get; set; }
+    public virtual DbSet<SectionContent> SectionContents { get; set; }
+    public virtual DbSet<ContentComment> ContentComments { get; set; }
+    public virtual DbSet<ContentLike> ContentLikes { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -686,6 +692,95 @@ public partial class AppDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(d => d.UserId)
                   .HasConstraintName("fk_password_reset_tokens_user");
+        });
+
+        // Section
+        modelBuilder.Entity<Section>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sections_pkey");
+            entity.ToTable("sections");
+
+            entity.HasIndex(e => e.SectionKey, "sections_section_key_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.SectionKey).HasMaxLength(100).HasColumnName("section_key");
+            entity.Property(e => e.Title).HasMaxLength(200).HasColumnName("title");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Icon).HasMaxLength(50).HasColumnName("icon");
+            entity.Property(e => e.Color).HasMaxLength(20).HasColumnName("color");
+            entity.Property(e => e.IsActive).HasColumnName("is_active");
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+        });
+
+        // SectionContent
+        modelBuilder.Entity<SectionContent>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("section_contents_pkey");
+            entity.ToTable("section_contents");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.SectionId).HasColumnName("section_id");
+            entity.Property(e => e.Title).HasMaxLength(300).HasColumnName("title");
+            entity.Property(e => e.Excerpt).HasMaxLength(500).HasColumnName("excerpt");
+            entity.Property(e => e.Content).HasColumnName("content");
+            entity.Property(e => e.ImageUrl).HasMaxLength(1000).HasColumnName("image_url");
+            entity.Property(e => e.Published).HasColumnName("published");
+            entity.Property(e => e.LikesCount).HasColumnName("likes_count");
+            entity.Property(e => e.CommentsCount).HasColumnName("comments_count");
+            entity.Property(e => e.ViewsCount).HasColumnName("views_count");
+            entity.Property(e => e.AuthorId).HasColumnName("author_id");
+            entity.Property(e => e.AuthorName).HasMaxLength(200).HasColumnName("author_name");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Section)
+                  .WithMany(p => p.Contents)
+                  .HasForeignKey(d => d.SectionId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("fk_section_content_section");
+        });
+
+        // ContentComment
+        modelBuilder.Entity<ContentComment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("content_comments_pkey");
+            entity.ToTable("content_comments");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ContentId).HasColumnName("content_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.AuthorName).HasMaxLength(200).HasColumnName("author_name");
+            entity.Property(e => e.Text).HasColumnName("text");
+            entity.Property(e => e.IsApproved).HasColumnName("is_approved");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasOne(d => d.Content)
+                  .WithMany(p => p.Comments)
+                  .HasForeignKey(d => d.ContentId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("fk_comment_content");
+        });
+
+        // ContentLike
+        modelBuilder.Entity<ContentLike>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("content_likes_pkey");
+            entity.ToTable("content_likes");
+
+            entity.HasIndex(e => new { e.ContentId, e.UserId }, "content_likes_unique").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ContentId).HasColumnName("content_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasOne(d => d.Content)
+                  .WithMany(p => p.Likes)
+                  .HasForeignKey(d => d.ContentId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("fk_like_content");
         });
 
         OnModelCreatingPartial(modelBuilder);
