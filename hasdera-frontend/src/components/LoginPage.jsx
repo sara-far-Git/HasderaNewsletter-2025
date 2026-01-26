@@ -470,8 +470,11 @@ export default function LoginPage() {
       }, 2000);
     } catch (err) {
       let errorMsg = "שגיאה בהתחברות";
-      
-      if (err.response?.data) {
+
+      // שגיאות timeout/network - כבר מעוצבות ב-Login.js
+      if (err.isTimeout || err.isNetwork) {
+        errorMsg = err.message;
+      } else if (err.response?.data) {
         const responseData = err.response.data;
         if (typeof responseData === 'object' && responseData.error) {
           errorMsg = responseData.error;
@@ -481,8 +484,10 @@ export default function LoginPage() {
         } else if (typeof responseData === 'string') {
           errorMsg = responseData;
         }
+      } else if (err.message) {
+        errorMsg = err.message;
       }
-      
+
       setMsg(errorMsg);
       setMsgType("error");
       setIsLoading(false);
@@ -512,8 +517,11 @@ export default function LoginPage() {
       }, 2000);
     } catch (err) {
       let errorMsg = "שגיאה בהרשמה";
-      
-      if (err.response?.data) {
+
+      // שגיאות timeout/network - כבר מעוצבות ב-Login.js
+      if (err.isTimeout || err.isNetwork) {
+        errorMsg = err.message;
+      } else if (err.response?.data) {
         const responseData = err.response.data;
         if (typeof responseData === 'object' && responseData.error) {
           errorMsg = responseData.error;
@@ -523,8 +531,10 @@ export default function LoginPage() {
         } else if (typeof responseData === 'string') {
           errorMsg = responseData;
         }
+      } else if (err.message) {
+        errorMsg = err.message;
       }
-      
+
       setMsg(errorMsg);
       setMsgType("error");
       setIsLoading(false);
@@ -536,7 +546,7 @@ export default function LoginPage() {
     setMsg("");
     setMsgType("");
     setShowSuccess(false);
-    
+
     try {
       if (!credentialResponse || !credentialResponse.credential) {
         throw new Error("לא התקבל טוקן מגוגל");
@@ -544,9 +554,9 @@ export default function LoginPage() {
 
       const idToken = credentialResponse.credential;
       console.log("Google token received, length:", idToken.length);
-      
+
       const { token, user } = await loginWithGoogle(idToken);
-      
+
       // בדיקה שהמשתמש הוא מפרסם או מנהל
       if (user.role !== 'Advertiser' && user.role !== 'Admin' && user.role !== 'admin') {
         setMsg("רק מפרסמים ומנהלים יכולים להיכנס למערכת");
@@ -554,49 +564,47 @@ export default function LoginPage() {
         setIsLoading(false);
         return;
       }
-      
+
       // הצגת הודעה אישית
       setUserName(user.fullName || user.email?.split('@')[0] || "משתמש");
       setShowSuccess(true);
       setMsgType("success");
-      
+
       authLogin(token, user);
-      
+
       // העברה אחרי 2 שניות
       setTimeout(() => {
         redirectByRole(user.role);
       }, 2000);
     } catch (err) {
       let errorMsg = "שגיאה בהתחברות עם גוגל";
-      
-      if (err.response) {
+
+      // שגיאות timeout/network - כבר מעוצבות ב-Login.js
+      if (err.isTimeout || err.isNetwork) {
+        errorMsg = err.message;
+      } else if (err.response) {
         // שגיאה מהשרת
         const responseData = err.response.data;
-        
-        // אם זה אובייקט עם error ו-details, נציג את שניהם
+
         if (responseData && typeof responseData === 'object') {
           if (responseData.error) {
             errorMsg = responseData.error;
             if (responseData.details && responseData.details !== responseData.error) {
               errorMsg += `: ${responseData.details}`;
             }
-          } else {
-            // אם זה אובייקט אחר, נמיר אותו למחרוזת
-            errorMsg = JSON.stringify(responseData);
           }
         } else if (typeof responseData === 'string') {
           errorMsg = responseData;
         } else {
           errorMsg = err.response.statusText || `שגיאת שרת: ${err.response.status}`;
         }
-        
+
         console.error("Server error:", err.response.status, err.response.data);
       } else if (err.message) {
-        // שגיאה מקומית
         errorMsg = err.message;
         console.error("Local error:", err.message);
       }
-      
+
       setMsg(errorMsg);
       setMsgType("error");
       setIsLoading(false);

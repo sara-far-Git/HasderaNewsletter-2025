@@ -7,7 +7,7 @@ const DEFAULT_DEV_API_BASEURL = "http://localhost:5055/api";
 
 // Version stamp to verify which bundle is running in production.
 // Keep this in sync with the latest deployment commit when debugging.
-export const API_CLIENT_VERSION = "364da6a";
+export const API_CLIENT_VERSION = "c246f7a";
 try {
   // Expose for quick checks in DevTools: window.__HASDERA_API_CLIENT_VERSION
   window.__HASDERA_API_CLIENT_VERSION = API_CLIENT_VERSION;
@@ -105,7 +105,7 @@ export const api = axios.create({
     "Content-Type": "application/json"
   },
   withCredentials: true, // נדרש עבור CORS עם credentials
-  timeout: 60000 
+  timeout: 15000 // 15 שניות - מספיק לרוב הבקשות, retry יטפל בכשלונות
 });
 
 try {
@@ -201,12 +201,20 @@ api.interceptors.response.use(
 );
 
 // ——— Retry Logic ———
-axiosRetry(api, { 
-  retries: 3,
-  retryDelay: axiosRetry.exponentialDelay,
+axiosRetry(api, {
+  retries: 2, // 2 ניסיונות נוספים (סה"כ 3)
+  retryDelay: (retryCount) => {
+    // המתנה קצרה בין ניסיונות: 1s, 2s
+    return retryCount * 1000;
+  },
   retryCondition: (error) => {
-    return axiosRetry.isNetworkOrIdempotentRequestError(error) || 
-           error.code === 'ECONNABORTED';
+    // רק שגיאות רשת או timeout - לא שגיאות 4xx/5xx
+    return axiosRetry.isNetworkError(error) ||
+           error.code === 'ECONNABORTED' ||
+           error.code === 'ETIMEDOUT';
+  },
+  onRetry: (retryCount, error, requestConfig) => {
+    console.log(`🔄 Retry attempt ${retryCount} for ${requestConfig.url} (${error.code || error.message})`);
   }
 });
 
