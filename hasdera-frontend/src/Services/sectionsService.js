@@ -31,9 +31,9 @@ export const deleteSection = async (id) => {
 };
 
 // קבלת תוכן של קטגוריה
-export const getSectionContents = async (sectionId, publishedOnly = true) => {
+export const getSectionContents = async (sectionId, publishedOnly = false) => {
   const response = await api.get(`/sections/${sectionId}/contents`, {
-    params: { publishedOnly }
+    params: { publishedOnly: publishedOnly }
   });
   return response.data;
 };
@@ -77,6 +77,12 @@ export const getComments = async (contentId) => {
 // הוספת/הסרת לייק
 export const toggleLike = async (contentId) => {
   const response = await api.post(`/sections/contents/${contentId}/like`);
+  return response.data;
+};
+
+// עדכון סטטוס פרסום תוכן
+export const toggleContentPublished = async (contentId, published) => {
+  const response = await api.put(`/sections/contents/${contentId}`, { published });
   return response.data;
 };
 

@@ -17,7 +17,8 @@ import {
   getSectionContents,
   createContent,
   updateContent,
-  deleteContent
+  deleteContent,
+  toggleContentPublished
 } from "../Services/sectionsService";
 
 // 🎬 אנימציות
@@ -189,6 +190,7 @@ const ContentCard = styled.div`
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
   transition: all 0.3s;
   animation: ${slideIn} 0.4s ease-out;
+  border-left: 4px solid ${props => props.$published ? '#10b981' : '#e5e7eb'};
   
   &:hover {
     transform: translateY(-2px);
@@ -344,6 +346,56 @@ const EmptyState = styled.div`
   color: #6b7280;
 `;
 
+const SearchInput = styled.input`
+  width: 100%;
+  max-width: 400px;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  transition: all 0.2s;
+  
+  &:focus {
+    outline: none;
+    border-color: #10b981;
+  }
+`;
+
+const LoadingSpinner = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem 2rem;
+  color: #6b7280;
+`;
+
+const BackButton = styled.button`
+  padding: 0.5rem 1rem;
+  background: #e5e7eb;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #d1d5db;
+  }
+`;
+
+const SectionHeaderBar = styled.div`
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+`;
+
 export default function AdminSections() {
   const [sections, setSections] = useState([]);
   const [contents, setContents] = useState([]);
@@ -354,6 +406,7 @@ export default function AdminSections() {
   const [editingSection, setEditingSection] = useState(null);
   const [editingContent, setEditingContent] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Form states
   const [sectionForm, setSectionForm] = useState({
@@ -533,6 +586,29 @@ export default function AdminSections() {
     }
   };
 
+  const handleTogglePublish = async (content) => {
+    try {
+      setLoading(true);
+      await toggleContentPublished(content.id, !content.published);
+      await loadContents(selectedSection.id);
+    } catch (error) {
+      console.error('Error toggling publish:', error);
+      alert('שגיאה בשינוי סטטוס פרסום');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredContents = contents.filter(content => 
+    content.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    content.excerpt?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredSections = sections.filter(section =>
+    section.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    section.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <Container>
       <Header>
@@ -572,8 +648,22 @@ export default function AdminSections() {
       </TabsContainer>
 
       {activeTab === 'sections' && (
-        <Grid>
-          {sections.map((section) => (
+        <>
+          <SearchInput
+            type="text"
+            placeholder="חיפוש מדורים..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {loading ? (
+            <LoadingSpinner>טוען...</LoadingSpinner>
+          ) : filteredSections.length === 0 ? (
+            <EmptyState>
+              {searchQuery ? 'לא נמצאו מדורים התואמים לחיפוש' : 'אין מדורים עדיין. צור מדור חדש!'}
+            </EmptyState>
+          ) : (
+            <Grid>
+              {filteredSections.map((section) => (
             <SectionCard 
               key={section.id} 
               $color={section.color}
@@ -604,29 +694,63 @@ export default function AdminSections() {
                 <span>{section.contentsCount || 0} תוכן</span>
               </SectionStats>
             </SectionCard>
-          ))}
-        </Grid>
+              ))}
+            </Grid>
+          )}
+        </>
       )}
 
       {activeTab === 'contents' && selectedSection && (
         <>
-          <div style={{ marginBottom: '1rem', padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
-            <strong>מדור: {selectedSection.title}</strong>
-            <button 
+          <SectionHeaderBar>
+            <div>
+              <strong style={{ fontSize: '1.1rem' }}>מדור: {selectedSection.title}</strong>
+            </div>
+            <BackButton 
               onClick={() => {
                 setSelectedSection(null);
                 setActiveTab('sections');
+                setSearchQuery('');
               }}
-              style={{ marginRight: '1rem', padding: '0.5rem 1rem', background: '#e5e7eb', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
             >
-              חזרה למדורים
-            </button>
-          </div>
-          <Grid>
-            {contents.map((content) => (
-              <ContentCard key={content.id}>
+              ← חזרה למדורים
+            </BackButton>
+          </SectionHeaderBar>
+          <SearchInput
+            type="text"
+            placeholder="חיפוש תוכן..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {loading ? (
+            <LoadingSpinner>טוען...</LoadingSpinner>
+          ) : filteredContents.length === 0 ? (
+            <EmptyState>
+              {searchQuery ? 'לא נמצא תוכן התואם לחיפוש' : 'אין תוכן במדור זה עדיין. צור תוכן חדש!'}
+            </EmptyState>
+          ) : (
+            <Grid>
+              {filteredContents.map((content) => (
+              <ContentCard key={content.id} $published={content.published}>
                 <ContentTitle>{content.title}</ContentTitle>
                 {content.excerpt && <ContentExcerpt>{content.excerpt}</ContentExcerpt>}
+                {content.imageUrl && (
+                  <img 
+                    src={content.imageUrl} 
+                    alt={content.title}
+                    style={{ 
+                      width: '100%', 
+                      maxHeight: '200px', 
+                      objectFit: 'cover', 
+                      borderRadius: '8px',
+                      marginTop: '0.5rem',
+                      marginBottom: '0.5rem'
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                )}
                 <ContentMeta>
                   <Badge $published={content.published}>
                     {content.published ? 'פורסם' : 'טיוטה'}
@@ -636,6 +760,10 @@ export default function AdminSections() {
                   <span><MessageSquare size={14} style={{ display: 'inline', marginLeft: '0.25rem' }} /> {content.commentsCount}</span>
                 </ContentMeta>
                 <Actions>
+                  <ActionButton onClick={() => handleTogglePublish(content)}>
+                    {content.published ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {content.published ? 'בטל פרסום' : 'פרסם'}
+                  </ActionButton>
                   <ActionButton onClick={() => handleEditContent(content)}>
                     <Edit2 size={16} />
                     עריכה
@@ -646,8 +774,9 @@ export default function AdminSections() {
                   </ActionButton>
                 </Actions>
               </ContentCard>
-            ))}
-          </Grid>
+              ))}
+            </Grid>
+          )}
         </>
       )}
 
