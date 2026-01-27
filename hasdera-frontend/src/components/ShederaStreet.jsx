@@ -8,10 +8,16 @@ import { useNavigate } from "react-router-dom";
 import styled, { keyframes, css, createGlobalStyle } from "styled-components";
 import { 
   Book, Utensils, Gift, Coffee, Puzzle, ShoppingBag, 
-  Sparkles, ChevronDown, ArrowRight, Newspaper, TreePine
+  Sparkles, ChevronDown, ArrowRight, Newspaper, TreePine,
+  Music, Volume2, VolumeX, Play, Pause
 } from "lucide-react";
 
 // ================ ANIMATIONS ================
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
 
 const popInLeft = keyframes`
   0% { 
@@ -679,12 +685,107 @@ const SECTIONS = [
 
 const LEAVES = ['🍂', '🍃', '🌿', '🍀', '🌸', '🌺'];
 
+// ================ MUSIC CONTROLS ================
+
+const MusicControls = styled.div`
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: ${fadeIn} 1s ease-out;
+`;
+
+const MusicButton = styled.button`
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.2);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2);
+  
+  &:hover {
+    background: rgba(16, 185, 129, 0.3);
+    border-color: rgba(16, 185, 129, 0.6);
+    transform: scale(1.1);
+    box-shadow: 0 6px 30px rgba(16, 185, 129, 0.4);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
+const VolumeButton = styled.button`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.1);
+  }
+`;
+
+const VolumeSlider = styled.input`
+  width: 56px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #10b981;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  }
+  
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #10b981;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  }
+`;
+
 // ================ COMPONENT ================
 
 export default function ShederaStreet() {
   const navigate = useNavigate();
   const [visibleCards, setVisibleCards] = useState(new Set());
   const cardRefs = useRef([]);
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.3); // Default volume: 30%
+  const [isMuted, setIsMuted] = useState(false);
   
   // Enable smooth scrolling on mount
   useEffect(() => {
@@ -723,9 +824,117 @@ export default function ShederaStreet() {
     navigate(section.path);
   };
   
+  // Music controls
+  const togglePlay = async () => {
+    if (!audioRef.current) return;
+    
+    try {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error('Error playing music:', error);
+      // Some browsers require user interaction first
+    }
+  };
+  
+  const toggleMute = () => {
+    if (!audioRef.current) return;
+    audioRef.current.muted = !isMuted;
+    setIsMuted(!isMuted);
+  };
+  
+  const handleVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+  };
+  
+  // Set initial volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+      audioRef.current.loop = true;
+    }
+  }, [volume]);
+  
+  // Try to autoplay on mount (only once)
+  useEffect(() => {
+    if (!audioRef.current) return;
+    
+    // Try to autoplay on mount (may require user interaction in some browsers)
+    const tryAutoplay = async () => {
+      try {
+        // Wait for audio to be ready
+        if (audioRef.current.readyState >= 2) {
+          await audioRef.current.play();
+          setIsPlaying(true);
+        } else {
+          // Wait for audio to load
+          audioRef.current.addEventListener('canplay', async () => {
+            try {
+              await audioRef.current.play();
+              setIsPlaying(true);
+            } catch (error) {
+              console.log('Autoplay blocked, user interaction required');
+            }
+          }, { once: true });
+        }
+      } catch (error) {
+        // Autoplay blocked - user will need to click play button
+        console.log('Autoplay blocked, user interaction required');
+      }
+    };
+    
+    // Small delay to ensure audio element is ready
+    const timer = setTimeout(() => {
+      tryAutoplay();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []); // Run only once on mount
+  
   return (
     <>
       <SmoothScrollStyles />
+      
+      {/* Background Music */}
+      <audio
+        ref={audioRef}
+        preload="auto"
+        loop
+        volume={volume}
+      >
+        {/* מוזיקת רקע נעימה - ניתן להחליף לקובץ מקומי */}
+        <source src="https://cdn.pixabay.com/download/audio/2022/03/19/audio_8b5b3c4b28.mp3?filename=peaceful-ambient-background-124842.mp3" type="audio/mpeg" />
+        {/* גיבוי - מוזיקה נוספת */}
+        <source src="https://cdn.pixabay.com/download/audio/2021/10/25/audio_0a4e0f4f9c.mp3?filename=relaxing-background-music-112190.mp3" type="audio/mpeg" />
+      </audio>
+      
+      {/* Music Controls */}
+      <MusicControls>
+        <MusicButton onClick={togglePlay} title={isPlaying ? 'עצור מוזיקה' : 'הפעל מוזיקה'}>
+          {isPlaying ? <Pause size={24} /> : <Music size={24} />}
+        </MusicButton>
+        <VolumeButton onClick={toggleMute} title={isMuted ? 'הפעל קול' : 'השתק'}>
+          {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+        </VolumeButton>
+        <VolumeSlider
+          type="range"
+          min="0"
+          max="1"
+          step="0.1"
+          value={isMuted ? 0 : volume}
+          onChange={handleVolumeChange}
+          title={`עוצמה: ${Math.round(volume * 100)}%`}
+        />
+      </MusicControls>
       <PageContainer>
         <FixedBackground />
       
