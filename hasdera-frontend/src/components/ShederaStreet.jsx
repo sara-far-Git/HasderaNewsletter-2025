@@ -51,47 +51,207 @@ const scrollHint = keyframes`
   50% { transform: translateY(12px); opacity: 0.5; }
 `;
 
+// Realistic bird flight - wavy path with natural movement
 const birdFly = keyframes`
-  0% { 
-    transform: translate(-100px, 0); 
+  0% {
+    transform: translate(-100px, 0) rotate(0deg);
   }
-  100% { 
-    transform: translate(calc(100vw + 100px), -50px); 
+  10% {
+    transform: translate(calc(10vw), -15px) rotate(-3deg);
+  }
+  20% {
+    transform: translate(calc(20vw), -5px) rotate(2deg);
+  }
+  30% {
+    transform: translate(calc(30vw), -20px) rotate(-4deg);
+  }
+  40% {
+    transform: translate(calc(40vw), -8px) rotate(3deg);
+  }
+  50% {
+    transform: translate(calc(50vw), -18px) rotate(-2deg);
+  }
+  60% {
+    transform: translate(calc(60vw), -10px) rotate(4deg);
+  }
+  70% {
+    transform: translate(calc(70vw), -22px) rotate(-3deg);
+  }
+  80% {
+    transform: translate(calc(80vw), -12px) rotate(2deg);
+  }
+  90% {
+    transform: translate(calc(90vw), -25px) rotate(-4deg);
+  }
+  100% {
+    transform: translate(calc(100vw + 100px), -15px) rotate(0deg);
   }
 `;
 
+// Realistic wing flapping - faster when ascending, slower when gliding
 const wingFlap = keyframes`
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(0.4); }
+  0%, 100% { transform: scaleY(1) rotate(0deg); }
+  25% { transform: scaleY(0.3) rotate(-2deg); }
+  50% { transform: scaleY(0.5) rotate(0deg); }
+  75% { transform: scaleY(0.3) rotate(2deg); }
 `;
 
+// Realistic leaf falling - swaying back and forth like in the wind
 const leafFall = keyframes`
-  0% { 
-    transform: translateY(-100px) rotate(0deg) translateX(0); 
-    opacity: 0; 
+  0% {
+    transform: translateY(-100px) rotate(0deg) translateX(0);
+    opacity: 0;
   }
-  10% { opacity: 0.7; }
-  100% { 
-    transform: translateY(100vh) rotate(720deg) translateX(100px); 
-    opacity: 0; 
+  5% { opacity: 0.8; }
+  15% {
+    transform: translateY(10vh) rotate(45deg) translateX(30px);
+  }
+  25% {
+    transform: translateY(20vh) rotate(-30deg) translateX(-20px);
+  }
+  35% {
+    transform: translateY(30vh) rotate(60deg) translateX(40px);
+  }
+  45% {
+    transform: translateY(40vh) rotate(-45deg) translateX(-15px);
+  }
+  55% {
+    transform: translateY(50vh) rotate(50deg) translateX(35px);
+  }
+  65% {
+    transform: translateY(60vh) rotate(-35deg) translateX(-25px);
+  }
+  75% {
+    transform: translateY(70vh) rotate(55deg) translateX(45px);
+  }
+  85% {
+    transform: translateY(80vh) rotate(-40deg) translateX(-10px);
+    opacity: 0.6;
+  }
+  95% {
+    transform: translateY(90vh) rotate(70deg) translateX(50px);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(100vh) rotate(90deg) translateX(60px);
+    opacity: 0;
   }
 `;
 
+// Natural tree sway - like wind blowing through branches
 const sway = keyframes`
-  0%, 100% { transform: rotate(-4deg); }
-  50% { transform: rotate(4deg); }
+  0% { transform: rotate(-2deg) translateX(0); }
+  15% { transform: rotate(1deg) translateX(2px); }
+  30% { transform: rotate(-3deg) translateX(-1px); }
+  45% { transform: rotate(2deg) translateX(3px); }
+  60% { transform: rotate(-1deg) translateX(-2px); }
+  75% { transform: rotate(3deg) translateX(1px); }
+  90% { transform: rotate(-2deg) translateX(-1px); }
+  100% { transform: rotate(-2deg) translateX(0); }
 `;
 
+// Enhanced twinkle - more realistic sparkle
 const twinkle = keyframes`
-  0%, 100% { opacity: 0.2; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.3); }
+  0%, 100% { opacity: 0.1; transform: scale(0.7); filter: brightness(0.8); }
+  25% { opacity: 0.6; transform: scale(1.1); filter: brightness(1.2); }
+  50% { opacity: 1; transform: scale(1.4); filter: brightness(1.5); }
+  75% { opacity: 0.5; transform: scale(1.0); filter: brightness(1.1); }
 `;
 
+// Firefly floating movement - gentle, organic
+const fireflyFloat = keyframes`
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.3;
+  }
+  20% {
+    transform: translate(15px, -20px) scale(1.2);
+    opacity: 0.8;
+  }
+  40% {
+    transform: translate(-10px, -35px) scale(0.9);
+    opacity: 0.5;
+  }
+  60% {
+    transform: translate(20px, -50px) scale(1.1);
+    opacity: 0.9;
+  }
+  80% {
+    transform: translate(-5px, -60px) scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(10px, -70px) scale(1.15);
+    opacity: 0.6;
+  }
+`;
+
+// Firefly glow pulse
+const fireflyGlow = keyframes`
+  0%, 100% {
+    opacity: 0.4;
+    box-shadow: 0 0 5px rgba(255, 255, 180, 0.5), 0 0 10px rgba(255, 255, 200, 0.3);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(255, 255, 180, 0.8), 0 0 20px rgba(255, 255, 200, 0.5), 0 0 30px rgba(255, 255, 220, 0.3);
+  }
+`;
+
+// Lantern gentle sway and glow
+const lanternSway = keyframes`
+  0%, 100% {
+    transform: translateY(0) rotate(-1deg);
+    filter: brightness(1);
+  }
+  25% {
+    transform: translateY(-3px) rotate(1deg);
+    filter: brightness(1.1);
+  }
+  50% {
+    transform: translateY(0) rotate(-1deg);
+    filter: brightness(0.95);
+  }
+  75% {
+    transform: translateY(-2px) rotate(1deg);
+    filter: brightness(1.05);
+  }
+`;
+
+const lanternGlow = keyframes`
+  0%, 100% {
+    opacity: 0.6;
+    filter: drop-shadow(0 0 8px rgba(255, 200, 100, 0.6));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 15px rgba(255, 200, 100, 0.9)) drop-shadow(0 0 25px rgba(255, 220, 120, 0.5));
+  }
+`;
+
+// Realistic butterfly fluttering - erratic, delicate movement
 const floatAround = keyframes`
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(15px, -20px) rotate(5deg); }
-  50% { transform: translate(-10px, -10px) rotate(-5deg); }
-  75% { transform: translate(20px, -25px) rotate(10deg); }
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  5% { transform: translate(8px, -12px) rotate(8deg) scale(1.05); }
+  10% { transform: translate(-5px, -8px) rotate(-5deg) scale(0.95); }
+  15% { transform: translate(15px, -25px) rotate(12deg) scale(1.1); }
+  20% { transform: translate(10px, -15px) rotate(3deg) scale(1); }
+  25% { transform: translate(-12px, -30px) rotate(-8deg) scale(1.05); }
+  30% { transform: translate(5px, -22px) rotate(6deg) scale(0.98); }
+  35% { transform: translate(20px, -35px) rotate(15deg) scale(1.08); }
+  40% { transform: translate(12px, -28px) rotate(-3deg) scale(1); }
+  45% { transform: translate(-8px, -40px) rotate(-10deg) scale(1.02); }
+  50% { transform: translate(18px, -32px) rotate(10deg) scale(1.05); }
+  55% { transform: translate(25px, -45px) rotate(5deg) scale(0.95); }
+  60% { transform: translate(10px, -38px) rotate(-12deg) scale(1.1); }
+  65% { transform: translate(-15px, -42px) rotate(-8deg) scale(1); }
+  70% { transform: translate(22px, -48px) rotate(12deg) scale(1.05); }
+  75% { transform: translate(8px, -50px) rotate(-5deg) scale(0.98); }
+  80% { transform: translate(30px, -55px) rotate(15deg) scale(1.08); }
+  85% { transform: translate(15px, -58px) rotate(3deg) scale(1); }
+  90% { transform: translate(-10px, -60px) rotate(-10deg) scale(1.02); }
+  95% { transform: translate(25px, -62px) rotate(8deg) scale(1.05); }
+  100% { transform: translate(0, -65px) rotate(0deg) scale(1); }
 `;
 
 const cloudMove = keyframes`
@@ -168,6 +328,20 @@ const FixedBackground = styled.div`
       rgba(20, 30, 48, 0.3) 50%,
       rgba(15, 23, 42, 0.45) 100%
     );
+  }
+  
+  /* Subtle depth effect */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 0%,
+      rgba(15, 23, 42, 0.1) 50%,
+      rgba(15, 23, 42, 0.2) 100%
+    );
+    pointer-events: none;
   }
 `;
 
@@ -341,6 +515,35 @@ const SpinningElement = styled.div`
   font-size: ${props => props.$size};
   opacity: ${props => props.$opacity};
   animation: ${spin} ${props => props.$duration}s linear infinite;
+`;
+
+// Magical firefly element
+const FireflyElement = styled.div`
+  position: absolute;
+  top: ${props => props.$top};
+  left: ${props => props.$left};
+  width: ${props => props.$size || '6px'};
+  height: ${props => props.$size || '6px'};
+  background: radial-gradient(circle, rgba(255, 255, 180, 1) 0%, rgba(255, 255, 100, 0.8) 40%, transparent 70%);
+  border-radius: 50%;
+  animation: ${fireflyFloat} ${props => props.$duration}s ease-in-out infinite,
+             ${fireflyGlow} 2s ease-in-out infinite;
+  animation-delay: ${props => props.$delay}s, ${props => (props.$delay || 0) * 0.3}s;
+  will-change: transform, opacity;
+  pointer-events: none;
+`;
+
+// Lantern with glow effect
+const LanternElement = styled.div`
+  position: absolute;
+  top: ${props => props.$top};
+  left: ${props => props.$left};
+  font-size: ${props => props.$size || '2rem'};
+  animation: ${lanternSway} ${props => props.$duration}s ease-in-out infinite,
+             ${lanternGlow} 3s ease-in-out infinite;
+  animation-delay: ${props => props.$delay}s, ${props => (props.$delay || 0) * 0.5}s;
+  will-change: transform, filter;
+  filter: drop-shadow(0 0 10px rgba(255, 200, 100, 0.7));
 `;
 
 const Content = styled.div`
@@ -1006,6 +1209,28 @@ export default function ShederaStreet() {
         {/* Spinning flowers */}
         <SpinningElement $left="2%" $top="40%" $size="1.5rem" $opacity={0.3} $duration={20}>🌼</SpinningElement>
         <SpinningElement $right="3%" $top="65%" $size="1.3rem" $opacity={0.25} $duration={25}>🌻</SpinningElement>
+        
+        {/* Magical fireflies */}
+        <FireflyElement $top="25%" $left="8%" $size="5px" $duration={8} $delay={0} />
+        <FireflyElement $top="35%" $left="15%" $size="7px" $duration={10} $delay={2} />
+        <FireflyElement $top="45%" $left="5%" $size="4px" $duration={12} $delay={4} />
+        <FireflyElement $top="55%" $left="12%" $size="6px" $duration={9} $delay={1} />
+        <FireflyElement $top="65%" $left="7%" $size="5px" $duration={11} $delay={3} />
+        <FireflyElement $top="75%" $left="18%" $size="4px" $duration={8} $delay={5} />
+        <FireflyElement $top="30%" $left="85%" $size="6px" $duration={10} $delay={1.5} />
+        <FireflyElement $top="40%" $left="90%" $size="5px" $duration={12} $delay={3.5} />
+        <FireflyElement $top="50%" $left="82%" $size="7px" $duration={9} $delay={0.5} />
+        <FireflyElement $top="60%" $left="88%" $size="4px" $duration={11} $delay={2.5} />
+        <FireflyElement $top="70%" $left="92%" $size="5px" $duration={8} $delay={4.5} />
+        <FireflyElement $top="80%" $left="84%" $size="6px" $duration={10} $delay={1} />
+        
+        {/* Glowing lanterns along the path */}
+        <LanternElement $left="6%" $top="20%" $size="2rem" $duration={4} $delay={0}>🏮</LanternElement>
+        <LanternElement $left="12%" $top="50%" $size="1.8rem" $duration={5} $delay={1}>🏮</LanternElement>
+        <LanternElement $left="8%" $top="80%" $size="2rem" $duration={4.5} $delay={0.5}>🏮</LanternElement>
+        <LanternElement $left="88%" $top="25%" $size="1.9rem" $duration={5.5} $delay={1.5}>🏮</LanternElement>
+        <LanternElement $left="92%" $top="60%" $size="2rem" $duration={4.2} $delay={0.8}>🏮</LanternElement>
+        <LanternElement $left="86%" $top="85%" $size="1.7rem" $duration={5.2} $delay={1.2}>🏮</LanternElement>
       </AnimationLayer>
       
       <Content>
