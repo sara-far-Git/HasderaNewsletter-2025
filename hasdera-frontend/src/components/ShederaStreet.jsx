@@ -911,10 +911,7 @@ export default function ShederaStreet() {
         loop
         volume={volume}
       >
-        {/* הוסף כאן קובץ מוזיקה מקומי או URL חיצוני */}
-        {/* דוגמה לקובץ מקומי: <source src="/music/background.mp3" type="audio/mpeg" /> */}
-        {/* ניתן להשתמש במוזיקה חינמית מ-https://pixabay.com/music/ או מקורות אחרים */}
-        {/* הערה: URL-ים חיצוניים עלולים להיחסם על ידי CORS או לא להיות זמינים */}
+        <source src="/music/Slow-calm-relaxing-music.mp3" type="audio/mpeg" />
       </audio>
       
       {/* Music Controls */}
