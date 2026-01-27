@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import {
   Book, Utensils, Gift, Coffee, Puzzle, ShoppingBag,
-  Sparkles, ArrowLeft, Newspaper, TreePine, Lamp, Store
+  Sparkles, ArrowLeft, Newspaper, TreePine
 } from "lucide-react";
 import ReaderNav from "./ReaderNav";
 
@@ -22,11 +22,6 @@ const float = keyframes`
 const sway = keyframes`
   0%, 100% { transform: rotate(-3deg); }
   50% { transform: rotate(3deg); }
-`;
-
-const twinkle = keyframes`
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
 `;
 
 const walkIn = keyframes`
