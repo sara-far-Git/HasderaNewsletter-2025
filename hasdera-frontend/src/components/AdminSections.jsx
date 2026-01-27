@@ -10,7 +10,7 @@ import {
   Book, Utensils, Gift, Coffee, Puzzle, ShoppingBag,
   Eye, EyeOff, MessageCircle, Heart, Calendar
 } from "lucide-react";
-import api from "../Services/api";
+import { api } from "../Services/api";
 
 // ================ STYLED COMPONENTS ================
 
