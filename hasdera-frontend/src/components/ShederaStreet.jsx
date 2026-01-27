@@ -911,10 +911,10 @@ export default function ShederaStreet() {
         loop
         volume={volume}
       >
-        {/* מוזיקת רקע נעימה - ניתן להחליף לקובץ מקומי */}
-        <source src="https://cdn.pixabay.com/download/audio/2022/03/19/audio_8b5b3c4b28.mp3?filename=peaceful-ambient-background-124842.mp3" type="audio/mpeg" />
-        {/* גיבוי - מוזיקה נוספת */}
-        <source src="https://cdn.pixabay.com/download/audio/2021/10/25/audio_0a4e0f4f9c.mp3?filename=relaxing-background-music-112190.mp3" type="audio/mpeg" />
+        {/* הוסף כאן קובץ מוזיקה מקומי או URL חיצוני */}
+        {/* דוגמה לקובץ מקומי: <source src="/music/background.mp3" type="audio/mpeg" /> */}
+        {/* ניתן להשתמש במוזיקה חינמית מ-https://pixabay.com/music/ או מקורות אחרים */}
+        {/* הערה: URL-ים חיצוניים עלולים להיחסם על ידי CORS או לא להיות זמינים */}
       </audio>
       
       {/* Music Controls */}

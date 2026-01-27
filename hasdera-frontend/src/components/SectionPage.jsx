@@ -462,6 +462,7 @@ export default function SectionPage() {
     const fetchContents = async () => {
       try {
         setLoading(true);
+        setError(null);
         const response = await api.get(`/sections/${sectionId}/contents`);
         // Map API response to expected format
         const mappedContents = (response.data || []).map(c => ({
