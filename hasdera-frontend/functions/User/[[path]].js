@@ -30,10 +30,16 @@ export async function onRequest({ request, params }) {
   const accept = request.headers.get('Accept');
   if (accept) headers.set('Accept', accept);
 
+  // Clone request body if needed (for POST/PUT requests)
+  let body = null;
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    body = await request.clone().arrayBuffer();
+  }
+
   const proxiedRequest = new Request(targetUrl.toString(), {
     method: request.method,
     headers,
-    body: request.body,
+    body: body,
   });
 
   const response = await fetch(proxiedRequest);
