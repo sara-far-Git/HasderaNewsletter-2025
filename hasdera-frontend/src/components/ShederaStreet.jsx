@@ -64,44 +64,43 @@ const birdFlyAcross = keyframes`
   }
 `;
 
-// Realistic leaf falling - swaying back and forth like in the wind
+// Realistic leaf falling - starts from current position and falls down naturally
 const leafFall = keyframes`
   0% {
-    transform: translateY(-100px) rotate(0deg) translateX(0);
-    opacity: 0;
+    transform: translateY(0) rotate(0deg) translateX(0);
+    opacity: 0.8;
   }
-  5% { opacity: 0.8; }
-  15% {
-    transform: translateY(10vh) rotate(45deg) translateX(30px);
+  10% {
+    transform: translateY(10vh) rotate(25deg) translateX(15px);
   }
-  25% {
-    transform: translateY(20vh) rotate(-30deg) translateX(-20px);
+  20% {
+    transform: translateY(20vh) rotate(-20deg) translateX(-10px);
   }
-  35% {
-    transform: translateY(30vh) rotate(60deg) translateX(40px);
+  30% {
+    transform: translateY(30vh) rotate(35deg) translateX(20px);
   }
-  45% {
-    transform: translateY(40vh) rotate(-45deg) translateX(-15px);
+  40% {
+    transform: translateY(40vh) rotate(-25deg) translateX(-15px);
   }
-  55% {
-    transform: translateY(50vh) rotate(50deg) translateX(35px);
+  50% {
+    transform: translateY(50vh) rotate(30deg) translateX(25px);
   }
-  65% {
-    transform: translateY(60vh) rotate(-35deg) translateX(-25px);
+  60% {
+    transform: translateY(60vh) rotate(-30deg) translateX(-20px);
   }
-  75% {
-    transform: translateY(70vh) rotate(55deg) translateX(45px);
+  70% {
+    transform: translateY(70vh) rotate(40deg) translateX(30px);
   }
-  85% {
-    transform: translateY(80vh) rotate(-40deg) translateX(-10px);
-    opacity: 0.6;
+  80% {
+    transform: translateY(80vh) rotate(-35deg) translateX(-10px);
+    opacity: 0.5;
   }
-  95% {
-    transform: translateY(90vh) rotate(70deg) translateX(50px);
-    opacity: 0.3;
+  90% {
+    transform: translateY(90vh) rotate(45deg) translateX(35px);
+    opacity: 0.2;
   }
   100% {
-    transform: translateY(100vh) rotate(90deg) translateX(60px);
+    transform: translateY(100vh) rotate(60deg) translateX(40px);
     opacity: 0;
   }
 `;
@@ -330,10 +329,10 @@ const FlyingBird = styled.div`
   filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
 `;
 
-// Falling leaves - pure CSS
+// Falling leaves - appear at different heights naturally
 const LeafElement = styled.div`
   position: absolute;
-  top: 0;
+  top: ${props => props.$startTop || 0}%;
   left: ${props => props.$left}%;
   font-size: ${props => props.$size}rem;
   animation: ${leafFall} ${props => props.$duration}s linear infinite;
@@ -1053,24 +1052,27 @@ export default function ShederaStreet() {
       
       {/* Animation Layer - all pure CSS, no JS updates */}
       <AnimationLayer>
-        {/* Realistic flying birds - smooth horizontal flight */}
-        <FlyingBird $top={10} $size="2rem" $opacity={0.7} $duration={20} $delay={0}>🐦</FlyingBird>
-        <FlyingBird $top={18} $size="1.8rem" $opacity={0.6} $duration={25} $delay={5}>🐦</FlyingBird>
-        <FlyingBird $top={8} $size="2.2rem" $opacity={0.65} $duration={22} $delay={10}>🐦</FlyingBird>
-        <FlyingBird $top={25} $size="1.9rem" $opacity={0.55} $duration={28} $delay={15}>🐦</FlyingBird>
-        
-        {/* Falling leaves */}
-        {[...Array(12)].map((_, i) => (
-          <LeafElement
-            key={`leaf-${i}`}
-            $left={8 + i * 8}
-            $size={1.3 + (i % 3) * 0.3}
-            $duration={14 + (i % 5) * 3}
-            $delay={i * 2}
-          >
-            {LEAVES[i % LEAVES.length]}
-          </LeafElement>
-        ))}
+        {/* Natural falling leaves - appear at different heights throughout the screen */}
+        {[...Array(20)].map((_, i) => {
+          // Distribute leaves naturally across the screen height (0% to 100%)
+          const startTop = (i * 5) % 100; // Spread across entire screen height
+          const leftPosition = 5 + (i * 4.5); // Spread across width
+          const duration = 12 + (i % 7) * 2; // Varying speeds
+          const delay = i * 0.8; // Staggered timing
+          
+          return (
+            <LeafElement
+              key={`leaf-${i}`}
+              $left={leftPosition}
+              $startTop={startTop}
+              $size={1.2 + (i % 4) * 0.2}
+              $duration={duration}
+              $delay={delay}
+            >
+              {LEAVES[i % LEAVES.length]}
+            </LeafElement>
+          );
+        })}
         
         {/* Sparkles */}
         <SparkleElement $top="18%" $left="12%" $duration={2.5} $delay={0}>✨</SparkleElement>
