@@ -255,9 +255,13 @@ const PageContainer = styled.div`
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+  /* Enable 3D perspective for walking effect */
+  perspective: 1000px;
+  perspective-origin: center center;
+  transform-style: preserve-3d;
 `;
 
-// Fixed Background - completely static, no JS
+// Fixed Background - parallax effect for walking
 const FixedBackground = styled.div`
   position: fixed;
   inset: 0;
@@ -266,7 +270,11 @@ const FixedBackground = styled.div`
   background-position: center;
   background-attachment: fixed;
   z-index: 0;
-  will-change: auto;
+  will-change: transform;
+  /* Parallax effect - moves slower (far away) - uses CSS variable */
+  transform: translateY(calc(var(--scroll-y, 0px) * 0.3)) translateZ(-200px) scale(1.2);
+  transform-style: preserve-3d;
+  transition: transform 0.1s ease-out;
 
   &::before {
     content: '';
@@ -295,7 +303,7 @@ const FixedBackground = styled.div`
   }
 `;
 
-// ===== 3D ELEMENTS - All CSS only, no JS =====
+// ===== 3D ELEMENTS - Parallax walking effect =====
 
 const AnimationLayer = styled.div`
   position: fixed;
@@ -303,6 +311,10 @@ const AnimationLayer = styled.div`
   pointer-events: none;
   z-index: 5;
   overflow: hidden;
+  /* Parallax layer - moves at medium speed (closer than background) */
+  transform-style: preserve-3d;
+  transform: translateY(calc(var(--scroll-y, 0px) * 0.5)) translateZ(0);
+  transition: transform 0.1s ease-out;
 `;
 
 // Realistic bird flying - using emoji with smooth flight animation
@@ -429,6 +441,9 @@ const LanternElement = styled.div`
 const Content = styled.div`
   position: relative;
   z-index: 10;
+  /* Content moves at normal speed (closest layer) */
+  transform: translateZ(100px);
+  transform-style: preserve-3d;
 `;
 
 // ===== WELCOME SECTION =====
@@ -869,6 +884,8 @@ export default function ShederaStreet() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.3); // Default volume: 30%
   const [isMuted, setIsMuted] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const containerRef = useRef(null);
   
   // Enable smooth scrolling on mount
   useEffect(() => {
@@ -880,6 +897,22 @@ export default function ShederaStreet() {
       document.documentElement.style.scrollBehavior = '';
       document.body.style.scrollBehavior = '';
     };
+  }, []);
+  
+  // Walking effect - parallax on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      setScrollY(currentScrollY);
+      
+      // Update CSS variables for parallax effect
+      document.documentElement.style.setProperty('--scroll-y', `${currentScrollY}px`);
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial call
+    
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
   // Intersection Observer for cards
@@ -1015,7 +1048,7 @@ export default function ShederaStreet() {
           title={`עוצמה: ${Math.round(volume * 100)}%`}
         />
       </MusicControls>
-      <PageContainer>
+      <PageContainer ref={containerRef}>
         <FixedBackground />
       
       {/* Animation Layer - all pure CSS, no JS updates */}
