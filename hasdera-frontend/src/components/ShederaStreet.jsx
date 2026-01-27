@@ -51,49 +51,17 @@ const scrollHint = keyframes`
   50% { transform: translateY(12px); opacity: 0.5; }
 `;
 
-// Realistic bird flight - wavy path with natural movement
-const birdFly = keyframes`
+// Realistic bird flying across screen - smooth horizontal movement
+const birdFlyAcross = keyframes`
   0% {
-    transform: translate(-100px, 0) rotate(0deg);
-  }
-  10% {
-    transform: translate(calc(10vw), -15px) rotate(-3deg);
-  }
-  20% {
-    transform: translate(calc(20vw), -5px) rotate(2deg);
-  }
-  30% {
-    transform: translate(calc(30vw), -20px) rotate(-4deg);
-  }
-  40% {
-    transform: translate(calc(40vw), -8px) rotate(3deg);
+    transform: translateX(-100px) translateY(0) scaleX(1);
   }
   50% {
-    transform: translate(calc(50vw), -18px) rotate(-2deg);
-  }
-  60% {
-    transform: translate(calc(60vw), -10px) rotate(4deg);
-  }
-  70% {
-    transform: translate(calc(70vw), -22px) rotate(-3deg);
-  }
-  80% {
-    transform: translate(calc(80vw), -12px) rotate(2deg);
-  }
-  90% {
-    transform: translate(calc(90vw), -25px) rotate(-4deg);
+    transform: translateX(calc(50vw)) translateY(-20px) scaleX(1);
   }
   100% {
-    transform: translate(calc(100vw + 100px), -15px) rotate(0deg);
+    transform: translateX(calc(100vw + 100px)) translateY(0) scaleX(1);
   }
-`;
-
-// Realistic wing flapping - faster when ascending, slower when gliding
-const wingFlap = keyframes`
-  0%, 100% { transform: scaleY(1) rotate(0deg); }
-  25% { transform: scaleY(0.3) rotate(-2deg); }
-  50% { transform: scaleY(0.5) rotate(0deg); }
-  75% { transform: scaleY(0.3) rotate(2deg); }
 `;
 
 // Realistic leaf falling - swaying back and forth like in the wind
@@ -138,17 +106,6 @@ const leafFall = keyframes`
   }
 `;
 
-// Natural tree sway - like wind blowing through branches
-const sway = keyframes`
-  0% { transform: rotate(-2deg) translateX(0); }
-  15% { transform: rotate(1deg) translateX(2px); }
-  30% { transform: rotate(-3deg) translateX(-1px); }
-  45% { transform: rotate(2deg) translateX(3px); }
-  60% { transform: rotate(-1deg) translateX(-2px); }
-  75% { transform: rotate(3deg) translateX(1px); }
-  90% { transform: rotate(-2deg) translateX(-1px); }
-  100% { transform: rotate(-2deg) translateX(0); }
-`;
 
 // Enhanced twinkle - more realistic sparkle
 const twinkle = keyframes`
@@ -355,65 +312,17 @@ const AnimationLayer = styled.div`
   overflow: hidden;
 `;
 
-// Animated Bird with flapping wings - pure CSS
-const BirdWrapper = styled.div`
+// Realistic bird flying - using emoji with smooth flight animation
+const FlyingBird = styled.div`
   position: absolute;
   top: ${props => props.$top}%;
   left: 0;
-  animation: ${birdFly} ${props => props.$duration}s linear infinite;
-  animation-delay: ${props => props.$delay}s;
+  font-size: ${props => props.$size || '2rem'};
+  opacity: ${props => props.$opacity || 0.7};
+  animation: ${birdFlyAcross} ${props => props.$duration || 20}s linear infinite;
+  animation-delay: ${props => props.$delay || 0}s;
   will-change: transform;
-`;
-
-const BirdBody = styled.div`
-  position: relative;
-  width: 35px;
-  height: 14px;
-  background: #1e293b;
-  border-radius: 50% 25% 25% 50%;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    right: -10px;
-    top: -3px;
-    width: 16px;
-    height: 16px;
-    background: #1e293b;
-    border-radius: 50%;
-  }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    right: -18px;
-    top: 4px;
-    border-left: 12px solid #f59e0b;
-    border-top: 5px solid transparent;
-    border-bottom: 5px solid transparent;
-  }
-`;
-
-const BirdWing = styled.div`
-  position: absolute;
-  top: -10px;
-  left: 10px;
-  width: 22px;
-  height: 18px;
-  background: #475569;
-  border-radius: 50% 50% 0 0;
-  transform-origin: bottom center;
-  animation: ${wingFlap} 0.12s ease-in-out infinite;
-  will-change: transform;
-`;
-
-const BirdTail = styled.div`
-  position: absolute;
-  left: -14px;
-  top: 3px;
-  border-right: 18px solid #334155;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
 `;
 
 // Falling leaves - pure CSS
@@ -427,18 +336,6 @@ const LeafElement = styled.div`
   will-change: transform;
 `;
 
-// Swaying trees - pure CSS
-const TreeElement = styled.div`
-  position: absolute;
-  top: ${props => props.$top};
-  ${props => props.$left ? `left: ${props.$left};` : ''}
-  ${props => props.$right ? `right: ${props.$right};` : ''}
-  font-size: ${props => props.$size};
-  opacity: ${props => props.$opacity};
-  animation: ${sway} ${props => props.$duration}s ease-in-out infinite;
-  filter: blur(${props => props.$blur || 0}px);
-  will-change: transform;
-`;
 
 // Sparkles - pure CSS
 const SparkleElement = styled.div`
@@ -464,16 +361,6 @@ const FloatingItem = styled.div`
   will-change: transform;
 `;
 
-// Clouds - slow moving
-const CloudElement = styled.div`
-  position: absolute;
-  top: ${props => props.$top};
-  font-size: ${props => props.$size};
-  opacity: 0.35;
-  animation: ${cloudMove} ${props => props.$duration}s linear infinite;
-  animation-delay: ${props => props.$delay}s;
-  will-change: transform;
-`;
 
 // Light beams - decorative
 const LightBeam = styled.div`
@@ -1140,19 +1027,11 @@ export default function ShederaStreet() {
       
       {/* Animation Layer - all pure CSS, no JS updates */}
       <AnimationLayer>
-        {/* Birds with flapping wings */}
-        <BirdWrapper $top={8} $duration={18} $delay={0}>
-          <BirdBody><BirdWing /><BirdTail /></BirdBody>
-        </BirdWrapper>
-        <BirdWrapper $top={15} $duration={25} $delay={6}>
-          <BirdBody><BirdWing /><BirdTail /></BirdBody>
-        </BirdWrapper>
-        <BirdWrapper $top={5} $duration={22} $delay={12}>
-          <BirdBody><BirdWing /><BirdTail /></BirdBody>
-        </BirdWrapper>
-        <BirdWrapper $top={22} $duration={30} $delay={20}>
-          <BirdBody><BirdWing /><BirdTail /></BirdBody>
-        </BirdWrapper>
+        {/* Realistic flying birds - smooth horizontal flight */}
+        <FlyingBird $top={10} $size="2rem" $opacity={0.7} $duration={20} $delay={0}>🐦</FlyingBird>
+        <FlyingBird $top={18} $size="1.8rem" $opacity={0.6} $duration={25} $delay={5}>🐦</FlyingBird>
+        <FlyingBird $top={8} $size="2.2rem" $opacity={0.65} $duration={22} $delay={10}>🐦</FlyingBird>
+        <FlyingBird $top={25} $size="1.9rem" $opacity={0.55} $duration={28} $delay={15}>🐦</FlyingBird>
         
         {/* Falling leaves */}
         {[...Array(12)].map((_, i) => (
@@ -1167,14 +1046,6 @@ export default function ShederaStreet() {
           </LeafElement>
         ))}
         
-        {/* Trees */}
-        <TreeElement $left="3%" $top="12%" $size="5rem" $opacity={0.3} $duration={8} $blur={1}>🌳</TreeElement>
-        <TreeElement $right="4%" $top="20%" $size="4rem" $opacity={0.25} $duration={10} $blur={2}>🌲</TreeElement>
-        <TreeElement $left="6%" $top="45%" $size="6rem" $opacity={0.35} $duration={7}>🌴</TreeElement>
-        <TreeElement $right="5%" $top="55%" $size="5rem" $opacity={0.3} $duration={9} $blur={1}>🌳</TreeElement>
-        <TreeElement $left="4%" $top="75%" $size="4.5rem" $opacity={0.25} $duration={11}>🌲</TreeElement>
-        <TreeElement $right="6%" $top="85%" $size="5rem" $opacity={0.3} $duration={8}>🌴</TreeElement>
-        
         {/* Sparkles */}
         <SparkleElement $top="18%" $left="12%" $duration={2.5} $delay={0}>✨</SparkleElement>
         <SparkleElement $top="30%" $left="88%" $duration={3} $delay={0.5}>✨</SparkleElement>
@@ -1188,11 +1059,6 @@ export default function ShederaStreet() {
         <FloatingItem $left="5%" $top="58%" $size="2rem" $opacity={0.45} $duration={15} $delay={3}>🦋</FloatingItem>
         <FloatingItem $right="10%" $top="70%" $size="2.2rem" $opacity={0.4} $duration={14} $delay={6}>🌸</FloatingItem>
         <FloatingItem $left="8%" $top="25%" $size="1.8rem" $opacity={0.35} $duration={16} $delay={2}>🌺</FloatingItem>
-        
-        {/* Clouds */}
-        <CloudElement $top="8%" $size="4rem" $duration={60} $delay={0}>☁️</CloudElement>
-        <CloudElement $top="15%" $size="3rem" $duration={80} $delay={20}>☁️</CloudElement>
-        <CloudElement $top="5%" $size="3.5rem" $duration={70} $delay={40}>☁️</CloudElement>
         
         {/* Light beams */}
         <LightBeam $left={20} $rotate={-15} $duration={8} $delay={0} />
