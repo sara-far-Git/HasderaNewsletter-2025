@@ -1,136 +1,62 @@
 /**
  * ShederaStreet.jsx
- * 🌳 "מדורים" - ריבועים בזיגזג עם אנימציות חלקות
+ * 🌳 "השדרה" - עיצוב שדרה אמיתית עם חנויות ועצים
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import styled, { keyframes, css, createGlobalStyle } from "styled-components";
-import { 
-  Book, Utensils, Gift, Coffee, Puzzle, ShoppingBag, 
-  Sparkles, ChevronDown, ArrowRight, Newspaper, TreePine
+import styled, { keyframes } from "styled-components";
+import {
+  Book, Utensils, Gift, Coffee, Puzzle, ShoppingBag,
+  Sparkles, ArrowLeft, Newspaper, TreePine, Lamp, Store
 } from "lucide-react";
+import ReaderNav from "./ReaderNav";
 
 // ================ ANIMATIONS ================
 
-const popInLeft = keyframes`
-  0% { 
-    opacity: 0; 
-    transform: translateX(-150px) scale(0.7);
-  }
-  100% { 
-    opacity: 1; 
-    transform: translateX(0) scale(1);
-  }
-`;
-
-const popInRight = keyframes`
-  0% { 
-    opacity: 0; 
-    transform: translateX(150px) scale(0.7);
-  }
-  100% { 
-    opacity: 1; 
-    transform: translateX(0) scale(1);
-  }
-`;
-
 const float = keyframes`
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-`;
-
-const scrollHint = keyframes`
-  0%, 100% { transform: translateY(0); opacity: 1; }
-  50% { transform: translateY(12px); opacity: 0.5; }
-`;
-
-const birdFly = keyframes`
-  0% { 
-    transform: translate(-100px, 0); 
-  }
-  100% { 
-    transform: translate(calc(100vw + 100px), -50px); 
-  }
-`;
-
-const wingFlap = keyframes`
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(0.4); }
-`;
-
-const leafFall = keyframes`
-  0% { 
-    transform: translateY(-100px) rotate(0deg) translateX(0); 
-    opacity: 0; 
-  }
-  10% { opacity: 0.7; }
-  100% { 
-    transform: translateY(100vh) rotate(720deg) translateX(100px); 
-    opacity: 0; 
-  }
+  50% { transform: translateY(-8px); }
 `;
 
 const sway = keyframes`
-  0%, 100% { transform: rotate(-4deg); }
-  50% { transform: rotate(4deg); }
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
 `;
 
 const twinkle = keyframes`
-  0%, 100% { opacity: 0.2; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.3); }
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
 `;
 
-const floatAround = keyframes`
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(15px, -20px) rotate(5deg); }
-  50% { transform: translate(-10px, -10px) rotate(-5deg); }
-  75% { transform: translate(20px, -25px) rotate(10deg); }
-`;
-
-const cloudMove = keyframes`
-  0% { transform: translateX(-100%); opacity: 0; }
-  10% { opacity: 0.4; }
-  90% { opacity: 0.4; }
-  100% { transform: translateX(100vw); opacity: 0; }
-`;
-
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
-
-const pulse = keyframes`
-  0%, 100% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.5); opacity: 0.2; }
-`;
-
-const spin = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-`;
-
-const bounce = keyframes`
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
-`;
-
-// ================ GLOBAL STYLES ================
-
-const SmoothScrollStyles = createGlobalStyle`
-  html {
-    scroll-behavior: smooth;
+const walkIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
   }
-  
-  body {
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
-  
-  * {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+`;
+
+const signSwing = keyframes`
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+`;
+
+const lampGlow = keyframes`
+  0%, 100% {
+    filter: drop-shadow(0 0 15px rgba(255, 200, 100, 0.6));
   }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(255, 200, 100, 0.9));
+  }
+`;
+
+const cloudDrift = keyframes`
+  0% { transform: translateX(-100px); }
+  100% { transform: translateX(calc(100vw + 100px)); }
 `;
 
 // ================ STYLED COMPONENTS ================
@@ -139,511 +65,468 @@ const PageContainer = styled.div`
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+  background: linear-gradient(180deg,
+    #87CEEB 0%,
+    #B0E0E6 30%,
+    #E0F4FF 60%,
+    #f0f9ff 100%
+  );
 `;
 
-// Fixed Background - completely static, no JS
-const FixedBackground = styled.div`
+// Sky elements
+const Sky = styled.div`
   position: fixed;
-  inset: 0;
-  background-image: url("/image/ChatGPT Image Nov 16, 2025, 08_56_06 PM.png");
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40vh;
+  pointer-events: none;
   z-index: 0;
-  will-change: auto;
+`;
 
+const Sun = styled.div`
+  position: absolute;
+  top: 40px;
+  right: 80px;
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, #FFD700 0%, #FFA500 50%, transparent 70%);
+  border-radius: 50%;
+  box-shadow: 0 0 60px rgba(255, 200, 0, 0.5);
+
+  @media (max-width: 768px) {
+    width: 60px;
+    height: 60px;
+    right: 30px;
+    top: 20px;
+  }
+`;
+
+const Cloud = styled.div`
+  position: absolute;
+  top: ${props => props.$top}px;
+  font-size: ${props => props.$size}rem;
+  opacity: 0.8;
+  animation: ${cloudDrift} ${props => props.$duration}s linear infinite;
+  animation-delay: ${props => props.$delay}s;
+`;
+
+// Street container
+const StreetScene = styled.div`
+  position: relative;
+  z-index: 1;
+  padding-top: 20px;
+`;
+
+// Header
+const StreetHeader = styled.div`
+  text-align: center;
+  padding: 2rem 1rem 3rem;
+  position: relative;
+`;
+
+const StreetSign = styled.div`
+  display: inline-block;
+  background: linear-gradient(145deg, #2d5a27 0%, #1a3a15 100%);
+  padding: 1rem 3rem;
+  border-radius: 8px;
+  position: relative;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  animation: ${signSwing} 4s ease-in-out infinite;
+  transform-origin: top center;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 35px;
+    background: #4a3728;
+    border-radius: 4px;
+  }
+
+  h1 {
+    color: #fff;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-family: 'Assistant', sans-serif;
+  }
+
+  p {
+    color: rgba(255,255,255,0.9);
+    margin: 0.5rem 0 0;
+    font-size: 1rem;
+  }
+`;
+
+// The Street itself
+const StreetWrapper = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  position: relative;
+`;
+
+// Sidewalk and road
+const StreetRoad = styled.div`
+  position: relative;
+  background: linear-gradient(180deg,
+    #d4c4a8 0%,
+    #c9b896 50%,
+    #bfad84 100%
+  );
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 3rem;
+  box-shadow:
+    inset 0 2px 10px rgba(0,0,0,0.1),
+    0 10px 40px rgba(0,0,0,0.15);
+
+  /* Cobblestone pattern */
   &::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      180deg,
-      rgba(15, 23, 42, 0.4) 0%,
-      rgba(20, 30, 48, 0.3) 50%,
-      rgba(15, 23, 42, 0.45) 100%
-    );
+    background-image:
+      radial-gradient(ellipse 30px 20px at 25px 15px, rgba(0,0,0,0.05) 0%, transparent 50%),
+      radial-gradient(ellipse 30px 20px at 75px 15px, rgba(0,0,0,0.03) 0%, transparent 50%);
+    background-size: 100px 30px;
+    border-radius: 20px;
+    opacity: 0.5;
   }
 `;
 
-// ===== 3D ELEMENTS - All CSS only, no JS =====
-
-const AnimationLayer = styled.div`
+// Trees on the sides
+const TreesContainer = styled.div`
   position: fixed;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  ${props => props.$side === 'left' ? 'left: 0;' : 'right: 0;'}
+  width: 120px;
   pointer-events: none;
-  z-index: 5;
-  overflow: hidden;
-`;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 100px 0;
 
-// Animated Bird with flapping wings - pure CSS
-const BirdWrapper = styled.div`
-  position: absolute;
-  top: ${props => props.$top}%;
-  left: 0;
-  animation: ${birdFly} ${props => props.$duration}s linear infinite;
-  animation-delay: ${props => props.$delay}s;
-  will-change: transform;
-`;
-
-const BirdBody = styled.div`
-  position: relative;
-  width: 35px;
-  height: 14px;
-  background: #1e293b;
-  border-radius: 50% 25% 25% 50%;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    right: -10px;
-    top: -3px;
-    width: 16px;
-    height: 16px;
-    background: #1e293b;
-    border-radius: 50%;
+  @media (max-width: 900px) {
+    display: none;
   }
-  
+`;
+
+const Tree = styled.div`
+  font-size: ${props => props.$size || '4'}rem;
+  text-align: center;
+  animation: ${sway} ${props => props.$duration || 5}s ease-in-out infinite;
+  animation-delay: ${props => props.$delay || 0}s;
+  filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2));
+`;
+
+// Street Lamp
+const StreetLamp = styled.div`
+  position: absolute;
+  ${props => props.$side === 'left' ? 'left: -60px;' : 'right: -60px;'}
+  top: ${props => props.$top}px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 3;
+
+  @media (max-width: 900px) {
+    display: none;
+  }
+`;
+
+const LampPost = styled.div`
+  width: 8px;
+  height: 80px;
+  background: linear-gradient(90deg, #3a3a3a, #5a5a5a, #3a3a3a);
+  border-radius: 4px;
+`;
+
+const LampHead = styled.div`
+  width: 40px;
+  height: 35px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #4a4a4a 100%);
+  border-radius: 8px 8px 15px 15px;
+  position: relative;
+  animation: ${lampGlow} 3s ease-in-out infinite;
+
   &::after {
     content: '';
     position: absolute;
-    right: -18px;
-    top: 4px;
-    border-left: 12px solid #f59e0b;
-    border-top: 5px solid transparent;
-    border-bottom: 5px solid transparent;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 15px;
+    background: radial-gradient(ellipse, #fff8dc 0%, #ffd700 50%, transparent 70%);
+    border-radius: 50%;
   }
 `;
 
-const BirdWing = styled.div`
-  position: absolute;
-  top: -10px;
-  left: 10px;
-  width: 22px;
-  height: 18px;
-  background: #475569;
-  border-radius: 50% 50% 0 0;
-  transform-origin: bottom center;
-  animation: ${wingFlap} 0.12s ease-in-out infinite;
-  will-change: transform;
-`;
-
-const BirdTail = styled.div`
-  position: absolute;
-  left: -14px;
-  top: 3px;
-  border-right: 18px solid #334155;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-`;
-
-// Falling leaves - pure CSS
-const LeafElement = styled.div`
-  position: absolute;
-  top: 0;
-  left: ${props => props.$left}%;
-  font-size: ${props => props.$size}rem;
-  animation: ${leafFall} ${props => props.$duration}s linear infinite;
-  animation-delay: ${props => props.$delay}s;
-  will-change: transform;
-`;
-
-// Swaying trees - pure CSS
-const TreeElement = styled.div`
-  position: absolute;
-  top: ${props => props.$top};
-  ${props => props.$left ? `left: ${props.$left};` : ''}
-  ${props => props.$right ? `right: ${props.$right};` : ''}
-  font-size: ${props => props.$size};
-  opacity: ${props => props.$opacity};
-  animation: ${sway} ${props => props.$duration}s ease-in-out infinite;
-  filter: blur(${props => props.$blur || 0}px);
-  will-change: transform;
-`;
-
-// Sparkles - pure CSS
-const SparkleElement = styled.div`
-  position: absolute;
-  top: ${props => props.$top};
-  left: ${props => props.$left};
-  font-size: 1.3rem;
-  animation: ${twinkle} ${props => props.$duration}s ease-in-out infinite;
-  animation-delay: ${props => props.$delay}s;
-  will-change: transform, opacity;
-`;
-
-// Floating elements - butterflies, flowers
-const FloatingItem = styled.div`
-  position: absolute;
-  top: ${props => props.$top};
-  ${props => props.$left ? `left: ${props.$left};` : ''}
-  ${props => props.$right ? `right: ${props.$right};` : ''}
-  font-size: ${props => props.$size};
-  opacity: ${props => props.$opacity};
-  animation: ${floatAround} ${props => props.$duration}s ease-in-out infinite;
-  animation-delay: ${props => props.$delay}s;
-  will-change: transform;
-`;
-
-// Clouds - slow moving
-const CloudElement = styled.div`
-  position: absolute;
-  top: ${props => props.$top};
-  font-size: ${props => props.$size};
-  opacity: 0.35;
-  animation: ${cloudMove} ${props => props.$duration}s linear infinite;
-  animation-delay: ${props => props.$delay}s;
-  will-change: transform;
-`;
-
-// Light beams - decorative
-const LightBeam = styled.div`
-  position: absolute;
-  top: 0;
-  left: ${props => props.$left}%;
-  width: 100px;
-  height: 100%;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    transparent 40%
-  );
-  transform: rotate(${props => props.$rotate}deg);
-  animation: ${pulse} ${props => props.$duration}s ease-in-out infinite;
-  animation-delay: ${props => props.$delay}s;
-`;
-
-// Stars
-const StarElement = styled.div`
-  position: absolute;
-  top: ${props => props.$top};
-  left: ${props => props.$left};
-  width: 4px;
-  height: 4px;
-  background: white;
-  border-radius: 50%;
-  animation: ${twinkle} ${props => props.$duration}s ease-in-out infinite;
-  animation-delay: ${props => props.$delay}s;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-`;
-
-// Spinning element
-const SpinningElement = styled.div`
-  position: absolute;
-  top: ${props => props.$top};
-  ${props => props.$left ? `left: ${props.$left};` : ''}
-  ${props => props.$right ? `right: ${props.$right};` : ''}
-  font-size: ${props => props.$size};
-  opacity: ${props => props.$opacity};
-  animation: ${spin} ${props => props.$duration}s linear infinite;
-`;
-
-const Content = styled.div`
+// Shops Grid
+const ShopsRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
   position: relative;
-  z-index: 10;
+  z-index: 5;
 `;
 
-// ===== WELCOME SECTION =====
-
-const WelcomeSection = styled.section`
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 2rem;
-  position: relative;
-`;
-
-const WelcomeContent = styled.div`
-  animation: ${float} 4s ease-in-out infinite;
-`;
-
-const WelcomeBadge = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: rgba(16, 185, 129, 0.2);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  border-radius: 50px;
-  color: #10b981;
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 2rem;
-  backdrop-filter: blur(10px);
-`;
-
-const WelcomeTitle = styled.h1`
-  font-family: 'Cormorant Garamond', 'David Libre', serif;
-  font-size: clamp(3rem, 10vw, 6rem);
-  font-weight: 300;
-  color: #f8fafc;
-  margin-bottom: 0.5rem;
-  text-shadow: 0 4px 40px rgba(0, 0, 0, 0.5);
-  letter-spacing: 0.05em;
-`;
-
-const WelcomeSubtitle = styled.p`
-  font-size: clamp(1rem, 3vw, 1.3rem);
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 3rem;
-  max-width: 550px;
-  line-height: 1.8;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-`;
-
-const ScrollHint = styled.div`
-  position: absolute;
-  bottom: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
-  animation: ${scrollHint} 2s ease-in-out infinite;
-  
-  span {
-    font-size: 0.9rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-`;
-
-// ===== ZIGZAG SECTIONS =====
-
-const SectionsArea = styled.section`
-  padding: 0 2rem 250px;
-`;
-
-const ZigzagContainer = styled.div`
-  max-width: 1000px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 150px;
-`;
-
-const CardWrapper = styled.div`
-  display: flex;
-  justify-content: ${props => props.$side === 'left' ? 'flex-start' : 'flex-end'};
-  
-  @media (max-width: 768px) {
-    justify-content: center;
-  }
-`;
-
-// Card with smooth appearance
-const SectionCard = styled.div`
-  width: 100%;
-  max-width: 480px;
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.14) 0%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
-  border-radius: 28px;
-  padding: 2.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  cursor: pointer;
-  backdrop-filter: blur(25px);
-  position: relative;
+// Individual Shop
+const Shop = styled.div`
+  background: ${props => props.$bgColor || '#fff'};
+  border-radius: 20px;
   overflow: hidden;
-  will-change: transform, opacity;
-  
-  /* Invisible until visible */
-  opacity: 0;
-  visibility: hidden;
-  transform: ${props => props.$side === 'left' ? 'translateX(-100px)' : 'translateX(100px)'};
-  
-  ${props => props.$visible && props.$side === 'left' && css`
-    visibility: visible;
-    animation: ${popInLeft} 0.6s ease-out forwards;
-  `}
-  
-  ${props => props.$visible && props.$side === 'right' && css`
-    visibility: visible;
-    animation: ${popInRight} 0.6s ease-out forwards;
-  `}
-  
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.15),
+    0 5px 15px rgba(0,0,0,0.1);
+  animation: ${walkIn} 0.6s ease-out backwards;
+  animation-delay: ${props => props.$delay}ms;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-12px) scale(1.02);
+    box-shadow:
+      0 20px 50px rgba(0,0,0,0.2),
+      0 10px 25px rgba(0,0,0,0.15);
+  }
+
   &::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 5px;
+    height: 8px;
     background: ${props => props.$gradient};
-    border-radius: 28px 28px 0 0;
-    transition: height 0.3s ease;
   }
-  
-  &::after {
+`;
+
+const ShopAwning = styled.div`
+  background: ${props => props.$gradient};
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+
+  /* Awning stripes effect */
+  &::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      135deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.12) 50%,
-      transparent 100%
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 20px,
+      rgba(255,255,255,0.1) 20px,
+      rgba(255,255,255,0.1) 40px
     );
-    opacity: 0;
-    transition: opacity 0.4s ease;
   }
-  
-  &:hover {
-    transform: scale(1.03) translateY(-8px);
-    border-color: ${props => props.$color}60;
-    box-shadow: 
-      0 35px 70px rgba(0, 0, 0, 0.4),
-      0 0 80px ${props => props.$color}20;
-    
-    &::before { height: 8px; }
-    &::after { opacity: 1; }
+
+  /* Awning bottom edge */
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: inherit;
+    clip-path: polygon(
+      0% 0%, 5% 100%, 10% 0%, 15% 100%, 20% 0%, 25% 100%, 30% 0%, 35% 100%,
+      40% 0%, 45% 100%, 50% 0%, 55% 100%, 60% 0%, 65% 100%, 70% 0%, 75% 100%,
+      80% 0%, 85% 100%, 90% 0%, 95% 100%, 100% 0%
+    );
   }
 `;
 
-const CardIcon = styled.div`
-  width: 85px;
-  height: 85px;
-  background: ${props => props.$gradient};
-  border-radius: 24px;
+const ShopIcon = styled.div`
+  width: 70px;
+  height: 70px;
+  background: rgba(255,255,255,0.95);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 18px 45px ${props => props.$color}50;
-  transition: all 0.4s ease;
-  
+  margin: 0 auto;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+  position: relative;
+  z-index: 1;
+
   svg {
-    color: white;
-    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
-  }
-  
-  ${SectionCard}:hover & {
-    transform: scale(1.15) rotate(-8deg);
-    animation: ${bounce} 0.5s ease-in-out;
-  }
-`;
-
-const CardLabel = styled.span`
-  display: inline-block;
-  padding: 0.5rem 1.25rem;
-  background: ${props => props.$gradient};
-  color: white;
-  border-radius: 25px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 6px 20px ${props => props.$color}50;
-`;
-
-const CardTitle = styled.h3`
-  font-size: 1.9rem;
-  font-weight: 700;
-  color: #f8fafc;
-  margin-bottom: 0.75rem;
-  transition: color 0.3s ease;
-  
-  ${SectionCard}:hover & {
     color: ${props => props.$color};
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
+  }
+
+  ${Shop}:hover & {
+    animation: ${float} 0.6s ease-in-out;
   }
 `;
 
-const CardDescription = styled.p`
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 1.1rem;
-  line-height: 1.8;
-  margin-bottom: 1.75rem;
+const ShopContent = styled.div`
+  padding: 2rem 1.5rem 1.5rem;
+  text-align: center;
+  background: #fff;
 `;
 
-const CardFooter = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+const ShopName = styled.h3`
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem;
 `;
 
-const CardBadge = styled.span`
+const ShopDescription = styled.p`
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
+`;
+
+const ShopButton = styled.div`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 0.95rem;
+  padding: 0.75rem 1.5rem;
+  background: ${props => props.$gradient};
+  color: white;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px ${props => props.$color}40;
+
+  ${Shop}:hover & {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px ${props => props.$color}50;
+  }
+
+  svg {
+    transition: transform 0.3s ease;
+  }
+
+  ${Shop}:hover & svg {
+    transform: translateX(-4px);
+  }
 `;
 
-const CardArrow = styled.div`
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+const ShopBadge = styled.span`
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255,255,255,0.95);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: ${props => props.$color};
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  z-index: 2;
+`;
+
+// Decorative elements
+const Bench = styled.div`
+  position: absolute;
+  bottom: -20px;
+  ${props => props.$side === 'left' ? 'left: 20px;' : 'right: 20px;'}
+  font-size: 2rem;
+
+  @media (max-width: 600px) {
+    display: none;
+  }
+`;
+
+const FlowerPot = styled.div`
+  position: absolute;
+  bottom: -15px;
+  left: ${props => props.$left}%;
+  font-size: 1.8rem;
+  animation: ${sway} 3s ease-in-out infinite;
+  animation-delay: ${props => props.$delay}s;
+
+  @media (max-width: 600px) {
+    display: none;
+  }
+`;
+
+// Footer area
+const StreetEnd = styled.div`
+  text-align: center;
+  padding: 3rem 1rem 5rem;
+  position: relative;
+`;
+
+const FooterDecor = styled.div`
   display: flex;
-  align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  
-  svg {
-    color: rgba(255, 255, 255, 0.5);
-    transition: all 0.3s ease;
-  }
-  
-  ${SectionCard}:hover & {
-    background: ${props => props.$gradient};
-    transform: scale(1.1);
-    
-    svg {
-      color: white;
-      transform: translateX(-5px);
-    }
-  }
+  gap: 2rem;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+`;
+
+const FooterText = styled.p`
+  color: #64748b;
+  font-size: 1rem;
 `;
 
 // ================ DATA ================
 
-const SECTIONS = [
+const SHOPS = [
   {
     id: 'recipes',
     title: 'מתכונים',
-    description: 'מתכונים טעימים, טיפים קולינריים וסודות המטבח שלנו',
+    description: 'מתכונים טעימים וסודות המטבח שלנו',
     icon: Utensils,
     color: '#f59e0b',
     gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+    bgColor: '#fffbeb',
     path: '/sections/recipes',
-    label: '🍳 טעים!',
+    badge: 'טעים!',
+    emoji: '🍳',
   },
   {
     id: 'stories',
     title: 'סיפורים בהמשכים',
-    description: 'סיפורים מרגשים שילוו אותך לאורך כל השבוע',
+    description: 'סיפורים מרגשים שילוו אותך כל השבוע',
     icon: Book,
     color: '#8b5cf6',
     gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+    bgColor: '#f5f3ff',
     path: '/sections/stories',
-    label: '📚 פרק חדש',
+    badge: 'פרק חדש',
+    emoji: '📚',
   },
   {
     id: 'challenges',
     title: 'חידות ואתגרים',
-    description: 'סודוקו, חידות חשיבה ואתגרים שבועיים מאתגרים',
+    description: 'סודוקו, חידות חשיבה ואתגרים מאתגרים',
     icon: Puzzle,
     color: '#ec4899',
     gradient: 'linear-gradient(135deg, #ec4899, #db2777)',
+    bgColor: '#fdf2f8',
     path: '/sections/challenges',
-    label: '🧩 אתגר!',
+    badge: 'אתגר!',
+    emoji: '🧩',
   },
   {
     id: 'giveaways',
     title: 'הגרלות ופרסים',
-    description: 'השתתפי בהגרלות שבועיות ותזכי בפרסים מדהימים',
+    description: 'השתתפי בהגרלות ותזכי בפרסים מדהימים',
     icon: Gift,
     color: '#10b981',
     gradient: 'linear-gradient(135deg, #10b981, #059669)',
+    bgColor: '#ecfdf5',
     path: '/sections/giveaways',
-    label: '🎁 הגרלה!',
+    badge: 'הגרלה!',
+    emoji: '🎁',
   },
   {
     id: 'articles',
@@ -652,224 +535,152 @@ const SECTIONS = [
     icon: Coffee,
     color: '#92400e',
     gradient: 'linear-gradient(135deg, #b45309, #92400e)',
+    bgColor: '#fef3e2',
     path: '/sections/articles',
-    label: '☕ חדש!',
+    badge: 'חדש!',
+    emoji: '☕',
   },
   {
     id: 'market',
     title: 'לוח קהילתי',
-    description: 'קניה, מכירה, שירותים - הכל בתוך הקהילה שלנו',
+    description: 'קניה, מכירה, שירותים - הכל בקהילה שלנו',
     icon: ShoppingBag,
     color: '#059669',
     gradient: 'linear-gradient(135deg, #10b981, #059669)',
+    bgColor: '#ecfdf5',
     path: '/sections/market',
-    label: '🛍️ עסקאות',
+    badge: 'עסקאות',
+    emoji: '🛍️',
   },
   {
     id: 'issues',
     title: 'ארכיון גיליונות',
-    description: 'כל הגיליונות הקודמים של השדרה במקום אחד',
+    description: 'כל הגיליונות הקודמים של השדרה',
     icon: Newspaper,
     color: '#6366f1',
     gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+    bgColor: '#eef2ff',
     path: '/issues',
-    label: '📰 ארכיון',
+    badge: 'ארכיון',
+    emoji: '📰',
   },
 ];
-
-const LEAVES = ['🍂', '🍃', '🌿', '🍀', '🌸', '🌺'];
 
 // ================ COMPONENT ================
 
 export default function ShederaStreet() {
   const navigate = useNavigate();
-  const [visibleCards, setVisibleCards] = useState(new Set());
-  const cardRefs = useRef([]);
-  
-  // Enable smooth scrolling on mount
-  useEffect(() => {
-    // Add smooth scroll to html
-    document.documentElement.style.scrollBehavior = 'smooth';
-    document.body.style.scrollBehavior = 'smooth';
-    
-    return () => {
-      document.documentElement.style.scrollBehavior = '';
-      document.body.style.scrollBehavior = '';
-    };
-  }, []);
-  
-  // Intersection Observer for cards
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const id = entry.target.dataset.id;
-            setVisibleCards(prev => new Set([...prev, id]));
-          }
-        });
-      },
-      { threshold: 0.2, rootMargin: '0px 0px -100px 0px' }
-    );
-    
-    cardRefs.current.forEach(ref => {
-      if (ref) observer.observe(ref);
-    });
-    
-    return () => observer.disconnect();
-  }, []);
-  
-  const handleCardClick = (section) => {
-    navigate(section.path);
+
+  const handleShopClick = (shop) => {
+    navigate(shop.path);
   };
-  
+
   return (
-    <>
-      <SmoothScrollStyles />
-      <PageContainer>
-        <FixedBackground />
-      
-      {/* Animation Layer - all pure CSS, no JS updates */}
-      <AnimationLayer>
-        {/* Birds with flapping wings */}
-        <BirdWrapper $top={8} $duration={18} $delay={0}>
-          <BirdBody><BirdWing /><BirdTail /></BirdBody>
-        </BirdWrapper>
-        <BirdWrapper $top={15} $duration={25} $delay={6}>
-          <BirdBody><BirdWing /><BirdTail /></BirdBody>
-        </BirdWrapper>
-        <BirdWrapper $top={5} $duration={22} $delay={12}>
-          <BirdBody><BirdWing /><BirdTail /></BirdBody>
-        </BirdWrapper>
-        <BirdWrapper $top={22} $duration={30} $delay={20}>
-          <BirdBody><BirdWing /><BirdTail /></BirdBody>
-        </BirdWrapper>
-        
-        {/* Falling leaves */}
-        {[...Array(12)].map((_, i) => (
-          <LeafElement
-            key={`leaf-${i}`}
-            $left={8 + i * 8}
-            $size={1.3 + (i % 3) * 0.3}
-            $duration={14 + (i % 5) * 3}
-            $delay={i * 2}
-          >
-            {LEAVES[i % LEAVES.length]}
-          </LeafElement>
-        ))}
-        
-        {/* Trees */}
-        <TreeElement $left="3%" $top="12%" $size="5rem" $opacity={0.3} $duration={8} $blur={1}>🌳</TreeElement>
-        <TreeElement $right="4%" $top="20%" $size="4rem" $opacity={0.25} $duration={10} $blur={2}>🌲</TreeElement>
-        <TreeElement $left="6%" $top="45%" $size="6rem" $opacity={0.35} $duration={7}>🌴</TreeElement>
-        <TreeElement $right="5%" $top="55%" $size="5rem" $opacity={0.3} $duration={9} $blur={1}>🌳</TreeElement>
-        <TreeElement $left="4%" $top="75%" $size="4.5rem" $opacity={0.25} $duration={11}>🌲</TreeElement>
-        <TreeElement $right="6%" $top="85%" $size="5rem" $opacity={0.3} $duration={8}>🌴</TreeElement>
-        
-        {/* Sparkles */}
-        <SparkleElement $top="18%" $left="12%" $duration={2.5} $delay={0}>✨</SparkleElement>
-        <SparkleElement $top="30%" $left="88%" $duration={3} $delay={0.5}>✨</SparkleElement>
-        <SparkleElement $top="48%" $left="8%" $duration={2.8} $delay={1}>✨</SparkleElement>
-        <SparkleElement $top="62%" $left="92%" $duration={3.2} $delay={1.5}>✨</SparkleElement>
-        <SparkleElement $top="78%" $left="15%" $duration={2.6} $delay={2}>✨</SparkleElement>
-        <SparkleElement $top="88%" $left="85%" $duration={2.9} $delay={0.8}>✨</SparkleElement>
-        
-        {/* Floating items */}
-        <FloatingItem $right="7%" $top="35%" $size="2.5rem" $opacity={0.5} $duration={12} $delay={0}>🦋</FloatingItem>
-        <FloatingItem $left="5%" $top="58%" $size="2rem" $opacity={0.45} $duration={15} $delay={3}>🦋</FloatingItem>
-        <FloatingItem $right="10%" $top="70%" $size="2.2rem" $opacity={0.4} $duration={14} $delay={6}>🌸</FloatingItem>
-        <FloatingItem $left="8%" $top="25%" $size="1.8rem" $opacity={0.35} $duration={16} $delay={2}>🌺</FloatingItem>
-        
-        {/* Clouds */}
-        <CloudElement $top="8%" $size="4rem" $duration={60} $delay={0}>☁️</CloudElement>
-        <CloudElement $top="15%" $size="3rem" $duration={80} $delay={20}>☁️</CloudElement>
-        <CloudElement $top="5%" $size="3.5rem" $duration={70} $delay={40}>☁️</CloudElement>
-        
-        {/* Light beams */}
-        <LightBeam $left={20} $rotate={-15} $duration={8} $delay={0} />
-        <LightBeam $left={70} $rotate={15} $duration={10} $delay={2} />
-        
-        {/* Stars */}
-        <StarElement $top="10%" $left="25%" $duration={2} $delay={0} />
-        <StarElement $top="18%" $left="75%" $duration={2.5} $delay={0.5} />
-        <StarElement $top="35%" $left="15%" $duration={3} $delay={1} />
-        <StarElement $top="50%" $left="85%" $duration={2.2} $delay={1.5} />
-        <StarElement $top="70%" $left="20%" $duration={2.8} $delay={0.3} />
-        <StarElement $top="82%" $left="80%" $duration={2.4} $delay={0.8} />
-        
-        {/* Spinning flowers */}
-        <SpinningElement $left="2%" $top="40%" $size="1.5rem" $opacity={0.3} $duration={20}>🌼</SpinningElement>
-        <SpinningElement $right="3%" $top="65%" $size="1.3rem" $opacity={0.25} $duration={25}>🌻</SpinningElement>
-      </AnimationLayer>
-      
-      <Content>
-        {/* Welcome */}
-        <WelcomeSection>
-          <WelcomeContent>
-            <WelcomeBadge>
-              <TreePine size={20} />
-              מדורי השדרה
-            </WelcomeBadge>
-            <WelcomeTitle>המדורים שלנו</WelcomeTitle>
-            <WelcomeSubtitle>
-              גללי למטה וגלי את כל התכנים המיוחדים
-            </WelcomeSubtitle>
-          </WelcomeContent>
-          
-          <ScrollHint>
-            <span>גללי למטה</span>
-            <ChevronDown size={32} />
-          </ScrollHint>
-        </WelcomeSection>
-        
-        {/* Zigzag Cards */}
-        <SectionsArea>
-          <ZigzagContainer>
-            {SECTIONS.map((section, index) => {
-              const Icon = section.icon;
-              const isVisible = visibleCards.has(section.id);
-              const side = index % 2 === 0 ? 'left' : 'right';
-              
-              return (
-                <CardWrapper key={section.id} $side={side}>
-                  <SectionCard
-                    ref={el => cardRefs.current[index] = el}
-                    data-id={section.id}
-                    $color={section.color}
-                    $gradient={section.gradient}
-                    $visible={isVisible}
-                    $side={side}
-                    onClick={() => handleCardClick(section)}
+    <PageContainer>
+      <ReaderNav />
+
+      {/* Sky */}
+      <Sky>
+        <Sun />
+        <Cloud $top={30} $size={4} $duration={45} $delay={0}>☁️</Cloud>
+        <Cloud $top={60} $size={3} $duration={55} $delay={15}>☁️</Cloud>
+        <Cloud $top={20} $size={3.5} $duration={50} $delay={30}>☁️</Cloud>
+      </Sky>
+
+      {/* Trees on sides */}
+      <TreesContainer $side="left">
+        <Tree $size={5} $duration={6} $delay={0}>🌳</Tree>
+        <Tree $size={4} $duration={5} $delay={1}>🌲</Tree>
+        <Tree $size={5.5} $duration={7} $delay={0.5}>🌳</Tree>
+        <Tree $size={4} $duration={5.5} $delay={1.5}>🌴</Tree>
+      </TreesContainer>
+
+      <TreesContainer $side="right">
+        <Tree $size={4.5} $duration={5.5} $delay={0.5}>🌲</Tree>
+        <Tree $size={5} $duration={6.5} $delay={0}>🌳</Tree>
+        <Tree $size={4} $duration={5} $delay={1}>🌳</Tree>
+        <Tree $size={5} $duration={6} $delay={0.8}>🌲</Tree>
+      </TreesContainer>
+
+      <StreetScene>
+        {/* Street Sign Header */}
+        <StreetHeader>
+          <StreetSign>
+            <h1>🌳 השדרה 🌳</h1>
+            <p>ברוכים הבאים למדורי המגזין</p>
+          </StreetSign>
+        </StreetHeader>
+
+        <StreetWrapper>
+          {/* The Street with shops */}
+          <StreetRoad>
+            {/* Street Lamps */}
+            <StreetLamp $side="left" $top={50}>
+              <LampHead />
+              <LampPost />
+            </StreetLamp>
+            <StreetLamp $side="right" $top={300}>
+              <LampHead />
+              <LampPost />
+            </StreetLamp>
+
+            {/* Shops Grid */}
+            <ShopsRow>
+              {SHOPS.map((shop, index) => {
+                const Icon = shop.icon;
+                return (
+                  <Shop
+                    key={shop.id}
+                    $gradient={shop.gradient}
+                    $bgColor={shop.bgColor}
+                    $delay={index * 100}
+                    onClick={() => handleShopClick(shop)}
                   >
-                    <CardLabel $color={section.color} $gradient={section.gradient}>
-                      {section.label}
-                    </CardLabel>
-                    
-                    <CardIcon $color={section.color} $gradient={section.gradient}>
-                      <Icon size={38} />
-                    </CardIcon>
-                    
-                    <CardTitle $color={section.color}>{section.title}</CardTitle>
-                    <CardDescription>{section.description}</CardDescription>
-                    
-                    <CardFooter>
-                      <CardBadge>
+                    <ShopBadge $color={shop.color}>
+                      {shop.emoji} {shop.badge}
+                    </ShopBadge>
+
+                    <ShopAwning $gradient={shop.gradient}>
+                      <ShopIcon $color={shop.color}>
+                        <Icon size={32} />
+                      </ShopIcon>
+                    </ShopAwning>
+
+                    <ShopContent>
+                      <ShopName>{shop.title}</ShopName>
+                      <ShopDescription>{shop.description}</ShopDescription>
+                      <ShopButton $gradient={shop.gradient} $color={shop.color}>
                         <Sparkles size={16} />
-                        לחצי לכניסה
-                      </CardBadge>
-                      
-                      <CardArrow $gradient={section.gradient}>
-                        <ArrowRight size={22} />
-                      </CardArrow>
-                    </CardFooter>
-                  </SectionCard>
-                </CardWrapper>
-              );
-            })}
-          </ZigzagContainer>
-        </SectionsArea>
-      </Content>
-      </PageContainer>
-    </>
+                        כניסה לחנות
+                        <ArrowLeft size={16} />
+                      </ShopButton>
+                    </ShopContent>
+                  </Shop>
+                );
+              })}
+            </ShopsRow>
+
+            {/* Decorative elements */}
+            <Bench $side="left">🪑</Bench>
+            <Bench $side="right">🪑</Bench>
+            <FlowerPot $left={30} $delay={0}>🌷</FlowerPot>
+            <FlowerPot $left={50} $delay={0.5}>🌻</FlowerPot>
+            <FlowerPot $left={70} $delay={1}>🌺</FlowerPot>
+          </StreetRoad>
+        </StreetWrapper>
+
+        {/* Street End */}
+        <StreetEnd>
+          <FooterDecor>
+            <span>🌸</span>
+            <span>🌳</span>
+            <span>🦋</span>
+            <span>🌳</span>
+            <span>🌸</span>
+          </FooterDecor>
+          <FooterText>תודה שביקרת בשדרה שלנו! 💚</FooterText>
+        </StreetEnd>
+      </StreetScene>
+    </PageContainer>
   );
 }
