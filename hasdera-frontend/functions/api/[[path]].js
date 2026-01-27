@@ -41,7 +41,18 @@ export async function onRequest({ request, params }) {
     targetUrl.search = incomingUrl.search;
 
     const auth = request.headers.get("Authorization");
-    const proxiedRequest = new Request(targetUrl.toString(), request);
+    
+    // Clone request body if needed (for POST/PUT requests)
+    let body = null;
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      body = await request.clone().arrayBuffer();
+    }
+    
+    const proxiedRequest = new Request(targetUrl.toString(), {
+      method: request.method,
+      headers: request.headers,
+      body: body,
+    });
 
     const response = await fetch(proxiedRequest);
     
