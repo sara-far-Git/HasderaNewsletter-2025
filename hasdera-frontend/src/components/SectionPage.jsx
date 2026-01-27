@@ -11,9 +11,7 @@ import {
   User, ChevronDown, Send, Loader2, AlertCircle, Sparkles
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import ReaderNav from "./ReaderNav";
-import ReaderFooter from "./ReaderFooter";
-import api from "../Services/api";
+import { api } from "../Services/api";
 
 // ================ ANIMATIONS ================
 
@@ -456,9 +454,9 @@ export default function SectionPage() {
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [likedContents, setLikedContents] = useState(new Set());
-  
+
   const section = SECTIONS_INFO[sectionId];
-  
+
   // Fetch section contents
   useEffect(() => {
     const fetchContents = async () => {
@@ -590,13 +588,13 @@ export default function SectionPage() {
   
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('he-IL', { 
+    return date.toLocaleDateString('he-IL', {
       day: 'numeric', 
-      month: 'long', 
+      month: 'long',
       year: 'numeric' 
     });
   };
-  
+
   const getInitials = (name) => {
     if (!name) return '?';
     return name.split(' ').map(n => n[0]).join('').slice(0, 2);
@@ -606,7 +604,6 @@ export default function SectionPage() {
     return (
       <PageWrapper>
         <BackgroundImage />
-        <ReaderNav />
         <Content>
           <EmptyState>
             <AlertCircle size={48} />
@@ -618,15 +615,13 @@ export default function SectionPage() {
             </BackButton>
           </EmptyState>
         </Content>
-        <ReaderFooter />
       </PageWrapper>
     );
   }
-  
+
   return (
     <PageWrapper>
       <BackgroundImage />
-      <ReaderNav />
       
       <Content>
         <Header>
@@ -641,11 +636,11 @@ export default function SectionPage() {
             </SectionIcon>
             <SectionInfo>
               <SectionTitle>{section.title}</SectionTitle>
-              <SectionDescription>{section.description}</SectionDescription>
+            <SectionDescription>{section.description}</SectionDescription>
             </SectionInfo>
           </SectionHeader>
         </Header>
-        
+
         {loading ? (
           <LoadingSpinner>
             <Loader2 size={40} />
@@ -657,12 +652,12 @@ export default function SectionPage() {
             <p>{error}</p>
           </EmptyState>
         ) : contents.length === 0 ? (
-          <EmptyState>
+                <EmptyState>
             <Sparkles size={48} />
             <h3>אין תוכן עדיין</h3>
             <p>בקרוב יעלו כאן תכנים חדשים!</p>
-          </EmptyState>
-        ) : (
+                </EmptyState>
+              ) : (
           <ContentList>
             {contents.map((content, index) => (
               <ContentCard key={content.id} $delay={index * 0.1}>
@@ -765,8 +760,6 @@ export default function SectionPage() {
           </ContentList>
         )}
       </Content>
-      
-      <ReaderFooter />
     </PageWrapper>
   );
 }
