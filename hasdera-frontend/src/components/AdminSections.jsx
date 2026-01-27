@@ -151,6 +151,7 @@ const SectionCard = styled.div`
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  user-select: none;
   
   &::before {
     content: '';
@@ -161,6 +162,8 @@ const SectionCard = styled.div`
     height: 4px;
     background: linear-gradient(90deg, ${props => props.$color || '#10b981'}, transparent);
     opacity: 0.6;
+    pointer-events: none;
+    z-index: 1;
   }
   
   &:hover {
@@ -168,6 +171,10 @@ const SectionCard = styled.div`
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.2);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  }
+  
+  &:active {
+    transform: translateY(-3px);
   }
 `;
 
@@ -215,6 +222,8 @@ const Actions = styled.div`
   display: flex;
   gap: 0.5rem;
   margin-top: 1rem;
+  position: relative;
+  z-index: 10;
 `;
 
 const ActionButton = styled.button`
