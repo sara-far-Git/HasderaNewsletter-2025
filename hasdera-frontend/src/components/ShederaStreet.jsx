@@ -211,13 +211,6 @@ const floatAround = keyframes`
   100% { transform: translate(0, -65px) rotate(0deg) scale(1); }
 `;
 
-const cloudMove = keyframes`
-  0% { transform: translateX(-100%); opacity: 0; }
-  10% { opacity: 0.4; }
-  90% { opacity: 0.4; }
-  100% { transform: translateX(100vw); opacity: 0; }
-`;
-
 const shimmer = keyframes`
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
