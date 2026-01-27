@@ -13,7 +13,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import ReaderNav from "./ReaderNav";
 import ReaderFooter from "./ReaderFooter";
-import api from "../Services/api";
+import { api } from "../Services/api";
 
 // ================ ANIMATIONS ================
 
