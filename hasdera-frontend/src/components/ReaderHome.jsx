@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, BookOpen, ChevronLeft, Sparkles, ArrowLeft, Utensils, Heart, Users, Home, Lightbulb, Palette, Share2, Clock, Star, Play } from "lucide-react";
+import { CalendarDays, BookOpen, ChevronLeft, Sparkles, ArrowLeft, Clock, Star, Play } from "lucide-react";
 import { getIssues } from "../Services/issuesService";
 import ReaderNav from "./ReaderNav";
 import AnnouncementsBanner from "./AnnouncementsBanner";
@@ -460,63 +460,6 @@ const EmptyQuickAccess = styled.div`
   font-size: 0.9rem;
 `;
 
-/* ============ Sections (מדורים) ============ */
-const SectionsSection = styled.section`
-  margin-top: 3rem;
-  animation: ${fadeInUp} 0.8s ease-out 0.3s both;
-`;
-
-const SectionsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 1rem;
-  
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(6, 1fr);
-  }
-`;
-
-const SectionCard = styled.div`
-  background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 16px;
-  padding: 1.5rem 1rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-4px);
-    border-color: ${props => props.$color || '#10b981'};
-    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
-    
-    .icon-wrapper {
-      transform: scale(1.1);
-      background: ${props => props.$color || '#10b981'};
-    }
-  }
-`;
-
-const SectionIcon = styled.div`
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 0.75rem;
-  border-radius: 14px;
-  background: ${props => props.$color || 'rgba(16, 185, 129, 0.2)'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${props => props.$iconColor || '#10b981'};
-  transition: all 0.3s ease;
-`;
-
-const SectionName = styled.h4`
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #f8fafc;
-  margin: 0;
-`;
-
 /* ======================== Component ======================== */
 const GRADIENTS = [
   'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -525,16 +468,6 @@ const GRADIENTS = [
   'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
   'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
   'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-];
-
-// מדורים קבועים
-const SECTIONS = [
-  { id: 'recipes', name: 'מתכונים', icon: Utensils, color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.2)' },
-  { id: 'health', name: 'בריאות', icon: Heart, color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.2)' },
-  { id: 'community', name: 'קהילה', icon: Users, color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.2)' },
-  { id: 'home', name: 'בית ומשפחה', icon: Home, color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.2)' },
-  { id: 'tips', name: 'טיפים', icon: Lightbulb, color: '#14b8a6', bgColor: 'rgba(20, 184, 166, 0.2)' },
-  { id: 'culture', name: 'תרבות', icon: Palette, color: '#ec4899', bgColor: 'rgba(236, 72, 153, 0.2)' },
 ];
 
 export default function ReaderHome() {
