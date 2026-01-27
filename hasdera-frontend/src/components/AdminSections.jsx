@@ -38,88 +38,136 @@ const slideIn = keyframes`
   }
 `;
 
-// 🎨 Styled Components
+// 🎨 Styled Components - עיצוב מודרני עם רקע כהה ושקיפות
 const Container = styled.div`
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
+  animation: ${fadeIn} 0.8s ease-out;
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.5rem;
+  animation: ${slideIn} 0.6s ease-out;
 `;
 
 const Title = styled.h1`
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 700;
-  color: #1f2937;
+  color: rgba(255, 255, 255, 0.95);
   margin: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  font-family: 'Cormorant Garamond', serif;
+  letter-spacing: 1px;
 `;
 
 const AddButton = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border: none;
-  border-radius: 10px;
-  color: white;
+  padding: 0.875rem 1.75rem;
+  background: rgba(16, 185, 129, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 50px;
+  color: #10b981;
   font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   
   &:hover {
+    background: rgba(16, 185, 129, 0.3);
+    border-color: #10b981;
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
   }
 `;
 
 const TabsContainer = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin-bottom: 2rem;
-  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  animation: ${slideIn} 0.6s ease-out;
+  animation-delay: 0.2s;
+  animation-fill-mode: both;
 `;
 
 const Tab = styled.button`
-  padding: 0.75rem 1.5rem;
-  background: none;
-  border: none;
-  border-bottom: 3px solid ${props => props.$active ? '#10b981' : 'transparent'};
-  color: ${props => props.$active ? '#10b981' : '#6b7280'};
-  font-weight: ${props => props.$active ? '600' : '400'};
+  padding: 0.875rem 1.75rem;
+  background: ${props => props.$active ? 'rgba(16, 185, 129, 0.15)' : 'transparent'};
+  backdrop-filter: ${props => props.$active ? 'blur(10px)' : 'none'};
+  border: ${props => props.$active ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid transparent'};
+  border-radius: 50px;
+  color: ${props => props.$active ? '#10b981' : 'rgba(255, 255, 255, 0.7)'};
+  font-weight: ${props => props.$active ? '600' : '500'};
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   
   &:hover {
     color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
   }
 `;
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.5rem;
+  animation: ${slideIn} 0.6s ease-out;
+  animation-delay: 0.4s;
+  animation-fill-mode: both;
 `;
 
 const SectionCard = styled.div`
-  background: white;
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s;
-  animation: ${slideIn} 0.4s ease-out;
-  border: 2px solid ${props => props.$color || '#e5e7eb'};
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  animation: ${slideIn} 0.5s ease-out;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, ${props => props.$color || '#10b981'}, transparent);
+    opacity: 0.6;
+  }
   
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    transform: translateY(-6px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
   }
 `;
 
@@ -131,33 +179,36 @@ const SectionHeader = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 700;
-  color: #1f2937;
+  color: rgba(255, 255, 255, 0.95);
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  font-family: 'Cormorant Garamond', serif;
 `;
 
 const SectionIcon = styled.span`
-  font-size: 1.5rem;
+  font-size: 2rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 `;
 
 const SectionDescription = styled.p`
-  color: #6b7280;
-  font-size: 0.9rem;
-  margin: 0.5rem 0 1rem 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  margin: 0.75rem 0 1.25rem 0;
+  line-height: 1.6;
 `;
 
 const SectionStats = styled.div`
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 0.875rem;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.6);
 `;
 
 const Actions = styled.div`
@@ -167,67 +218,107 @@ const Actions = styled.div`
 `;
 
 const ActionButton = styled.button`
-  padding: 0.5rem;
-  background: ${props => props.$variant === 'danger' ? '#ef4444' : '#f3f4f6'};
-  color: ${props => props.$variant === 'danger' ? 'white' : '#374151'};
-  border: none;
-  border-radius: 8px;
+  padding: 0.625rem 1rem;
+  background: ${props => {
+    if (props.$variant === 'danger') return 'rgba(239, 68, 68, 0.2)';
+    if (props.$variant === 'success') return 'rgba(16, 185, 129, 0.2)';
+    return 'rgba(255, 255, 255, 0.1)';
+  }};
+  backdrop-filter: blur(10px);
+  border: 1px solid ${props => {
+    if (props.$variant === 'danger') return 'rgba(239, 68, 68, 0.3)';
+    if (props.$variant === 'success') return 'rgba(16, 185, 129, 0.3)';
+    return 'rgba(255, 255, 255, 0.15)';
+  }};
+  color: ${props => {
+    if (props.$variant === 'danger') return '#ef4444';
+    if (props.$variant === 'success') return '#10b981';
+    return 'rgba(255, 255, 255, 0.9)';
+  }};
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
   
   &:hover {
-    background: ${props => props.$variant === 'danger' ? '#dc2626' : '#e5e7eb'};
+    background: ${props => {
+      if (props.$variant === 'danger') return 'rgba(239, 68, 68, 0.3)';
+      if (props.$variant === 'success') return 'rgba(16, 185, 129, 0.3)';
+      return 'rgba(255, 255, 255, 0.15)';
+    }};
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
   }
 `;
 
 const ContentCard = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s;
-  animation: ${slideIn} 0.4s ease-out;
-  border-left: 4px solid ${props => props.$published ? '#10b981' : '#e5e7eb'};
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  animation: ${slideIn} 0.5s ease-out;
+  position: relative;
+  border-left: 4px solid ${props => props.$published ? '#10b981' : 'rgba(255, 255, 255, 0.3)'};
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
   }
 `;
 
 const ContentTitle = styled.h4`
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 0.5rem 0;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.4;
 `;
 
 const ContentExcerpt = styled.p`
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin: 0.5rem 0;
-  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin: 0.75rem 0;
+  line-height: 1.6;
 `;
 
 const ContentMeta = styled.div`
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.6);
   align-items: center;
+  flex-wrap: wrap;
+  
+  svg {
+    width: 14px;
+    height: 14px;
+    margin-left: 0.25rem;
+  }
 `;
 
 const Badge = styled.span`
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
+  padding: 0.375rem 0.875rem;
+  border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: ${props => props.$published ? '#d1fae5' : '#fee2e2'};
-  color: ${props => props.$published ? '#065f46' : '#991b1b'};
+  background: ${props => props.$published ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'};
+  color: ${props => props.$published ? '#10b981' : '#ef4444'};
+  border: 1px solid ${props => props.$published ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'};
+  backdrop-filter: blur(10px);
 `;
 
 const Modal = styled.div`
@@ -236,7 +327,8 @@ const Modal = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -245,120 +337,169 @@ const Modal = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  max-width: 600px;
+  background: rgba(26, 26, 26, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 2.5rem;
+  max-width: 700px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
   animation: ${slideIn} 0.3s;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 `;
 
 const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
 const ModalTitle = styled.h2`
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: #1f2937;
+  color: rgba(255, 255, 255, 0.95);
   margin: 0;
+  font-family: 'Cormorant Garamond', serif;
 `;
 
 const CloseButton = styled.button`
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
   cursor: pointer;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.8);
   padding: 0.5rem;
+  transition: all 0.3s ease;
   
   &:hover {
-    color: #1f2937;
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 1);
+    transform: rotate(90deg);
   }
 `;
 
 const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 `;
 
 const Label = styled.label`
   display: block;
   font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
   font-size: 1rem;
-  transition: all 0.2s;
+  color: rgba(255, 255, 255, 0.95);
+  transition: all 0.3s ease;
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
   
   &:focus {
     outline: none;
     border-color: #10b981;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
 `;
 
 const TextArea = styled.textarea`
   width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
   font-size: 1rem;
   min-height: ${props => props.$rows ? `${props.$rows * 2.5}rem` : '5rem'};
   resize: vertical;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   font-family: inherit;
+  color: rgba(255, 255, 255, 0.95);
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
   
   &:focus {
     outline: none;
     border-color: #10b981;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
 `;
 
 const SaveButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border: none;
-  border-radius: 8px;
-  color: white;
+  padding: 0.875rem 2rem;
+  background: rgba(16, 185, 129, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 50px;
+  color: #10b981;
   font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   
   &:hover {
+    background: rgba(16, 185, 129, 0.3);
+    border-color: #10b981;
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
 `;
 
 const EmptyState = styled.div`
   text-align: center;
-  padding: 4rem 2rem;
-  color: #6b7280;
+  padding: 5rem 2rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.1rem;
 `;
 
 const SearchInput = styled.input`
   width: 100%;
-  max-width: 400px;
-  padding: 0.75rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  max-width: 450px;
+  padding: 0.875rem 1.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50px;
   font-size: 1rem;
-  margin-bottom: 1.5rem;
-  transition: all 0.2s;
+  margin-bottom: 2rem;
+  color: rgba(255, 255, 255, 0.95);
+  transition: all 0.3s ease;
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
   
   &:focus {
     outline: none;
     border-color: #10b981;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
 `;
 
@@ -366,34 +507,50 @@ const LoadingSpinner = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 4rem 2rem;
-  color: #6b7280;
+  padding: 5rem 2rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.1rem;
 `;
 
 const BackButton = styled.button`
-  padding: 0.5rem 1rem;
-  background: #e5e7eb;
-  border: none;
-  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50px;
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.2s;
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   
   &:hover {
-    background: #d1d5db;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateX(-4px);
   }
 `;
 
 const SectionHeaderBar = styled.div`
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.5rem;
+  
+  strong {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.95);
+    font-family: 'Cormorant Garamond', serif;
+  }
 `;
 
 export default function AdminSections() {
@@ -760,7 +917,7 @@ export default function AdminSections() {
                   <span><MessageSquare size={14} style={{ display: 'inline', marginLeft: '0.25rem' }} /> {content.commentsCount}</span>
                 </ContentMeta>
                 <Actions>
-                  <ActionButton onClick={() => handleTogglePublish(content)}>
+                  <ActionButton $variant="success" onClick={() => handleTogglePublish(content)}>
                     {content.published ? <EyeOff size={16} /> : <Eye size={16} />}
                     {content.published ? 'בטל פרסום' : 'פרסם'}
                   </ActionButton>
@@ -840,7 +997,7 @@ export default function AdminSections() {
                 onChange={(e) => setSectionForm({ ...sectionForm, sortOrder: parseInt(e.target.value) || 0 })}
               />
             </FormGroup>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <ActionButton onClick={() => setShowSectionModal(false)}>ביטול</ActionButton>
               <SaveButton onClick={handleSaveSection} disabled={loading}>
                 <Save size={18} style={{ display: 'inline', marginLeft: '0.5rem' }} />
@@ -896,17 +1053,22 @@ export default function AdminSections() {
               />
             </FormGroup>
             <FormGroup>
-              <Label>
+              <Label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={contentForm.published}
                   onChange={(e) => setContentForm({ ...contentForm, published: e.target.checked })}
-                  style={{ marginLeft: '0.5rem' }}
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    cursor: 'pointer',
+                    accentColor: '#10b981'
+                  }}
                 />
-                פורסם
+                <span>פרסם מיד (אחרת ישמר כטיוטה)</span>
               </Label>
             </FormGroup>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <ActionButton onClick={() => setShowContentModal(false)}>ביטול</ActionButton>
               <SaveButton onClick={handleSaveContent} disabled={loading}>
                 <Save size={18} style={{ display: 'inline', marginLeft: '0.5rem' }} />
