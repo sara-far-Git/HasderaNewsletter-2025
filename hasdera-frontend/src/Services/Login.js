@@ -2,7 +2,9 @@
 import { api } from "./api";
 import axios from "axios";
 
-const DIRECT_API_BASEURL = "https://hasderanewsletter-2025.onrender.com/api";
+// Fallback URL for direct API calls when Pages Functions are unavailable
+const DIRECT_API_BASEURL = import.meta.env.VITE_DIRECT_API_URL ||
+  (import.meta.env.PROD ? "https://hasderanewsletter-2025.onrender.com/api" : "http://localhost:5055/api");
 
 export async function login(email, password) {
   const res = await api.post("/User/login", { email, password });

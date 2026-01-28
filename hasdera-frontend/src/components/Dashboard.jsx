@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { 
-  DollarSign, 
-  BarChart3, 
-  MessageCircle, 
-  Bell, 
+import {
+  DollarSign,
+  BarChart3,
+  MessageCircle,
+  Bell,
   Book,
   MapPin,
   TrendingUp,
@@ -18,6 +18,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Card, Grid, Container as ThemeContainer, Badge, PrimaryButton } from "../styles";
 import hasederaTheme from "../styles/HasederaTheme";
+import { useAuth } from "../contexts/AuthContext";
 // Chatbot מופיע ב-App.jsx ככפתור צף גלובלי
 
 // 🎨 Styled Components
@@ -313,7 +314,8 @@ const DeepReportsLink = styled.a`
 // 🔹 Dashboard Component
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [userName] = useState("משתמש"); // TODO: לקבל מהקונטקסט/API
+  const { user } = useAuth();
+  const userName = user?.fullName || user?.name || "משתמש";
 
   // דוגמה לנתונים - יש להחליף ב-API אמיתי
   const activeAds = [
