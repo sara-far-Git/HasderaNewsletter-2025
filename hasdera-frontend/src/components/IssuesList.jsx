@@ -638,6 +638,9 @@ const pdfOptions = {
   standardFontDataUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
 };
 
+// Cache for failed PDF URLs to prevent repeated load attempts
+const failedPdfUrls = new Set();
+
 const buildIssuePdfProxyUrl = (issueId) => {
   if (!issueId) return "";
   const base = api.defaults.baseURL;
@@ -717,7 +720,7 @@ const normalizeIssueForViewer = (issue) => {
 function PDFCover({ pdfUrl, title, shouldLoad }) {
   // Memoize options to prevent re-renders
   const memoizedOptions = useMemo(() => pdfOptions, []);
-  const [retryCount, setRetryCount] = useState(0);
+  const [failed, setFailed] = useState(() => failedPdfUrls.has(pdfUrl));
 
   // Don't load PDF until card is visible
   if (!shouldLoad) {
@@ -725,6 +728,16 @@ function PDFCover({ pdfUrl, title, shouldLoad }) {
       <PDFLoading>
         <CalendarDays size={40} opacity={0.2} />
         <div style={{ fontSize: '0.85rem' }}>ממתין...</div>
+      </PDFLoading>
+    );
+  }
+
+  // If this URL already failed, show placeholder immediately
+  if (failed) {
+    return (
+      <PDFLoading>
+        <CalendarDays size={40} opacity={0.4} />
+        <div>אין תמונת שער</div>
       </PDFLoading>
     );
   }
@@ -742,33 +755,16 @@ function PDFCover({ pdfUrl, title, shouldLoad }) {
         error={
           <PDFLoading>
             <CalendarDays size={40} opacity={0.4} />
-            <div>שגיאה בטעינת שער</div>
-            {retryCount < 2 && (
-              <button
-                onClick={() => {
-                  setRetryCount(prev => prev + 1);
-                }}
-                style={{
-                  marginTop: '0.5rem',
-                  padding: '0.25rem 0.75rem',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '4px',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '0.75rem'
-                }}
-              >
-                נסה שוב
-              </button>
-            )}
+            <div>אין תמונת שער</div>
           </PDFLoading>
         }
         options={memoizedOptions}
         onLoadError={(error) => {
-          console.error('PDF load error:', error);
+          // Cache this URL as failed to prevent future attempts
+          failedPdfUrls.add(pdfUrl);
+          setFailed(true);
+          console.warn('PDF cover load error:', pdfUrl);
         }}
-        key={retryCount}
       >
         <Page
           pageNumber={1}
@@ -797,7 +793,7 @@ export default function IssuesList({ showAdvertiserActions = true, showReaderNav
     (async () => {
       try {
         setLoading(true);
-        const rows = await getIssues(1, 100, true); // publishedOnly=true - רק גליונות שפורסמו
+        const rows = await getIssues(1, 20, true); // publishedOnly=true - רק גליונות שפורסמו, 20 לדף לטעינה מהירה
         if (!on) return;
         rows.sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate));
         setIssues(rows);

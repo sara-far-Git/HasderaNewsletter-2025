@@ -262,7 +262,7 @@ export default function SearchModal({ isOpen, onClose, onSelectIssue }) {
   const loadIssues = async () => {
     try {
       setLoading(true);
-      const data = await getIssues(1, 100, true);
+      const data = await getIssues(1, 30, true); // הפחתה ל-30 לטעינה מהירה
       setIssues(data || []);
     } catch (error) {
       console.error("Error loading issues:", error);

@@ -101,7 +101,7 @@ export const api = axios.create({
   },
   // Default off; enable explicitly only when using cookie auth.
   withCredentials,
-  timeout: Number(import.meta.env.VITE_API_TIMEOUT_MS || 30000),
+  timeout: Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000), // 15 שניות timeout מהיר יותר
 });
 
 try {
@@ -186,10 +186,19 @@ api.interceptors.response.use(
 );
 
 // ——— Retry Logic ———
-axiosRetry(api, { 
-  retries: 3,
-  retryDelay: axiosRetry.exponentialDelay,
+axiosRetry(api, {
+  retries: 2, // הפחתה ל-2 ניסיונות לטעינה מהירה יותר
+  retryDelay: (retryCount) => {
+    // exponential backoff: 1s, 2s (במקום 1s, 2s, 4s)
+    return Math.min(1000 * Math.pow(2, retryCount - 1), 2000);
+  },
   retryCondition: (error) => {
+    // לא לעשות retry על שגיאות 4xx (כולל 404) - רק על שגיאות רשת
+    const status = error.response?.status;
+    if (status && status >= 400 && status < 500) {
+      return false; // לא לנסות שוב על 404, 401, 403 וכו'
+    }
+
     const method = (error.config?.method || "get").toLowerCase();
     const canRetry = method === "get" || method === "head" || method === "options";
     return (
