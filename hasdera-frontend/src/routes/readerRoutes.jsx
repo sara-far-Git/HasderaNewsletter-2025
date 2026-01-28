@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import FlipCanvasViewer from "../components/FlipCanvasViewer";
 import FlipIssue from "../components/FlipIssue";
@@ -15,21 +15,21 @@ function IssueViewer() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const [summary, setSummary] = useState(state?.Summary || state?.summary || null);
-  
+
   console.log("📖 IssueViewer - received state:", state);
-  
-  const handleClose = () => {
+
+  const handleClose = useCallback(() => {
     navigate("/issues");
-  };
-  
-  // אם אין state, נחזיר למסך הגליונות
-  if (!state) {
-    handleClose();
-    return null;
-  }
+  }, [navigate]);
 
   // טוען Summary מלא מהשרת כדי לאפשר קישורים על גבי העיתון
+  // Hook חייב להיקרא לפני כל return מותנה
   useEffect(() => {
+    if (!state) {
+      handleClose();
+      return;
+    }
+
     if (!summary && state.issue_id) {
       (async () => {
         try {
@@ -40,7 +40,12 @@ function IssueViewer() {
         }
       })();
     }
-  }, [summary, state?.issue_id]);
+  }, [summary, state, handleClose]);
+
+  // אם אין state, נחזיר null (הניווט מתבצע ב-useEffect)
+  if (!state) {
+    return null;
+  }
   
   // יצירת אובייקט issue בפורמט שהקומפוננטה מצפה לו
   const issue = {

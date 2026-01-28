@@ -7,7 +7,7 @@ const DEFAULT_DEV_API_BASEURL = "http://localhost:5055/api";
 
 // Version stamp to verify which bundle is running in production.
 // Keep this in sync with the latest deployment commit when debugging.
-export const API_CLIENT_VERSION = "9b63c05";
+export const API_CLIENT_VERSION = "merged-conflicts-resolved";
 try {
   // Expose for quick checks in DevTools: window.__HASDERA_API_CLIENT_VERSION
   window.__HASDERA_API_CLIENT_VERSION = API_CLIENT_VERSION;
@@ -101,7 +101,7 @@ export const api = axios.create({
   },
   // Default off; enable explicitly only when using cookie auth.
   withCredentials,
-  timeout: Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000),
+  timeout: Number(import.meta.env.VITE_API_TIMEOUT_MS || 30000),
 });
 
 try {
@@ -186,16 +186,24 @@ api.interceptors.response.use(
 );
 
 // ——— Retry Logic ———
-axiosRetry(api, { 
-  retries: 3,
-  retryDelay: axiosRetry.exponentialDelay,
+axiosRetry(api, {
+  retries: 2, // 2 ניסיונות נוספים (סה"כ 3)
+  retryDelay: (retryCount) => {
+    // המתנה קצרה בין ניסיונות: 1s, 2s
+    return retryCount * 1000;
+  },
   retryCondition: (error) => {
     const method = (error.config?.method || "get").toLowerCase();
     const canRetry = method === "get" || method === "head" || method === "options";
     return (
       canRetry &&
-      (axiosRetry.isNetworkOrIdempotentRequestError(error) || error.code === "ECONNABORTED")
+      (axiosRetry.isNetworkOrIdempotentRequestError(error) || 
+       error.code === "ECONNABORTED" ||
+       error.code === "ETIMEDOUT")
     );
+  },
+  onRetry: (retryCount, error, requestConfig) => {
+    console.log(`🔄 Retry attempt ${retryCount} for ${requestConfig.url} (${error.code || error.message})`);
   }
 });
 

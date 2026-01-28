@@ -4,9 +4,9 @@
  * מעוצב כמו אזור המפרסמים
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FileEdit, Users, Image, Layout, FileText, CheckCircle, Clock, Edit } from 'lucide-react';
+import { FileEdit, Users, Image, Layout, FileText, Edit, Plus, Trash2, X, FolderOpen, Loader2 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import AdminSections from './AdminSections';
 
@@ -267,7 +267,7 @@ const EmptyState = styled.div`
   animation: ${fadeInUp} 0.8s ease-out;
   animation-delay: 0.6s;
   animation-fill-mode: both;
-  
+
   svg {
     width: 64px;
     height: 64px;
@@ -275,6 +275,267 @@ const EmptyState = styled.div`
     opacity: 0.5;
     display: block;
   }
+`;
+
+// 🎨 Modal Overlay
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: ${fadeIn} 0.3s ease-out;
+`;
+
+const Modal = styled.div`
+  background: linear-gradient(135deg, rgba(30, 30, 40, 0.95) 0%, rgba(20, 20, 30, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  animation: ${fadeInUp} 0.3s ease-out;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const ModalTitle = styled.h2`
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: white;
+  margin: 0;
+`;
+
+const CloseButton = styled.button`
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+
+  &:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: white;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #10b981;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+`;
+
+const ModalButton = styled.button`
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  ${props => props.$primary ? `
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    color: white;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+  ` : `
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.05);
+    }
+  `}
+
+  ${props => props.$danger && `
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border: none;
+    color: white;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+    }
+  `}
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+`;
+
+const CategoryCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: translateY(-4px);
+  }
+`;
+
+const CategoryIcon = styled.div`
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+
+  svg {
+    width: 28px;
+    height: 28px;
+    color: white;
+  }
+`;
+
+const CategoryName = styled.h3`
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: white;
+  margin: 0 0 0.5rem 0;
+`;
+
+const CategoryStats = styled.div`
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+`;
+
+const CategoryActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+`;
+
+const IconButton = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.625rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: ${props => props.$danger ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.3)'};
+    color: ${props => props.$danger ? '#ef4444' : '#10b981'};
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const LoadingSpinner = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  color: rgba(255, 255, 255, 0.7);
+
+  svg {
+    width: 48px;
+    height: 48px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const ErrorMessage = styled.div`
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
 `;
 
 export default function ContentManagement() {
@@ -311,6 +572,99 @@ export default function ContentManagement() {
       wordCount: 500,
     },
   ]);
+
+  // State for categories management
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryName, setCategoryName] = useState('');
+  const [categoryError, setCategoryError] = useState('');
+  const [savingCategory, setSavingCategory] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+
+  // Load categories when switching to sections tab
+  useEffect(() => {
+    if (activeTab === 'sections') {
+      loadCategories();
+    }
+  }, [activeTab]);
+
+  const loadCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const openCreateModal = () => {
+    setEditingCategory(null);
+    setCategoryName('');
+    setCategoryError('');
+    setShowCategoryModal(true);
+  };
+
+  const openEditModal = (category) => {
+    setEditingCategory(category);
+    setCategoryName(category.name);
+    setCategoryError('');
+    setShowCategoryModal(true);
+  };
+
+  const closeModal = () => {
+    setShowCategoryModal(false);
+    setEditingCategory(null);
+    setCategoryName('');
+    setCategoryError('');
+  };
+
+  const handleSaveCategory = async () => {
+    if (!categoryName.trim()) {
+      setCategoryError('נא להזין שם מדור');
+      return;
+    }
+
+    setSavingCategory(true);
+    setCategoryError('');
+
+    try {
+      if (editingCategory) {
+        await updateCategory(editingCategory.categoryId, categoryName.trim());
+      } else {
+        await createCategory(categoryName.trim());
+      }
+      await loadCategories();
+      closeModal();
+    } catch (err) {
+      setCategoryError(err.message || 'שגיאה בשמירת המדור');
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const openDeleteModal = (category) => {
+    setCategoryToDelete(category);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+
+    try {
+      await deleteCategory(categoryToDelete.categoryId);
+      await loadCategories();
+      setShowDeleteModal(false);
+      setCategoryToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete category:', err);
+    }
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -411,6 +765,90 @@ export default function ContentManagement() {
           </EmptyState>
         )}
       </Container>
+
+      {/* Modal for creating/editing category */}
+      {showCategoryModal && (
+        <ModalOverlay onClick={closeModal}>
+          <Modal onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>
+                {editingCategory ? 'עריכת מדור' : 'מדור חדש'}
+              </ModalTitle>
+              <CloseButton onClick={closeModal}>
+                <X />
+              </CloseButton>
+            </ModalHeader>
+
+            <Input
+              type="text"
+              placeholder="שם המדור"
+              value={categoryName}
+              onChange={(e) => {
+                setCategoryName(e.target.value);
+                setCategoryError('');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !savingCategory) {
+                  handleSaveCategory();
+                }
+              }}
+              autoFocus
+            />
+            {categoryError && <ErrorMessage>{categoryError}</ErrorMessage>}
+
+            <ModalActions>
+              <ModalButton onClick={closeModal}>ביטול</ModalButton>
+              <ModalButton
+                $primary
+                onClick={handleSaveCategory}
+                disabled={savingCategory}
+              >
+                {savingCategory ? (
+                  <>
+                    <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                    שומר...
+                  </>
+                ) : (
+                  <>
+                    {editingCategory ? 'שמירה' : 'יצירה'}
+                  </>
+                )}
+              </ModalButton>
+            </ModalActions>
+          </Modal>
+        </ModalOverlay>
+      )}
+
+      {/* Modal for confirming delete */}
+      {showDeleteModal && categoryToDelete && (
+        <ModalOverlay onClick={() => setShowDeleteModal(false)}>
+          <Modal onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>מחיקת מדור</ModalTitle>
+              <CloseButton onClick={() => setShowDeleteModal(false)}>
+                <X />
+              </CloseButton>
+            </ModalHeader>
+
+            <p style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: 1.6 }}>
+              האם אתה בטוח שברצונך למחוק את המדור <strong>"{categoryToDelete.name}"</strong>?
+              {categoryToDelete.articleCount > 0 && (
+                <span style={{ display: 'block', marginTop: '0.5rem', color: '#f59e0b' }}>
+                  שים לב: {categoryToDelete.articleCount} כתבות משויכות למדור זה יישארו ללא מדור.
+                </span>
+              )}
+            </p>
+
+            <ModalActions>
+              <ModalButton onClick={() => setShowDeleteModal(false)}>ביטול</ModalButton>
+              <ModalButton $danger onClick={handleDeleteCategory}>
+                <Trash2 size={18} />
+                מחיקה
+              </ModalButton>
+            </ModalActions>
+          </Modal>
+        </ModalOverlay>
+      )}
     </AdminLayout>
   );
 }

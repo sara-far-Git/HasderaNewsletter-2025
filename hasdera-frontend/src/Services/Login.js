@@ -4,24 +4,49 @@ import axios from "axios";
 
 const DIRECT_API_BASEURL = "https://hasderanewsletter-2025.onrender.com/api";
 
+// עוטף שגיאות עם הודעות ידידותיות למשתמש
+function wrapLoginError(error, defaultMsg) {
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+    const customError = new Error('השרת לא מגיב. נסה שוב מאוחר יותר.');
+    customError.isTimeout = true;
+    customError.originalError = error;
+    throw customError;
+  }
+  if (error.code === 'ERR_NETWORK' || !error.response) {
+    const customError = new Error('בעיית חיבור לשרת. בדוק את חיבור האינטרנט.');
+    customError.isNetwork = true;
+    customError.originalError = error;
+    throw customError;
+  }
+  throw error;
+}
+
 export async function login(email, password) {
-  const res = await api.post("/User/login", { email, password });
-  return res.data; // { token, user }
+  try {
+    const res = await api.post("/User/login", { email, password });
+    return res.data; // { token, user }
+  } catch (error) {
+    wrapLoginError(error, 'שגיאה בהתחברות');
+  }
 }
 
 export async function register(fullName, email, password, role) {
-  const res = await api.post("/User/register", {
-    fullName,
-    email,
-    password,
-    role,
-  });
-  return res.data;
+  try {
+    const res = await api.post("/User/register", {
+      fullName,
+      email,
+      password,
+      role,
+    });
+    return res.data;
+  } catch (error) {
+    wrapLoginError(error, 'שגיאה בהרשמה');
+  }
 }
 
 export async function loginWithGoogle(idToken, role = null) {
   if (!idToken || typeof idToken !== 'string') {
-    throw new Error('Invalid Google token provided');
+    throw new Error('לא התקבל טוקן מגוגל');
   }
 
   const payload = role ? { idToken, role } : { idToken };
@@ -34,7 +59,7 @@ export async function loginWithGoogle(idToken, role = null) {
       const direct = await axios.post(`${DIRECT_API_BASEURL}/User/google-login`, payload);
       return direct.data;
     }
-    throw err;
+    wrapLoginError(err, 'שגיאה בהתחברות עם גוגל');
   }
 }
 
